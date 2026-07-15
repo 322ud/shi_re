@@ -1,0 +1,24 @@
+#myx-root {
+	padding: 24px;
+}
+
+.myx-container {
+	max-width: 900px;
+	background: white;
+	padding: 24px;
+	border-radius: 12px;
+	box-sizing: border-box;
+}
+
+button {
+	padding: 10px 18px;
+	font-size: 16px;
+	cursor: pointer;
+}
+
+pre {
+	background: #f4f4f4;
+	padding: 12px;
+	min-height: 120px;
+	white-space: pre-wrap;
+}

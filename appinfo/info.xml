@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>my_xrechnung</id>
+    <name>meine X-Rechnung</name>
+    <summary>erstellt neue X-Rechnung</summary>
+    <description>fragt Parameter in GUI ab, setzt diese in XML- und ODT-Templates, druckt in PDF und bindet XML ein</description>
+    <version>0.1.0</version>
+    <licence>AGPL-3.0-or-later</licence>
+    <author>Frank Busse</author>
+    <namespace>MyXRechnung</namespace>
+    <category>tools</category>
+    <dependencies>
+        <nextcloud min-version="33" max-version="34W"/>
+    </dependencies>
+
+    <navigations>
+      <navigation>
+        <name>meine X-Rechnung</name>
+        <route>my_xrechnung.page.index</route>
+        <icon>app.svg</icon>
+        <order>10</order>
+      </navigation>
+    </navigations>
+
+</info>
