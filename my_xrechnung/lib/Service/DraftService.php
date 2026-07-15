@@ -153,15 +153,21 @@ final class DraftService {
     private function readUnlocked(): ?array {
         $folder = $this->appData->getFolder('/');
 
-        if (!$folder->fileExists(AppFiles::DraftFile)) {
+        try {
+            if (!$folder->fileExists(AppFiles::DraftFile)) {
+                return null;
+            }
+            $file = $folder->getFile(AppFiles::DraftFile);
+            $json = $file->getContent();
+        } catch (\Throwable $e) {
             return null;
         }
 
-        $json = $folder->getFile(AppFiles::DraftFile)->getContent();
         $data = json_decode($json, true);
 
         if (!is_array($data)) {
-            throw new \RuntimeException('Draft-Datei enthält kein gültiges JSON.');
+            $this->deleteUnlocked();
+            return null;
         }
 
         return $data;
@@ -175,18 +181,27 @@ final class DraftService {
             throw new \RuntimeException('Draft konnte nicht als JSON serialisiert werden.');
         }
 
-        if ($folder->fileExists(AppFiles::DraftFile)) {
-            $folder->getFile(AppFiles::DraftFile)->putContent($json);
-        } else {
-            $folder->newFile(AppFiles::DraftFile, $json);
+        try {
+            if ($folder->fileExists(AppFiles::DraftFile)) {
+                $folder->getFile(AppFiles::DraftFile)->putContent($json);
+                return;
+            }
+        } catch (\Throwable $e) {
+            // stale AppData-Referenz ignorieren und Datei neu anlegen
         }
+
+        $folder->newFile(AppFiles::DraftFile, $json);
     }
 
     private function deleteUnlocked(): void {
         $folder = $this->appData->getFolder('/');
 
-        if ($folder->fileExists(AppFiles::DraftFile)) {
-            $folder->getFile(AppFiles::DraftFile)->delete();
+        try {
+            if ($folder->fileExists(AppFiles::DraftFile)) {
+                $folder->getFile(AppFiles::DraftFile)->delete();
+            }
+        } catch (\Throwable $e) {
+            // Datei ist bereits physisch weg oder AppData-Referenz ist stale
         }
     }
 

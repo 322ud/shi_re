@@ -17,37 +17,38 @@
         NS.state.xmlInvoiceFile = data.xmlInvoiceFile || null;
         NS.state.ramID = data.ramID || null;
 
-        NS.showXmlInvoice();
+
+
+        NS.log(
+            'XML-Rechnung erstellt: Datei ' +
+            NS.state.xmlInvoiceFile +
+            ', Rechnungsnummer ' +
+            NS.state.ramID
+        );
+
+        await NS.showXmlValidation();
     };
 
-    NS.showXmlInvoice = function () {
+    NS.showXmlValidation = async function () {
         const input = NS.inputArea();
         NS.clear(input);
-        input.className = 'myx-xml-invoice-result';
+        input.className = 'myx-xml-validation-result';
 
-        input.appendChild(NS.make('h1', {}, 'XML-Rechnung erstellt'));
+        const data = await NS.post('/en16931/validateXmlInvoice');
 
-        input.appendChild(NS.make(
-            'p',
-            {},
-            'Die XML-Rechnung wurde erstellt und gespeichert.'
-        ));
+        NS.log(
+            data.valid
+            ? 'XML-Datei ist valide'
+            : 'XML-Datei ist nicht valide'
+        );
 
-        if (NS.state.xmlInvoiceFile) {
-            input.appendChild(NS.make(
-                'p',
-                {},
-                'Datei: ' + NS.state.xmlInvoiceFile
-            ));
-        }
+        const frame = NS.make('iframe', {
+            class: 'myx-validation-frame',
+            sandbox: '',
+        });
 
-        if (NS.state.ramID) {
-            input.appendChild(NS.make(
-                'p',
-                {},
-                'Rechnungsnummer: ' + NS.state.ramID
-            ));
-        }
+        frame.srcdoc = data.html || '<p>Keine Validator-Ausgabe vorhanden.</p>';
+        input.appendChild(frame);
 
         const actions = NS.make('div', { class: 'myx-actions' });
         actions.appendChild(NS.button('Zurück', NS.showInvoiceForm));
