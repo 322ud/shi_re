@@ -41,13 +41,13 @@
                 name: seed.firstItem?.name || '',
                 description: '',
                 quantity: 1,
-                unitPrice: Number(seed.firstItem?.unitPrice || 0),
+                unitPrice: NS.parseAmount(seed.firstItem?.unitPrice || 0),
             }],
 
-            vatRate: 19,
+            vatRate: NS.parseAmount(seed.firstItem?.vatRate || 19),
             expenses: [],
             due: 'sofort',
-            dueDate: '',
+            dueDate: NS.state.todayText,
         };
     };
 

@@ -177,6 +177,12 @@ class EN16931Controller extends Controller {
                     /ram:NetPriceProductTradePrice
                     /ram:ChargeAmount)[1]'
                 ) ?? '',
+                'vatRate' => $this->domService->getValue(
+                    '(//ram:IncludedSupplyChainTradeLineItem
+                    /ram:SpecifiedLineTradeSettlement
+                    /ram:ApplicableTradeTax
+                    /ram:RateApplicablePercent)[1]'
+                ) ?? '',
             ],
         ];
     }

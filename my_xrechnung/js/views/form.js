@@ -10,11 +10,12 @@
 
         input.appendChild(NS.make('div', { id: 'myx-bg-icon' }));
 
+        const firstItemName = NS.state.invoiceData.items[0]?.name || '';
         input.appendChild(
             NS.make(
                 'h1',
                 {},
-                'Neue Rechnung Nr. ' + NS.state.ramID + ' vom ' + NS.state.todayText
+                'Neue Rechnung "' + firstItemName + '" Nr. ' + NS.state.ramID + ' vom ' + NS.state.todayText
             )
         );
 
@@ -51,42 +52,9 @@
             table.appendChild(NS.vatRow());
         }
 
-        table.appendChild(NS.postenButtonRow('Posten mit MwSt', function () {
-            NS.collectFormData();
-            NS.state.invoiceData.items.push({
-                name: '',
-                description: '',
-                quantity: 1,
-                unitPrice: 0,
-            });
-            NS.showInvoiceForm();
-        }));
-
-        NS.state.invoiceData.expenses.forEach(function (expense) {
-            table.appendChild(NS.expenseRow(expense));
-        });
-
-        table.appendChild(NS.postenButtonRow('Posten ohne MwSt', function () {
-            NS.collectFormData();
-            NS.state.invoiceData.expenses.push({
-                name: '',
-                description: '',
-                quantity: 1,
-                unitPrice: 0,
-            });
-            NS.showInvoiceForm();
-        }));
-
         table.appendChild(NS.grandTotalRow());
 
         form.appendChild(table);
-
-        form.appendChild(NS.make('h2', {}, 'Fälligkeit'));
-
-        const dueWrap = NS.make('div', { class: 'myx-due-row' });
-        dueWrap.appendChild(NS.field('Fällig', 'due', NS.state.invoiceData.due));
-        dueWrap.appendChild(NS.field('Datum', 'dueDate', NS.state.invoiceData.dueDate || NS.todayISO(), 'date'));
-        form.appendChild(dueWrap);
 
         const actions = NS.make('div', { class: 'myx-actions' });
         actions.appendChild(NS.button('Rechnung erstellen', NS.createXmlInvoice, 'myx-primary'));
@@ -103,10 +71,8 @@
     NS.postenHeaderRow = function () {
         const row = NS.make('div', { class: 'myx-row myx-header-row' });
 
-        row.appendChild(NS.make('div', {}, 'Bezeichnung'));
         row.appendChild(NS.make('div', {}, 'Beschreibung'));
         row.appendChild(NS.make('div', {}, 'Menge'));
-        row.appendChild(NS.make('div', {}, 'Einzelpreis'));
         row.appendChild(NS.make('div', {}, 'Summe'));
 
         return row;
@@ -115,25 +81,14 @@
     NS.vatRow = function () {
         const row = NS.make('div', { class: 'myx-row myx-vat-table-row' });
 
-        const text = NS.make('div', { class: 'myx-vat-text' });
-        text.appendChild(
-            document.createTextNode('zuzüglich der gesetzlichen Mehrwertsteuer von')
+        const text = NS.make('div', { class: 'myx-vat-text' },
+            'zuzüglich der gesetzlichen Mehrwertsteuer von ' +
+            NS.formatAmount(NS.state.invoiceData.vatRate) +
+            ' % in Höhe von'
         );
 
         row.appendChild(text);
-        row.appendChild(NS.numberField('MwSt', 'vatRate', NS.state.invoiceData.vatRate));
-        row.appendChild(NS.make('div', { class: 'myx-vat-percent' }, '% in Höhe von'));
         row.appendChild(NS.readonlyAmount('Steuerbetrag', 'myx-vat-total'));
-
-        return row;
-    };
-
-    NS.postenButtonRow = function (label, handler) {
-        const row = NS.make('div', { class: 'myx-row myx-button-row' });
-        const cell = NS.make('div', { class: 'myx-button-cell' });
-
-        cell.appendChild(NS.button(label, handler));
-        row.appendChild(cell);
 
         return row;
     };
@@ -163,10 +118,8 @@
     NS.itemRow = function (item) {
         const row = NS.make('div', { class: 'myx-row myx-item-row' });
 
-        row.appendChild(NS.field('Bezeichnung', 'item.name', item.name));
         row.appendChild(NS.field('Beschreibung', 'item.description', item.description));
         row.appendChild(NS.decimalField('Menge', 'item.quantity', item.quantity));
-        row.appendChild(NS.amountField('Einzelpreis', 'item.unitPrice', item.unitPrice));
         row.appendChild(NS.readonlyAmount('Summe', 'myx-line-net'));
 
         return row;
@@ -196,12 +149,14 @@
         const itemRows = Array.from(document.querySelectorAll('.myx-item-row'));
         const expenseRows = Array.from(document.querySelectorAll('.myx-expense-row'));
 
-        const items = itemRows.map(function (row) {
+        const items = itemRows.map(function (row, index) {
+            const previous = NS.state.invoiceData.items[index] || {};
+
             return {
-                name: row.querySelector('[name="item.name"]').value,
+                name: previous.name || '',
                 description: row.querySelector('[name="item.description"]').value,
                 quantity: NS.parseAmount(row.querySelector('[name="item.quantity"]').value),
-                unitPrice: NS.parseAmount(row.querySelector('[name="item.unitPrice"]').value),
+                unitPrice: NS.parseAmount(previous.unitPrice || 0),
             };
         });
 
@@ -209,7 +164,7 @@
             return {
                 name: row.querySelector('[name="expense.name"]').value,
                 description: row.querySelector('[name="expense.description"]').value,
-                quantity: Number(row.querySelector('[name="expense.quantity"]').value || 0),
+                quantity: NS.parseAmount(row.querySelector('[name="expense.quantity"]').value || 0),
                 unitPrice: NS.parseAmount(row.querySelector('[name="expense.unitPrice"]').value),
             };
         });
@@ -224,12 +179,10 @@
                 reference: fd.get('buyer.reference') || '',
             },
             items: items,
-            vatRate: fd.has('vatRate')
-            ? Number(fd.get('vatRate') || 0)
-            : Number(NS.state.invoiceData.vatRate || 19),
+            vatRate: NS.parseAmount(NS.state.invoiceData.vatRate || 19),
             expenses: expenses,
-            due: fd.get('due') || 'sofort',
-            dueDate: fd.get('dueDate') || '',
+            due: NS.state.invoiceData.due || 'sofort',
+            dueDate: NS.state.todayText,
         };
 
         return NS.state.invoiceData;
@@ -242,14 +195,14 @@
 
         const data = NS.collectFormData();
 
-        document.querySelectorAll('.myx-item-row').forEach(function (row) {
-            const q = Number(row.querySelector('[name="item.quantity"]').value || 0);
-            const p = NS.parseAmount(row.querySelector('[name="item.unitPrice"]').value);
-            row.querySelector('.myx-line-net').textContent = NS.money(q * p);
+        document.querySelectorAll('.myx-item-row').forEach(function (row, index) {
+            const item = data.items[index] || {}
+            row.querySelector('.myx-line-net').textContent =
+                NS.money(NS.parseAmount(item.quantity || 0) * NS.parseAmount(item.unitPrice || 0));
         });
 
         document.querySelectorAll('.myx-expense-row').forEach(function (row) {
-            const q = Number(row.querySelector('[name="expense.quantity"]').value || 0);
+            const q = NS.parseAmount(row.querySelector('[name="expense.quantity"]').value || 0);
             const p = NS.parseAmount(row.querySelector('[name="expense.unitPrice"]').value);
             row.querySelector('.myx-expense-net').textContent = NS.money(q * p);
         });
