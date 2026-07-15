@@ -96,11 +96,93 @@
         return wrap;
     };
 
+    NS.amountField = function (labelText, name, value = '') {
+        const wrap = NS.make('label', {
+            class: 'myx-field myx-currency-field',
+        });
+
+        wrap.appendChild(NS.make('span', {}, labelText));
+
+        const box = NS.make('div', {
+            class: 'myx-currency-input-wrap',
+        });
+
+        const inp = NS.make('input', {
+            type: 'text',
+            inputmode: 'decimal',
+            name: name,
+            value: NS.formatAmount(value),
+                            class: 'myx-money-input',
+        });
+
+        inp.addEventListener('blur', function () {
+            inp.value = NS.formatAmount(inp.value);
+        });
+
+        const euro = NS.make('span', {
+            class: 'myx-currency-symbol',
+        });
+
+        euro.textContent = '€';
+
+        box.appendChild(inp);
+        box.appendChild(euro);
+
+        wrap.appendChild(box);
+
+        return wrap;
+    };
+
+    NS.decimalField = function (labelText, name, value = '') {
+        const wrap = NS.make('label', {
+            class: 'myx-field',
+        });
+
+        wrap.appendChild(NS.make('span', {}, labelText));
+
+        const inp = NS.make('input', {
+            type: 'text',
+            inputmode: 'decimal',
+            name: name,
+            value: NS.formatAmount(value),
+        });
+
+        inp.addEventListener('blur', function () {
+            inp.value = NS.formatAmount(inp.value);
+        });
+
+        wrap.appendChild(inp);
+
+        return wrap;
+    };
+
+    NS.parseAmount = function (value) {
+        if (value === null || value === undefined) {
+            return 0;
+        }
+
+        const normalized = String(value)
+        .replace('€', '')
+        .replace(/\s/g, '')
+        .replace(',', '.');
+
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    NS.formatAmount = function (value) {
+        return NS.parseAmount(value).toFixed(2).replace('.', ',');
+    };
+
+    NS.money = function (value) {
+        return NS.formatAmount(value) + ' €';
+    };
+
     NS.readonlyAmount = function (labelText, className) {
         const wrap = NS.make('label', { class: 'myx-field myx-amount' });
         wrap.appendChild(NS.make('span', {}, labelText));
 
-        const out = NS.make('output', { class: className }, '0.00');
+        const out = NS.make('output', { class: className }, '0,00 €');
         wrap.appendChild(out);
 
         return wrap;

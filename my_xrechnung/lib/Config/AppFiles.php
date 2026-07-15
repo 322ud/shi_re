@@ -18,6 +18,10 @@ final class AppFiles {
     // createdAt und lastSeenAt.
     public const DraftFile = 'draft.json';
 
+    // Persistente Rechnungsvorlage in Appdata. Neue Rechnungnummer und
+    // reduziert auf einen Rechnungsposten
+    public const DraftXmlFile = 'draft.xml';
+
     // Technische flock()-Datei. Sie dient nur für kurze kritische Bereiche.
     public const DraftLockFile = 'draft.lock';
 }

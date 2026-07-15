@@ -165,8 +165,8 @@
 
         row.appendChild(NS.field('Bezeichnung', 'item.name', item.name));
         row.appendChild(NS.field('Beschreibung', 'item.description', item.description));
-        row.appendChild(NS.numberField('Menge', 'item.quantity', item.quantity));
-        row.appendChild(NS.numberField('Einzelpreis', 'item.unitPrice', item.unitPrice));
+        row.appendChild(NS.decimalField('Menge', 'item.quantity', item.quantity));
+        row.appendChild(NS.amountField('Einzelpreis', 'item.unitPrice', item.unitPrice));
         row.appendChild(NS.readonlyAmount('Summe', 'myx-line-net'));
 
         return row;
@@ -178,7 +178,7 @@
         row.appendChild(NS.field('Bezeichnung', 'expense.name', expense.name));
         row.appendChild(NS.field('Beschreibung', 'expense.description', expense.description));
         row.appendChild(NS.numberField('Menge', 'expense.quantity', expense.quantity));
-        row.appendChild(NS.numberField('Einzelpreis', 'expense.unitPrice', expense.unitPrice));
+        row.appendChild(NS.amountField('Einzelpreis', 'expense.unitPrice', expense.unitPrice));
         row.appendChild(NS.readonlyAmount('Summe', 'myx-expense-net'));
 
         return row;
@@ -199,37 +199,37 @@
         const items = itemRows.map(function (row) {
             return {
                 name: row.querySelector('[name="item.name"]').value,
-                                   description: row.querySelector('[name="item.description"]').value,
-                                   quantity: Number(row.querySelector('[name="item.quantity"]').value || 0),
-                                   unitPrice: Number(row.querySelector('[name="item.unitPrice"]').value || 0),
+                description: row.querySelector('[name="item.description"]').value,
+                quantity: NS.parseAmount(row.querySelector('[name="item.quantity"]').value),
+                unitPrice: NS.parseAmount(row.querySelector('[name="item.unitPrice"]').value),
             };
         });
 
         const expenses = expenseRows.map(function (row) {
             return {
                 name: row.querySelector('[name="expense.name"]').value,
-                                         description: row.querySelector('[name="expense.description"]').value,
-                                         quantity: Number(row.querySelector('[name="expense.quantity"]').value || 0),
-                                         unitPrice: Number(row.querySelector('[name="expense.unitPrice"]').value || 0),
+                description: row.querySelector('[name="expense.description"]').value,
+                quantity: Number(row.querySelector('[name="expense.quantity"]').value || 0),
+                unitPrice: NS.parseAmount(row.querySelector('[name="expense.unitPrice"]').value),
             };
         });
 
         NS.state.invoiceData = {
             buyer: {
                 name: fd.get('buyer.name') || '',
- street: fd.get('buyer.street') || '',
- postcode: fd.get('buyer.postcode') || '',
- city: fd.get('buyer.city') || '',
- country: fd.get('buyer.country') || 'DE',
- reference: fd.get('buyer.reference') || '',
+                street: fd.get('buyer.street') || '',
+                postcode: fd.get('buyer.postcode') || '',
+                city: fd.get('buyer.city') || '',
+                country: fd.get('buyer.country') || 'DE',
+                reference: fd.get('buyer.reference') || '',
             },
             items: items,
             vatRate: fd.has('vatRate')
             ? Number(fd.get('vatRate') || 0)
             : Number(NS.state.invoiceData.vatRate || 19),
- expenses: expenses,
- due: fd.get('due') || 'sofort',
- dueDate: fd.get('dueDate') || '',
+            expenses: expenses,
+            due: fd.get('due') || 'sofort',
+            dueDate: fd.get('dueDate') || '',
         };
 
         return NS.state.invoiceData;
@@ -244,13 +244,13 @@
 
         document.querySelectorAll('.myx-item-row').forEach(function (row) {
             const q = Number(row.querySelector('[name="item.quantity"]').value || 0);
-            const p = Number(row.querySelector('[name="item.unitPrice"]').value || 0);
+            const p = NS.parseAmount(row.querySelector('[name="item.unitPrice"]').value);
             row.querySelector('.myx-line-net').textContent = NS.money(q * p);
         });
 
         document.querySelectorAll('.myx-expense-row').forEach(function (row) {
             const q = Number(row.querySelector('[name="expense.quantity"]').value || 0);
-            const p = Number(row.querySelector('[name="expense.unitPrice"]').value || 0);
+            const p = NS.parseAmount(row.querySelector('[name="expense.unitPrice"]').value);
             row.querySelector('.myx-expense-net').textContent = NS.money(q * p);
         });
 

@@ -76,6 +76,72 @@ class DomService {
     }
 
     /**
+     * Lädt die unveränderte EN16931-Template-XML aus dem App-Konfigurationsbereich.
+     *
+     * Diese Methode liefert immer einen neuen DOMDocument-Zustand auf Basis
+     * der Vorlage. Die geladene XML enthält noch keine laufende Rechnungsnummer
+     * (ramID), keine GUI-Daten und keine vom Benutzer erzeugten Positionen.
+     *
+     * Verwendet in:
+     * - draft()
+     *
+     * Ablauf:
+     * 1. Template-XML lesen
+     * 2. DOMDocument erzeugen
+     * 3. XML in den DOM laden
+     * 4. vorbereiteten DOM zurückgeben
+     *
+     * Die weitere Initialisierung (IncRamID, StripItems usw.) erfolgt bewusst
+     * außerhalb des DomService, damit die fachliche Logik getrennt bleibt.
+     */
+    public function loadTemplate(): DOMDocument {
+        $xml = $this->readTemplateXml();
+
+        $dom = new DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        $dom->formatOutput = false;
+
+        if (!$dom->loadXML($xml)) {
+            throw new \RuntimeException('Kann EN16931 Template-XML nicht laden.');
+        }
+
+        return $dom;
+    }
+
+   /**
+    * Speichert einen vollständigen DOM-Zustand als XML-Datei im AppData-Bereich.
+    *
+    * Die Methode kennt keine fachliche Bedeutung der XML. Sie übernimmt lediglich
+    * die Persistierung eines bereits aufgebauten DOMDocument.
+    *
+    * Verwendet für:
+    * - draft.xml (vorbereiteter Entwurfszustand)
+    * - en16931.xml (fertige Rechnung)
+    *
+    * Der Aufrufer entscheidet:
+    * - welche XML gespeichert wird
+    * - unter welchem Dateinamen gespeichert wird
+    * - ob es sich um einen Entwurf oder eine finale Rechnung handelt
+    *
+    * Existiert die Zieldatei bereits, wird sie überschrieben.
+    */
+    public function saveDom(DOMDocument $dom, string $fileName): void {
+        $xml = $dom->saveXML();
+
+        if ($xml === false) {
+            throw new \RuntimeException('Kann EN16931 XML nicht serialisieren.');
+        }
+
+        $folder = $this->appData->getFolder('/');
+
+        if ($folder->fileExists($fileName)) {
+            $folder->getFile($fileName)->putContent($xml);
+        } else {
+            $folder->newFile($fileName, $xml);
+        }
+    }
+
+    /**
      * Gibt die vorhandene Arbeits-XML zurück oder initialisiert sie aus dem Template.
      */
     private function readOrCreateXml(): string {

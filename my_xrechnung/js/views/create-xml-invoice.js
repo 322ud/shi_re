@@ -12,7 +12,10 @@
             totals: totals,
         });
 
-        NS.state.xmlInvoiceCreated = data.xmlInvoiceUrl || null;
+        NS.stopHeartbeat();
+
+        NS.state.xmlInvoiceFile = data.xmlInvoiceFile || null;
+        NS.state.ramID = data.ramID || null;
 
         NS.showXmlInvoice();
     };
@@ -22,24 +25,32 @@
         NS.clear(input);
         input.className = 'myx-xml-invoice-result';
 
-        input.appendChild(NS.make('h1', {}, 'PDF-Vorschau'));
+        input.appendChild(NS.make('h1', {}, 'XML-Rechnung erstellt'));
 
-        if (NS.state.xmlInvoiceCreated) {
-            input.appendChild(NS.make('iframe', {
-                src: NS.state.xmlInvoiceCreated,
-                class: 'myx-pdf-frame',
-            }));
-        } else {
+        input.appendChild(NS.make(
+            'p',
+            {},
+            'Die XML-Rechnung wurde erstellt und gespeichert.'
+        ));
+
+        if (NS.state.xmlInvoiceFile) {
             input.appendChild(NS.make(
                 'p',
-                { class: 'myx-message-warning' },
-                'Noch keine PDF verfügbar'
+                {},
+                'Datei: ' + NS.state.xmlInvoiceFile
+            ));
+        }
+
+        if (NS.state.ramID) {
+            input.appendChild(NS.make(
+                'p',
+                {},
+                'Rechnungsnummer: ' + NS.state.ramID
             ));
         }
 
         const actions = NS.make('div', { class: 'myx-actions' });
         actions.appendChild(NS.button('Zurück', NS.showInvoiceForm));
-        actions.appendChild(NS.button('Abbrechen', NS.cancelInvoice));
         input.appendChild(actions);
     };
 })();

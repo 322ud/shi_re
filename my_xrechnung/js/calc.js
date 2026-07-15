@@ -3,8 +3,26 @@
 
     const NS = window.MyXRechnung;
 
+    NS.parseAmount = function (value) {
+        if (value === null || value === undefined) {
+            return 0;
+        }
+
+        const normalized = String(value)
+        .replace('€', '')
+        .replace(/\s/g, '')
+        .replace(',', '.');
+
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    NS.formatAmount = function (value) {
+        return NS.parseAmount(value).toFixed(2).replace('.', ',');
+    };
+
     NS.money = function (value) {
-        return Number(value || 0).toFixed(2);
+        return NS.formatAmount(value) + ' €';
     };
 
     NS.todayISO = function () {

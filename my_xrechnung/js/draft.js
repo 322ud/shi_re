@@ -10,13 +10,15 @@
         const data = await NS.post('/en16931/draft');
         const seed = data.seed || {};
 
-        NS.state.ramID = data.draft?.ramID || null;
+        NS.state.ramID = data.ramID || null;
         NS.state.sellerName = seed.seller?.name || '';
         NS.state.todayText = NS.todayDE();
 
         NS.log('Rechnungsteller: ' + NS.state.sellerName);
 
         NS.state.invoiceData = NS.defaultInvoiceData(seed);
+        console.log('invoiceData nach Seed:', NS.state.invoiceData);
+        console.log('items nach Seed:', NS.state.invoiceData.items);
 
         NS.startHeartbeat();
         NS.showInvoiceForm();
@@ -32,10 +34,15 @@
                 postcode: buyer.postcode || '',
                 city: buyer.city || '',
                 country: buyer.country || 'DE',
-                reference: buyer.buyerReference || '',
+                reference: '',
             },
 
-            items: [],
+            items: [{
+                name: seed.firstItem?.name || '',
+                description: '',
+                quantity: 1,
+                unitPrice: Number(seed.firstItem?.unitPrice || 0),
+            }],
 
             vatRate: 19,
             expenses: [],

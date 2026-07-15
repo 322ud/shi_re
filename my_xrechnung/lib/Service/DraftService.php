@@ -18,12 +18,12 @@ final class DraftService {
      * Legt einen neuen Rechnungsentwurf an und reserviert die berechnete Nummer.
      *
      * Der Lock schützt nur den kurzen kritischen Bereich. Der dauerhafte Zustand
-     * steht in draft.json: ramID + windowId + lastSeenAt.
+     * steht in draft.json: windowId + lastSeenAt.
      */
-    public function create(string $ramID, string $windowId): array {
+    public function create(string $windowId): array {
         $this->assertWindowId($windowId);
 
-        return $this->withLock(function () use ($ramID, $windowId) {
+        return $this->withLock(function () use ($windowId) {
             $existing = $this->readUnlocked();
 
             if ($existing !== null && !$this->isExpired($existing)) {
@@ -38,7 +38,6 @@ final class DraftService {
 
             $now = time();
             $draft = [
-                'ramID' => $ramID,
                 'windowId' => $windowId,
                 'createdAt' => $now,
                 'lastSeenAt' => $now,

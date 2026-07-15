@@ -7,6 +7,7 @@ use OCA\MyXRechnung\Service\DomService;
 use OCA\MyXRechnung\Service\DraftService;
 use OCA\MyXRechnung\Service\IncRamID;
 use OCA\MyXRechnung\Service\StripItems;
+use OCA\MyXRechnung\Service\DraftXmlService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\Route;
@@ -20,6 +21,7 @@ class EN16931Controller extends Controller {
         IRequest $request,
         private DomService $domService,
         private DraftService $draftService,
+        private DraftXmlService $draftXmlService,
     ) {
         parent::__construct($appName, $request);
     }
@@ -38,20 +40,19 @@ class EN16931Controller extends Controller {
         try {
             $windowId = $this->windowIdFromRequest();
 
-            $dom = $this->domService->load();
-            $nextRamID = IncRamID::next($dom);
-            $draft = $this->draftService->create($nextRamID, $windowId);
-
-            // Die XML-Vorlage enthält genau eine Musterposition. Bevor die vom Benutzer
-            // erfassten Rechnungspositionen eingefügt werden, werden alle eventuell noch
-            // vorhandenen Positionen entfernt. Die erste Position bleibt als Vorlage
-            // erhalten und kann anschließend mit den aktuellen Rechnungsdaten befüllt
-            // oder dupliziert werden.
+            $dom = $this->domService->loadTemplate();
+            $ramID = IncRamID::do($dom);
             StripItems::do($dom);
+
+            $draft = $this->draftService->create($windowId);
+            $draft['ramID'] = $ramID;
+
+            $this->draftXmlService->save($dom);
 
             return new JSONResponse([
                 'success' => true,
                 'draft' => $this->publicDraftData($draft),
+                'ramID' => $ramID,
                 'seed' => $this->readSeedData(),
             ]);
         } catch (\Throwable $e) {
@@ -106,8 +107,7 @@ class EN16931Controller extends Controller {
             }
 
             $draft = $this->draftService->requireActive($windowId);
-
-            $dom = $this->domService->load();
+            $dom = $this->draftXmlService->load();
 
             // TODO: SetHeaderData::do($dom, $invoiceData);
             // TODO: SetBuyerData::do($dom, $invoiceData);
@@ -115,14 +115,16 @@ class EN16931Controller extends Controller {
             // TODO: BuildTradeTaxes::do($dom, $invoiceData);
             // TODO: BuildMonetarySummation::do($dom, $invoiceData);
 
-            $this->domService->save();
+            $this->domService->saveDom($dom, AppFiles::XmlWorkFile);
+
+            $this->draftXmlService->delete();
             $this->draftService->complete($windowId);
 
             return new JSONResponse([
                 'success' => true,
                 'draft' => $this->publicDraftData($draft),
                 'xmlInvoiceFile' => AppFiles::XmlWorkFile,
-                'ramID' => $draft['ramID'] ?? null,
+                'ramID' => IncRamID::get($dom),
             ]);
         } catch (\Throwable $e) {
             return $this->errorResponse($e);
@@ -162,6 +164,19 @@ class EN16931Controller extends Controller {
                 'postcode' => $this->domService->getValue('//ram:BuyerTradeParty/ram:PostalTradeAddress/ram:PostcodeCode') ?? '',
                 'city' => $this->domService->getValue('//ram:BuyerTradeParty/ram:PostalTradeAddress/ram:CityName') ?? '',
                 'country' => $this->domService->getValue('//ram:BuyerTradeParty/ram:PostalTradeAddress/ram:CountryID') ?? 'DE',
+            ],
+            'firstItem' => [
+                'name' => $this->domService->getValue(
+                    '(//ram:IncludedSupplyChainTradeLineItem
+                    /ram:SpecifiedTradeProduct
+                    /ram:Name)[1]'
+                ) ?? '',
+                'unitPrice' => $this->domService->getValue(
+                    '(//ram:IncludedSupplyChainTradeLineItem
+                    /ram:SpecifiedLineTradeAgreement
+                    /ram:NetPriceProductTradePrice
+                    /ram:ChargeAmount)[1]'
+                ) ?? '',
             ],
         ];
     }

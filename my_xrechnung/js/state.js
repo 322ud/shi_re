@@ -10,12 +10,12 @@
 
     NS.state = {
         windowId: getWindowId(),
- ramID: null,
- sellerName: null,
- todayText: null,
- previewUrl: null,
- invoiceData: null,
- heartbeatTimer: null,
+        ramID: null,
+        sellerName: null,
+        todayText: null,
+        xmlInvoiceFile: null,
+        invoiceData: null,
+        heartbeatTimer: null,
     };
 
     function getWindowId() {
@@ -36,7 +36,7 @@
         NS.state.ramID = null;
         NS.state.sellerName = null;
         NS.state.todayText = null;
-        NS.state.previewUrl = null;
+        NS.state.xmlInvoiceFile = null;
         NS.state.invoiceData = null;
     };
 })();
