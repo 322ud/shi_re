@@ -1,0 +1,58 @@
+(function () {
+    'use strict';
+
+    const NS = window.MyXRechnung;
+
+    NS.startInvoice = async function () {
+        NS.clear(NS.inputArea());
+        NS.clear(NS.outputArea());
+
+        const data = await NS.post('/en16931/draft');
+        const seed = data.seed || {};
+
+        NS.state.ramID = data.draft?.ramID || null;
+        NS.state.sellerName = seed.seller?.name || '';
+        NS.state.todayText = NS.todayDE();
+
+        NS.log('Rechnungsteller: ' + NS.state.sellerName);
+
+        NS.state.invoiceData = NS.defaultInvoiceData(seed);
+
+        NS.startHeartbeat();
+        NS.showInvoiceForm();
+    };
+
+    NS.defaultInvoiceData = function (seed) {
+        const buyer = seed.buyer || {};
+
+        return {
+            buyer: {
+                name: buyer.name || '',
+                street: buyer.address || '',
+                postcode: buyer.postcode || '',
+                city: buyer.city || '',
+                country: buyer.country || 'DE',
+                reference: buyer.buyerReference || '',
+            },
+
+            items: [],
+
+            vatRate: 19,
+            expenses: [],
+            due: 'sofort',
+            dueDate: '',
+        };
+    };
+
+    NS.cancelInvoice = async function () {
+        await NS.post('/en16931/cancel');
+
+        NS.stopHeartbeat();
+
+        NS.clear(NS.outputArea());
+        NS.log('Entwurf verworfen.');
+
+        NS.resetStateAfterClose();
+        NS.showStart();
+    };
+})();

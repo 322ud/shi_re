@@ -13,6 +13,15 @@ class DomService {
 
     private ?DOMDocument $dom = null;
 
+    /**
+     * DomService kapselt den Zugriff auf die EN16931-XML.
+     *
+     * Wichtig für den Draft-Ablauf: load() lädt die aktuell gespeicherte XML,
+     * save() schreibt sie zurück. Zwischen zwei HTTP-Requests bleibt kein PHP-DOM
+     * erhalten. Deshalb darf fachlicher Zustand wie ein offener Draft nicht nur in
+     * $this->dom liegen, sondern muss separat persistent gespeichert werden.
+     */
+
     public function __construct(
         private string $appName,
         private LoggerInterface $logger,
@@ -21,6 +30,10 @@ class DomService {
     ) {
     }
 
+    /**
+     * Lädt die Arbeits-XML aus AppData. Falls sie noch nicht existiert, wird sie
+     * einmalig aus dem XML-Template im App-Verzeichnis erzeugt.
+     */
     public function load(): DOMDocument {
         if ($this->dom !== null) {
             return $this->dom;
@@ -40,6 +53,11 @@ class DomService {
         return $this->dom;
     }
 
+    /**
+     * Schreibt den aktuell geladenen DOM zurück nach AppData.
+     * Im aktuellen Ablauf wird diese Methode erst nach erfolgreichem Aufbau
+     * der XML-Rechnung in createXmlInvoice() aufgerufen.
+     */
     public function save(): void {
         $xml = $this->load()->saveXML();
 
@@ -57,6 +75,9 @@ class DomService {
         }
     }
 
+    /**
+     * Gibt die vorhandene Arbeits-XML zurück oder initialisiert sie aus dem Template.
+     */
     private function readOrCreateXml(): string {
         $folder = $this->appData->getFolder('/');
         $fileName = AppFiles::XmlWorkFile;
@@ -71,6 +92,9 @@ class DomService {
         return $template;
     }
 
+    /**
+     * Liest das schreibgeschützte XML-Template aus dem App-Verzeichnis.
+     */
     private function readTemplateXml(): string {
         $appPath = $this->appManager->getAppPath($this->appName);
 
@@ -102,8 +126,14 @@ class DomService {
         return $xml;
     }
 
+    /**
+     * Setzt den Wert des ersten Knotens, der zum XPath-Ausdruck passt.
+     *
+     * Die EN16931-Namespaces werden automatisch registriert, damit Ausdrücke mit
+     * rsm:, ram:, qdt: und udt: funktionieren.
+     */
     public function setValue(string $xpathExpression, string $value): void {
-        $xpath = new DOMXPath($this->load());
+        $xpath = $this->createXPath();
         $nodes = $xpath->query($xpathExpression);
 
         if ($nodes === false || $nodes->length === 0) {
@@ -113,8 +143,11 @@ class DomService {
         $nodes->item(0)->nodeValue = $value;
     }
 
+    /**
+     * Liest den Wert des ersten Knotens, der zum XPath-Ausdruck passt.
+     */
     public function getValue(string $xpathExpression): ?string {
-        $xpath = new DOMXPath($this->load());
+        $xpath = $this->createXPath();
         $nodes = $xpath->query($xpathExpression);
 
         if ($nodes === false || $nodes->length === 0) {
@@ -127,4 +160,28 @@ class DomService {
     public function getDom(): DOMDocument {
         return $this->load();
     }
+
+    private function createXPath(): DOMXPath {
+        $xpath = new DOMXPath($this->load());
+
+        $xpath->registerNamespace(
+            'rsm',
+            'urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'
+        );
+        $xpath->registerNamespace(
+            'ram',
+            'urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'
+        );
+        $xpath->registerNamespace(
+            'qdt',
+            'urn:un:unece:uncefact:data:standard:QualifiedDataType:100'
+        );
+        $xpath->registerNamespace(
+            'udt',
+            'urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100'
+        );
+
+        return $xpath;
+    }
 }
+

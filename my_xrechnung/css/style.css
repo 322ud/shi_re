@@ -1,0 +1,434 @@
+/*
+ * Nur innerhalb dieser App:
+ * Die Nextcloud-App-Leiste wird ausgeblendet.
+ */
+.app-my_xrechnung #header .app-menu {
+    display: none !important;
+}
+
+#myx-root {
+width: 100%;
+min-height: calc(100vh - 50px);
+
+display: flex;
+flex-direction: column;
+
+background: var(--color-main-background);
+}
+
+#myx-input {
+flex: 4;
+position: relative;
+
+width: 100%;
+max-width: 100%;
+min-width: 0;
+
+overflow-y: auto;
+overflow-x: hidden;
+
+padding: 24px;
+box-sizing: border-box;
+}
+
+#myx-output {
+flex: 1;
+
+width: 100%;
+max-width: 100%;
+min-width: 0;
+
+overflow-y: auto;
+overflow-x: hidden;
+
+padding: 12px 16px;
+box-sizing: border-box;
+
+border-top: 1px solid var(--color-border);
+background: var(--color-background-dark);
+
+font-family: monospace;
+font-size: 13px;
+line-height: 1.5;
+}
+
+#myx-bg-icon {
+position: absolute;
+inset: 0;
+
+background-image: url("../img/app.svg");
+background-repeat: no-repeat;
+background-position: center center;
+background-size: 50vmin;
+
+opacity: 0.12;
+
+pointer-events: none;
+z-index: 0;
+}
+
+#myx-input > *:not(#myx-bg-icon) {
+position: relative;
+z-index: 1;
+}
+
+.myx-start {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#myx-input h1 {
+margin-top: 0;
+margin-bottom: 18px;
+
+font-size: 24px;
+line-height: 1.25;
+}
+
+#myx-input h2 {
+margin-top: 24px;
+margin-bottom: 8px;
+
+font-size: 18px;
+line-height: 1.25;
+}
+
+.myx-form,
+#myx-invoice-form {
+width: 100%;
+max-width: none;
+min-width: 0;
+box-sizing: border-box;
+}
+
+.myx-field {
+    display: block;
+
+    width: 100%;
+    min-width: 0;
+
+    margin-bottom: 0;
+    box-sizing: border-box;
+}
+
+.myx-field span {
+    display: none;
+}
+
+.myx-address-line {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+}
+
+.myx-address-line .myx-field {
+    width: auto;
+    flex: 0 0 auto;
+}
+
+.myx-address-line .myx-field:nth-of-type(1) {
+    width: 70px;
+}
+
+.myx-address-line .myx-field:nth-of-type(2) {
+    width: 180px;
+}
+
+.myx-address-line .myx-field:nth-of-type(3) {
+    width: 60px;
+}
+
+.myx-reference-line {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    margin-top: 10px;
+    margin-bottom: 18px;
+}
+
+.myx-reference-line .myx-field {
+    width: 180px;
+    flex: 0 0 180px;
+}
+
+.myx-field input,
+.myx-field textarea,
+.myx-field select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+
+    height: 1.2em !important;
+    min-height: 0 !important;
+
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 4px;
+    padding-right: 4px;
+
+    line-height: 1.2 !important;
+    font-size: 14px;
+
+    border: none;
+    border-radius: 0;
+    background: transparent;
+}
+
+.myx-field input:focus,
+.myx-field textarea:focus,
+.myx-field select:focus {
+    outline: 1px solid var(--color-primary-element);
+    background: var(--color-main-background);
+}
+
+.myx-row {
+    display: grid;
+
+    grid-template-columns:
+    minmax(120px, 2fr)
+    minmax(160px, 3fr)
+    minmax(70px, 0.8fr)
+    minmax(90px, 1fr)
+    minmax(90px, 1fr);
+
+    gap: 0;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+
+    margin-bottom: 0;
+    padding: 0;
+
+    border: none;
+    border-radius: 0;
+
+    background: transparent;
+}
+
+.myx-row .myx-field {
+    margin-bottom: 0;
+    display: block;
+    min-width: 0;
+}
+
+.myx-row .myx-field span {
+    display: none;
+}
+
+.myx-row input,
+.myx-row textarea,
+.myx-row select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.myx-posten-table {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.myx-header-row {
+    color: var(--color-text-maxcontrast);
+    font-size: 14px;
+}
+
+.myx-header-row > div {
+    padding: 0 4px;
+}
+
+.myx-vat-table-row {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.myx-vat-text {
+    grid-column: 1 / 3;
+    text-align: right;
+    padding: 0 4px;
+}
+
+.myx-vat-table-row .myx-field {
+    grid-column: 3 / 4;
+    width: 100%;
+}
+
+.myx-vat-table-row .myx-field input {
+    text-align: right;
+}
+
+.myx-vat-percent {
+    grid-column: 4 / 5;
+    padding: 0 4px;
+    text-align: right;
+}
+
+.myx-vat-table-row .myx-amount {
+    grid-column: 5 / 6;
+    margin-bottom: 0;
+}
+
+.myx-vat-table-row .myx-amount output {
+    width: 100%;
+    text-align: right;
+}
+
+.myx-vat-table-row .myx-field span,
+.myx-vat-table-row .myx-amount span {
+    display: none;
+}
+
+.myx-button-row {
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.myx-button-cell {
+    grid-column: 1 / -1;
+    padding: 0 4px;
+}
+
+.myx-grand-total-row {
+    margin-top: 16px;
+}
+
+.myx-grand-total-spacer {
+    grid-column: 1 / 5;
+}
+
+.myx-grand-total-row .myx-amount {
+    grid-column: 5 / 6;
+    margin-bottom: 0;
+}
+
+.myx-grand-total-row .myx-amount span {
+    display: none;
+}
+
+.myx-grand-total-row .myx-amount output {
+    width: 100%;
+    text-align: right;
+}
+
+.myx-totals {
+    display: flex;
+    flex-direction: column;
+
+    width: min(300px, 100%);
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+
+    margin-left: auto;
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+
+.myx-amount {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.myx-amount output {
+    min-width: 0;
+
+    text-align: right;
+
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+
+.myx-due-row {
+    display: flex;
+    gap: 0;
+    align-items: center;
+    flex-wrap: wrap;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.myx-due-row .myx-field {
+    flex: 1 1 260px;
+}
+
+button {
+    padding: 8px 18px;
+
+    font-size: 14px;
+    cursor: pointer;
+
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+
+    background: var(--color-background-hover);
+}
+
+button:hover {
+    background: var(--color-background-darker);
+}
+
+.myx-primary {
+    font-weight: bold;
+}
+
+.myx-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+
+    margin-top: 20px;
+}
+
+.myx-preview {
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.myx-pdf-frame {
+    flex: 1;
+
+    width: 100%;
+    min-height: 600px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+
+    background: white;
+}
+
+.myx-message-error {
+    color: #b00020;
+}
+
+.myx-message-warning {
+    color: #a06000;
+}
+
+@media (max-width: 900px) {
+    .myx-row {
+        grid-template-columns: 1fr;
+    }
+
+    .myx-totals {
+        margin-left: 0;
+    }
+
+    .myx-vat-line {
+        justify-content: flex-start;
+    }
+}
