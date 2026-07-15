@@ -38,7 +38,6 @@ class PageController extends Controller {
         Util::addScript('my_xrechnung', 'api');
         Util::addScript('my_xrechnung', 'calc');
         Util::addScript('my_xrechnung', 'draft');
-        Util::addScript('my_xrechnung', 'views/start');
         Util::addScript('my_xrechnung', 'views/form');
         Util::addScript('my_xrechnung', 'views/create-xml-invoice');
         Util::addScript('my_xrechnung', 'main');

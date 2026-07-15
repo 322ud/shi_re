@@ -14,7 +14,7 @@
         r.appendChild(NS.make('section', { id: 'myx-input' }));
         r.appendChild(NS.make('section', { id: 'myx-output' }));
 
-        NS.showStart();
+        NS.startInvoice();
     }
 
     window.addEventListener('pagehide', function () {

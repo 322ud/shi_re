@@ -60,6 +60,6 @@
         NS.log('Entwurf verworfen.');
 
         NS.resetStateAfterClose();
-        NS.showStart();
+        NS.startInvoice();
     };
 })();
