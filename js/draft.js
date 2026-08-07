@@ -17,8 +17,6 @@
         NS.log('Rechnungsteller: ' + NS.state.sellerName);
 
         NS.state.invoiceData = NS.defaultInvoiceData(seed);
-        console.log('invoiceData nach Seed:', NS.state.invoiceData);
-        console.log('items nach Seed:', NS.state.invoiceData.items);
 
         NS.startHeartbeat();
         NS.showInvoiceForm();

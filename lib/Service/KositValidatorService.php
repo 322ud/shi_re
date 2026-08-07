@@ -30,6 +30,7 @@ class KositValidatorService {
 
         exec($command . ' 2>&1', $output, $exitCode);
 
+        /*
         // erzeugte HTML-Datei suchen
         if ($reports && is_readable($reports[0])) {
             $html = file_get_contents($reports[0]);
@@ -42,6 +43,7 @@ class KositValidatorService {
             ) .
             '</pre>';
         }
+        */
 
         $this->deleteDirectory($workDir);
 

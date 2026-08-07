@@ -156,28 +156,6 @@
         return wrap;
     };
 
-    NS.parseAmount = function (value) {
-        if (value === null || value === undefined) {
-            return 0;
-        }
-
-        const normalized = String(value)
-        .replace('€', '')
-        .replace(/\s/g, '')
-        .replace(',', '.');
-
-        const parsed = Number(normalized);
-        return Number.isFinite(parsed) ? parsed : 0;
-    };
-
-    NS.formatAmount = function (value) {
-        return NS.parseAmount(value).toFixed(2).replace('.', ',');
-    };
-
-    NS.money = function (value) {
-        return NS.formatAmount(value) + ' €';
-    };
-
     NS.readonlyAmount = function (labelText, className) {
         const wrap = NS.make('label', { class: 'myx-field myx-amount' });
         wrap.appendChild(NS.make('span', {}, labelText));

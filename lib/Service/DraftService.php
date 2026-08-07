@@ -20,7 +20,7 @@ final class DraftService {
      * Der Lock schützt nur den kurzen kritischen Bereich. Der dauerhafte Zustand
      * steht in draft.json: windowId + lastSeenAt.
      */
-    public function create(string $windowId): array {
+    public function create(string $windowId, string $ramID): array {
         $this->assertWindowId($windowId);
 
         return $this->withLock(function () use ($windowId) {
@@ -38,6 +38,7 @@ final class DraftService {
 
             $now = time();
             $draft = [
+                'ramID' => $ramID,
                 'windowId' => $windowId,
                 'createdAt' => $now,
                 'lastSeenAt' => $now,

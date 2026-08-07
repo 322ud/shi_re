@@ -44,8 +44,8 @@ class EN16931Controller extends Controller {
             $ramID = IncRamID::do($dom);
             StripItems::do($dom);
 
-            $draft = $this->draftService->create($windowId);
-            $draft['ramID'] = $ramID;
+            $draft = $this->draftService->create($windowId, $ramID);
+            // $draft['ramID'] = $ramID;
 
             $this->draftXmlService->save($dom);
 

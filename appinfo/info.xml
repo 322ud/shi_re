@@ -10,9 +10,6 @@
     <author>Frank Busse</author>
     <namespace>MyXRechnung</namespace>
     <category>tools</category>
-    <dependencies>
-        <nextcloud min-version="33" max-version="34"/>
-    </dependencies>
 
     <navigations>
       <navigation>
