@@ -23,7 +23,7 @@ final class DraftService {
     public function create(string $windowId, string $ramID): array {
         $this->assertWindowId($windowId);
 
-        return $this->withLock(function () use ($windowId) {
+        return $this->withLock(function () use ($windowId, $ramID) {
             $existing = $this->readUnlocked();
 
             if ($existing !== null && !$this->isExpired($existing)) {

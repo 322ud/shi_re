@@ -53,7 +53,7 @@ class EN16931Controller extends Controller {
                 'success' => true,
                 'draft' => $this->publicDraftData($draft),
                 'ramID' => $ramID,
-                'seed' => $this->readSeedData(),
+                'seed' => $this->readSeedData($dom),
             ]);
         } catch (\Throwable $e) {
             return $this->errorResponse($e);
@@ -152,32 +152,41 @@ class EN16931Controller extends Controller {
         return (string)$this->request->getParam('windowId', '');
     }
 
-    private function readSeedData(): array {
+    private function readSeedData(\DOMDocument $dom): array {
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace(
+            'ram',
+            'urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'
+        );
+
         return [
             'seller' => [
-                'name' => $this->domService->getValue('//ram:SellerTradeParty/ram:Name') ?? '',
+                'name' => $this->getValue($xpath, '//ram:SellerTradeParty/ram:Name') ?? '',
             ],
             'buyer' => [
-                'buyerReference' => $this->domService->getValue('//ram:ApplicableHeaderTradeAgreement/ram:BuyerReference') ?? '',
-                'name' => $this->domService->getValue('//ram:BuyerTradeParty/ram:Name') ?? '',
-                'address' => $this->domService->getValue('//ram:BuyerTradeParty/ram:PostalTradeAddress/ram:LineOne') ?? '',
-                'postcode' => $this->domService->getValue('//ram:BuyerTradeParty/ram:PostalTradeAddress/ram:PostcodeCode') ?? '',
-                'city' => $this->domService->getValue('//ram:BuyerTradeParty/ram:PostalTradeAddress/ram:CityName') ?? '',
-                'country' => $this->domService->getValue('//ram:BuyerTradeParty/ram:PostalTradeAddress/ram:CountryID') ?? 'DE',
+                'buyerReference' => $this->getValue($xpath, '//ram:ApplicableHeaderTradeAgreement/ram:BuyerReference') ?? '',
+                'name' => $this->getValue($xpath, '//ram:BuyerTradeParty/ram:Name') ?? '',
+                'address' => $this->getValue($xpath, '//ram:BuyerTradeParty/ram:PostalTradeAddress/ram:LineOne') ?? '',
+                'postcode' => $this->getValue($xpath, '//ram:BuyerTradeParty/ram:PostalTradeAddress/ram:PostcodeCode') ?? '',
+                'city' => $this->getValue($xpath, '//ram:BuyerTradeParty/ram:PostalTradeAddress/ram:CityName') ?? '',
+                'country' => $this->getValue($xpath, '//ram:BuyerTradeParty/ram:PostalTradeAddress/ram:CountryID') ?? 'DE',
             ],
             'firstItem' => [
-                'name' => $this->domService->getValue(
+                'name' => $this->getValue(
+                    $xpath,
                     '(//ram:IncludedSupplyChainTradeLineItem
                     /ram:SpecifiedTradeProduct
                     /ram:Name)[1]'
                 ) ?? '',
-                'unitPrice' => $this->domService->getValue(
+                'unitPrice' => $this->getValue(
+                    $xpath,
                     '(//ram:IncludedSupplyChainTradeLineItem
                     /ram:SpecifiedLineTradeAgreement
                     /ram:NetPriceProductTradePrice
                     /ram:ChargeAmount)[1]'
                 ) ?? '',
-                'vatRate' => $this->domService->getValue(
+                'vatRate' => $this->getValue(
+                    $xpath,
                     '(//ram:IncludedSupplyChainTradeLineItem
                     /ram:SpecifiedLineTradeSettlement
                     /ram:ApplicableTradeTax
@@ -185,6 +194,16 @@ class EN16931Controller extends Controller {
                 ) ?? '',
             ],
         ];
+    }
+
+    private function getValue(\DOMXPath $xpath, string $expression): ?string {
+        $nodes = $xpath->query($expression);
+
+        if ($nodes === false || $nodes->length === 0) {
+            return null;
+        }
+
+        return $nodes->item(0)?->nodeValue;
     }
 
     private function publicDraftData(array $draft): array {

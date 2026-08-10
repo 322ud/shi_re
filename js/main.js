@@ -3,18 +3,48 @@
 
     const NS = window.MyXRechnung;
 
-    function bootstrap() {
-        const r = NS.root();
+    async function startSafely() {
+        try {
+            await NS.startInvoice();
+        } catch (error) {
+            renderStartError(error);
+        }
+    }
 
-        if (!r) {
+    function renderStartError(error) {
+        const input = NS.inputArea();
+
+        NS.clear(input);
+        NS.clear(NS.outputArea());
+
+        input.appendChild(
+            NS.make(
+                'p',
+                { class: 'myx-error' },
+                'Die Rechnung konnte nicht geöffnet werden.'
+            )
+        );
+
+        input.appendChild(
+            NS.button('Erneut versuchen', startSafely, 'myx-primary')
+        );
+
+        NS.log('Fehler: ' + (
+            error instanceof Error
+                ? error.message
+                : String(error)
+        ));
+    }
+
+    async function bootstrap() {
+        const root = NS.root();
+
+        if (!root) {
             return;
         }
 
-        NS.clear(r);
-        r.appendChild(NS.make('section', { id: 'myx-input' }));
-        r.appendChild(NS.make('section', { id: 'myx-output' }));
-
-        NS.startInvoice();
+        NS.initLayout();
+        await startSafely();
     }
 
     window.addEventListener('pagehide', function () {
@@ -22,8 +52,10 @@
     });
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', bootstrap);
+        document.addEventListener('DOMContentLoaded', function () {
+            void bootstrap();
+        }, { once: true });
     } else {
-        bootstrap();
+        void bootstrap();
     }
 })();
