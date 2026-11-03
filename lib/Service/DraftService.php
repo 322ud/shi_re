@@ -28,7 +28,8 @@ final class DraftService {
 
             if ($existing !== null && !$this->isExpired($existing)) {
                 throw new \RuntimeException(
-                    'Es existiert bereits ein aktiver Rechnungsentwurf in einer anderen App-Instanz.'
+                    'Es existiert bereits ein aktiver Rechnungsentwurf in einer anderen App-Instanz.',
+                    409
                 );
             }
 
@@ -99,6 +100,26 @@ final class DraftService {
             $this->requireActiveUnlocked($windowId);
             $this->deleteUnlocked();
             return null;
+        });
+    }
+
+    public function deletionToken(array $draft): string {
+        return hash('sha256', json_encode([
+            $draft['windowId'], $draft['createdAt'], $draft['ramID'],
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    public function deleteConfirmed(string $token, DraftXmlService $xmlService): void {
+        $this->withLock(function () use ($token, $xmlService) {
+            $draft = $this->readUnlocked();
+            if ($draft === null || !hash_equals($this->deletionToken($draft), $token)) {
+                throw new \RuntimeException('Der Rechnungsentwurf hat sich geändert. Bitte erneut versuchen.');
+            }
+
+            $xmlService->delete();
+            $folder = $this->appData->getFolder('/');
+            // Fehler hier weitergeben, statt einen erfolgreichen Reset vorzutäuschen.
+            $folder->getFile(AppFiles::DraftFile)->delete();
         });
     }
 

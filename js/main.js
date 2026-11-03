@@ -29,6 +29,28 @@
             NS.button('Erneut versuchen', startSafely, 'myx-primary')
         );
 
+        if (error.code === 'active_draft' && error.deletionToken) {
+            const deleteButton = NS.button('aktiven Rechnungsentwurf löschen', async function () {
+                const confirmation = window.prompt("bestätige mit 'ja'!");
+                if (confirmation !== 'ja') {
+                    return;
+                }
+
+                deleteButton.disabled = true;
+                try {
+                    await NS.post('/en16931/deleteActiveDraft', {
+                        confirmation: confirmation,
+                        deletionToken: error.deletionToken,
+                    });
+                    NS.stopHeartbeat();
+                    await startSafely();
+                } finally {
+                    deleteButton.disabled = false;
+                }
+            });
+            input.appendChild(deleteButton);
+        }
+
         NS.log('Fehler: ' + (
             error instanceof Error
                 ? error.message

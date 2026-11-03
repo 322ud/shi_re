@@ -38,19 +38,12 @@
         referenceLine.appendChild(NS.field('Aktenzeichen', 'buyer.reference', NS.state.invoiceData.buyer.reference));
         form.appendChild(referenceLine);
 
-        form.appendChild(NS.make('h2', {}, 'Rechnungsposten'));
-
         const table = NS.make('div', { class: 'myx-posten-table' });
 
         table.appendChild(NS.postenHeaderRow());
 
-        NS.state.invoiceData.items.forEach(function (item) {
-            table.appendChild(NS.itemRow(item));
-        });
-
-        if (NS.state.invoiceData.items.length > 0) {
-            table.appendChild(NS.vatRow());
-        }
+        table.appendChild(NS.itemRow(NS.state.invoiceData.items[0] || {}));
+        table.appendChild(NS.vatRow());
 
         table.appendChild(NS.grandTotalRow());
 
@@ -71,8 +64,8 @@
     NS.postenHeaderRow = function () {
         const row = NS.make('div', { class: 'myx-row myx-header-row' });
 
-        row.appendChild(NS.make('div', {}, 'Beschreibung'));
-        row.appendChild(NS.make('div', {}, 'Menge'));
+        row.appendChild(NS.make('div'));
+        row.appendChild(NS.make('div', {}, 'Stunden'));
         row.appendChild(NS.make('div', {}, 'Summe'));
 
         return row;
@@ -118,8 +111,10 @@
     NS.itemRow = function (item) {
         const row = NS.make('div', { class: 'myx-row myx-item-row' });
 
-        row.appendChild(NS.field('Beschreibung', 'item.description', item.description));
-        row.appendChild(NS.decimalField('Menge', 'item.quantity', item.quantity));
+        const description = NS.field('Beschreibung', 'item.description', item.description || '');
+        description.querySelector('input').setAttribute('aria-label', 'Beschreibung');
+        row.appendChild(description);
+        row.appendChild(NS.decimalField('Stunden', 'item.quantity', item.quantity ?? 1, 1, 'h'));
         row.appendChild(NS.readonlyAmount('Summe', 'myx-line-net'));
 
         return row;
@@ -146,7 +141,7 @@
 
         const fd = new FormData(form);
 
-        const itemRows = Array.from(document.querySelectorAll('.myx-item-row'));
+        const itemRows = Array.from(form.querySelectorAll('.myx-item-row')).slice(0, 1);
         const expenseRows = Array.from(document.querySelectorAll('.myx-expense-row'));
 
         const items = itemRows.map(function (row, index) {
@@ -155,7 +150,7 @@
             return {
                 name: previous.name || '',
                 description: row.querySelector('[name="item.description"]').value,
-                quantity: NS.parseAmount(row.querySelector('[name="item.quantity"]').value),
+                quantity: Math.round(NS.parseAmount(row.querySelector('[name="item.quantity"]').value) * 10) / 10,
                 unitPrice: NS.parseAmount(previous.unitPrice || 0),
             };
         });

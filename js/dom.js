@@ -133,7 +133,7 @@
         return wrap;
     };
 
-    NS.decimalField = function (labelText, name, value = '') {
+    NS.decimalField = function (labelText, name, value = '', precision = 2, unit = '') {
         const wrap = NS.make('label', {
             class: 'myx-field',
         });
@@ -144,14 +144,22 @@
             type: 'text',
             inputmode: 'decimal',
             name: name,
-            value: NS.formatAmount(value),
+            value: NS.parseAmount(value).toFixed(precision).replace('.', ','),
+            'aria-label': labelText,
         });
 
         inp.addEventListener('blur', function () {
-            inp.value = NS.formatAmount(inp.value);
+            inp.value = NS.parseAmount(inp.value).toFixed(precision).replace('.', ',');
         });
 
-        wrap.appendChild(inp);
+        if (unit) {
+            const box = NS.make('div', { class: 'myx-unit-input-wrap' });
+            box.appendChild(inp);
+            box.appendChild(NS.make('span', { class: 'myx-unit-symbol', 'aria-hidden': 'true' }, unit));
+            wrap.appendChild(box);
+        } else {
+            wrap.appendChild(inp);
+        }
 
         return wrap;
     };

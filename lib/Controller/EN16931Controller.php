@@ -56,6 +56,37 @@ class EN16931Controller extends Controller {
                 'seed' => $this->readSeedData($dom),
             ]);
         } catch (\Throwable $e) {
+            if ($e->getCode() === 409) {
+                $activeDraft = $this->draftService->get();
+                return new JSONResponse([
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                    'code' => 'active_draft',
+                    'deletionToken' => $activeDraft === null
+                        ? null : $this->draftService->deletionToken($activeDraft),
+                ], 409);
+            }
+            return $this->errorResponse($e);
+        }
+    }
+
+    #[NoAdminRequired]
+    #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/en16931/deleteActiveDraft')]
+    public function deleteActiveDraft(): JSONResponse {
+        try {
+            if ($this->request->getParam('confirmation') !== 'ja') {
+                return new JSONResponse([
+                    'success' => false,
+                    'error' => "bestätige mit 'ja'!",
+                ], 400);
+            }
+            $token = $this->request->getParam('deletionToken');
+            if (!is_string($token) || $token === '') {
+                throw new \InvalidArgumentException('Kennung des Rechnungsentwurfs fehlt.');
+            }
+            $this->draftService->deleteConfirmed($token, $this->draftXmlService);
+            return new JSONResponse(['success' => true]);
+        } catch (\Throwable $e) {
             return $this->errorResponse($e);
         }
     }

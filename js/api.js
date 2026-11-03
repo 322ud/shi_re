@@ -28,7 +28,10 @@
         const data = await response.json();
 
         if (!response.ok || data.success === false) {
-            throw new Error(data.error || 'Anfrage fehlgeschlagen.');
+            const error = new Error(data.error || 'Anfrage fehlgeschlagen.');
+            error.code = data.code;
+            error.deletionToken = data.deletionToken;
+            throw error;
         }
 
         return data;
