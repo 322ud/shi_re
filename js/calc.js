@@ -35,14 +35,14 @@
 
     NS.calculateTotals = function (data) {
         const itemNet = data.items.reduce(function (sum, item) {
-            return sum + Number(item.quantity || 0) * Number(item.unitPrice || 0);
+            return sum + Math.round(Math.round(Number(item.quantity || 0) * 10) * Math.round(Number(item.unitPrice || 0) * 100) / 10) / 100;
         }, 0);
 
         const expensesNet = data.expenses.reduce(function (sum, item) {
-            return sum + Number(item.quantity || 0) * Number(item.unitPrice || 0);
+            return sum + Math.round(Math.round(Number(item.quantity || 0) * 10) * Math.round(Number(item.unitPrice || 0) * 100) / 10) / 100;
         }, 0);
 
-        const vat = itemNet * Number(data.vatRate || 0) / 100;
+        const vat = Math.round(Math.round(itemNet * 100) * Math.round(Number(data.vatRate || 0) * 100) / 10000) / 100;
         const grand = itemNet + vat + expensesNet;
 
         return {

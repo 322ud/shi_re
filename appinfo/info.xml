@@ -24,4 +24,14 @@
       </navigation>
     </navigations>
 
+    <repair-steps>
+        <install>
+            <step>OCA\MyXRechnung\Migration\InstallValidator</step>
+        </install>
+    </repair-steps>
+
+    <settings>
+        <admin>OCA\MyXRechnung\Settings\Admin</admin>
+        <admin-section>OCA\MyXRechnung\Settings\AdminSection</admin-section>
+    </settings>
 </info>

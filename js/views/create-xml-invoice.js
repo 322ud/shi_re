@@ -5,11 +5,9 @@
 
     NS.createXmlInvoice = async function () {
         const invoiceData = NS.collectFormData();
-        const totals = NS.calculateTotals(invoiceData);
 
         const data = await NS.post('/en16931/createXmlInvoice', {
             invoiceData: invoiceData,
-            totals: totals,
         });
 
         NS.stopHeartbeat();

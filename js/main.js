@@ -21,12 +21,8 @@
             NS.make(
                 'p',
                 { class: 'myx-error' },
-                'Die Rechnung konnte nicht geöffnet werden.'
+                'Das Erstellen einer neuen Rechnung ist derzeit nicht möglich: Temporäre Dateien aus einem früheren Versuch wurden noch nicht gelöscht - dies kann ein paar Minuten dauern. Wenn Du diese Seite dauerhaft nicht laden kannst, wende Dich an den Administrator dieser Seite.'
             )
-        );
-
-        input.appendChild(
-            NS.button('Erneut versuchen', startSafely, 'myx-primary')
         );
 
         if (error.code === 'active_draft' && error.deletionToken) {
@@ -66,7 +62,29 @@
         }
 
         NS.initLayout();
+        const notices = [];
+        NS.log('KoSIT-App: aktuelles GitHub-Release wird geprüft …');
+        try {
+            const {status} = await NS.post('/validator/status');
+            if (status.check_error) notices.push(status.check_error);
+            if (!status.installed) {
+                if (status.admin && !status.check_error) {
+                    NS.log('KoSIT-App wird installiert …');
+                    await NS.post('/admin/validator/install');
+                    notices.push('KoSIT-App installiert. Java und Prüfszenarien gegebenenfalls in der KoSIT-Administration einrichten.');
+                } else {
+                    notices.push('KoSIT-App fehlt. Bitte die Administration zur Einrichtung öffnen.');
+                }
+            } else if (!status.enabled) {
+                notices.push('KoSIT-App ist deaktiviert. Bitte durch einen Administrator aktivieren lassen.');
+            } else if (status.update_available) {
+                notices.push('KoSIT-App: Release ' + status.latest + ' verfügbar. Bitte administrativ aktualisieren.');
+            }
+        } catch (error) {
+            notices.push('KoSIT-Einrichtung: ' + error.message);
+        }
         await startSafely();
+        notices.forEach(NS.log);
     }
 
     window.addEventListener('pagehide', function () {

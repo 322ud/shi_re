@@ -34,8 +34,10 @@
         form.appendChild(addressLine);
 
         const referenceLine = NS.make('div', { class: 'myx-reference-line' });
-        referenceLine.appendChild(document.createTextNode('Aktenzeichen '));
         referenceLine.appendChild(NS.field('Aktenzeichen', 'buyer.reference', NS.state.invoiceData.buyer.reference));
+        const hours = NS.decimalField('Stunden', 'item.quantity', NS.state.invoiceData.items[0]?.quantity ?? 1, 1);
+        hours.classList.add('myx-hours-field');
+        referenceLine.appendChild(hours);
         form.appendChild(referenceLine);
 
         const table = NS.make('div', { class: 'myx-posten-table' });
@@ -51,7 +53,6 @@
 
         const actions = NS.make('div', { class: 'myx-actions' });
         actions.appendChild(NS.button('Rechnung erstellen', NS.createXmlInvoice, 'myx-primary'));
-        actions.appendChild(NS.button('Abbrechen', NS.cancelInvoice));
 
         form.appendChild(actions);
 
@@ -65,7 +66,6 @@
         const row = NS.make('div', { class: 'myx-row myx-header-row' });
 
         row.appendChild(NS.make('div'));
-        row.appendChild(NS.make('div', {}, 'Stunden'));
         row.appendChild(NS.make('div', {}, 'Summe'));
 
         return row;
@@ -114,7 +114,6 @@
         const description = NS.field('Beschreibung', 'item.description', item.description || '');
         description.querySelector('input').setAttribute('aria-label', 'Beschreibung');
         row.appendChild(description);
-        row.appendChild(NS.decimalField('Stunden', 'item.quantity', item.quantity ?? 1, 1, 'h'));
         row.appendChild(NS.readonlyAmount('Summe', 'myx-line-net'));
 
         return row;
@@ -150,7 +149,7 @@
             return {
                 name: previous.name || '',
                 description: row.querySelector('[name="item.description"]').value,
-                quantity: Math.round(NS.parseAmount(row.querySelector('[name="item.quantity"]').value) * 10) / 10,
+                quantity: Math.round(NS.parseAmount(fd.get('item.quantity')) * 10) / 10,
                 unitPrice: NS.parseAmount(previous.unitPrice || 0),
             };
         });
@@ -193,7 +192,7 @@
         document.querySelectorAll('.myx-item-row').forEach(function (row, index) {
             const item = data.items[index] || {}
             row.querySelector('.myx-line-net').textContent =
-                NS.money(NS.parseAmount(item.quantity || 0) * NS.parseAmount(item.unitPrice || 0));
+                NS.money(NS.calculateTotals({ items: [item], expenses: [], vatRate: 0 }).itemNet);
         });
 
         document.querySelectorAll('.myx-expense-row').forEach(function (row) {
