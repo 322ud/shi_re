@@ -10,6 +10,7 @@
         const data = await NS.post('/en16931/draft');
         const seed = data.seed || {};
 
+        NS.state.xmlInvoiceFile = null;
         NS.state.ramID = data.ramID || null;
         NS.state.sellerName = seed.seller?.name || '';
         NS.state.todayText = NS.todayDE();
