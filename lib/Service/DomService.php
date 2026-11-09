@@ -27,6 +27,7 @@ class DomService {
         private LoggerInterface $logger,
         private IAppData $appData,
         private IAppManager $appManager,
+        private InvoiceTemplateService $templates,
     ) {
     }
 
@@ -76,10 +77,11 @@ class DomService {
     }
 
     /**
-     * Lädt die unveränderte EN16931-Template-XML aus dem App-Konfigurationsbereich.
+     * Lädt die EN16931-Template-XML aus dem aktiven Vorlagensatz.
      *
      * Diese Methode liefert immer einen neuen DOMDocument-Zustand auf Basis
-     * der Vorlage. Die geladene XML enthält noch keine laufende Rechnungsnummer
+     * der Vorlage (Standard aus config/, eigene Vorlagen aus AppData).
+     * Die geladene XML enthält noch keine laufende Rechnungsnummer
      * (ramID), keine GUI-Daten und keine vom Benutzer erzeugten Positionen.
      *
      * Verwendet in:
@@ -162,34 +164,7 @@ class DomService {
      * Liest das schreibgeschützte XML-Template aus dem App-Verzeichnis.
      */
     private function readTemplateXml(): string {
-        $appPath = $this->appManager->getAppPath($this->appName);
-
-        if ($appPath === null) {
-            throw new \RuntimeException(
-                "App-Pfad für {$this->appName} nicht gefunden"
-            );
-        }
-
-        $filename =
-        $appPath .
-        '/' . AppFiles::ConfigDir .
-        '/' . AppFiles::XmlTemplate;
-
-        if (!is_readable($filename)) {
-            throw new \RuntimeException(
-                "Kann Template $filename nicht lesen"
-            );
-        }
-
-        $xml = file_get_contents($filename);
-
-        if ($xml === false || $xml === '') {
-            throw new \RuntimeException(
-                "Template $filename ist leer oder nicht lesbar"
-            );
-        }
-
-        return $xml;
+        return $this->templates->current()['xml'];
     }
 
     /**

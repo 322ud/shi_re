@@ -10,28 +10,48 @@
 
         input.appendChild(NS.make('div', { id: 'myx-bg-icon' }));
 
+        const supportedType = NS.state.typeCode === '380';
+        if (!supportedType) {
+            NS.log('Typecode [' + NS.state.typeCode + '] kann (noch) nicht verarbeitet werden.');
+        }
         const firstItemName = NS.state.invoiceData.items[0]?.name || '';
         input.appendChild(
             NS.make(
                 'h1',
                 {},
-                'Neue Rechnung "' + firstItemName + '" Nr. ' + NS.state.ramID + ' vom ' + NS.state.todayText
+                (supportedType ? 'Neue Rechnung' : 'Neues Dokument') + ' "' + firstItemName + '" Nr. ' + NS.state.ramID + ' vom ' + NS.state.todayText
             )
         );
 
         const form = NS.make('form', { id: 'myx-invoice-form' });
         form.addEventListener('input', NS.recalculate);
 
-        form.appendChild(NS.make('h2', {}, 'Rechnungsempfänger'));
-        form.appendChild(NS.field('Name', 'buyer.name', NS.state.invoiceData.buyer.name));
-        form.appendChild(NS.field('Hausadresse', 'buyer.street', NS.state.invoiceData.buyer.street));
+        const parties = NS.make('div', { class: 'myx-parties' });
+        const buyer = NS.make('section', { class: 'myx-buyer' });
+        buyer.appendChild(NS.make('h2', {}, 'Rechnungsempfänger'));
+        buyer.appendChild(NS.field('Name', 'buyer.name', NS.state.invoiceData.buyer.name));
+        buyer.appendChild(NS.field('Hausadresse', 'buyer.street', NS.state.invoiceData.buyer.street));
 
         const addressLine = NS.make('div', { class: 'myx-address-line' });
         addressLine.appendChild(NS.field('PLZ', 'buyer.postcode', NS.state.invoiceData.buyer.postcode));
         addressLine.appendChild(NS.field('Ort', 'buyer.city', NS.state.invoiceData.buyer.city));
-        addressLine.appendChild(document.createTextNode('/'));
-        addressLine.appendChild(NS.field('Land', 'buyer.country', NS.state.invoiceData.buyer.country));
-        form.appendChild(addressLine);
+        const country = NS.field('Land', 'buyer.country', NS.state.invoiceData.buyer.country);
+        country.classList.add('myx-country-field');
+        addressLine.appendChild(country);
+        buyer.appendChild(addressLine);
+        parties.appendChild(buyer);
+
+        const seller = NS.state.seller || {};
+        const issuer = NS.make('section', { class: 'myx-seller' });
+        issuer.appendChild(NS.make('h2', {}, 'Rechnungssteller'));
+        [seller.name, seller.address, seller.address2, seller.address3,
+            [seller.postcode, seller.city].filter(Boolean).join(' ') + (seller.country ? '/' + seller.country : ''),
+            seller.iban ? 'IBAN: ' + seller.iban : '',
+        ].filter(Boolean).forEach(function (line) {
+            issuer.appendChild(NS.make('div', {}, line));
+        });
+        parties.appendChild(issuer);
+        form.appendChild(parties);
 
         const referenceLine = NS.make('div', { class: 'myx-reference-line' });
         referenceLine.appendChild(NS.field('Aktenzeichen', 'buyer.reference', NS.state.invoiceData.buyer.reference));
@@ -52,13 +72,29 @@
         form.appendChild(table);
 
         const actions = NS.make('div', { class: 'myx-actions' });
-        actions.appendChild(NS.button('Rechnung erstellen', NS.createXmlInvoice, 'myx-primary'));
+        const createButton = NS.button('Rechnung erstellen', NS.createXmlInvoice, 'myx-primary');
+        createButton.disabled = !supportedType;
+        actions.appendChild(createButton);
 
         form.appendChild(actions);
 
         input.appendChild(form);
 
         NS.applyInputPlaceholders(form);
+        const description = form.querySelector('textarea[name="item.description"]');
+        NS.resizeDescription(description);
+        const observer = new ResizeObserver(function () {
+            if (!description.isConnected) {
+                observer.disconnect();
+                return;
+            }
+            if (description.clientWidth !== previousWidth) {
+                previousWidth = description.clientWidth;
+                NS.resizeDescription(description);
+            }
+        });
+        let previousWidth = description.clientWidth;
+        observer.observe(description);
         NS.recalculate();
     };
 
@@ -108,11 +144,36 @@
         });
     };
 
+    NS.resizeDescription = function (textarea) {
+        textarea.style.setProperty('height', 'auto', 'important');
+        textarea.style.setProperty('height', textarea.scrollHeight + 'px', 'important');
+    };
+
     NS.itemRow = function (item) {
         const row = NS.make('div', { class: 'myx-row myx-item-row' });
 
-        const description = NS.field('Beschreibung', 'item.description', item.description || '');
-        description.querySelector('input').setAttribute('aria-label', 'Beschreibung');
+        const description = NS.make('label', { class: 'myx-field' });
+        description.appendChild(NS.make('span', {}, 'Beschreibung'));
+        const textarea = NS.make('textarea', {
+            name: 'item.description',
+            rows: '1',
+            class: 'myx-description',
+            'aria-label': 'Beschreibung',
+            value: item.description || '',
+        });
+        textarea.addEventListener('input', function () {
+            NS.resizeDescription(textarea);
+            const matches = Array.from(textarea.value.matchAll(/\(\s*(\d{1,2})(?:,(\d))?\s+h\s*\)/g));
+            const hours = textarea.form?.querySelector('[name="item.quantity"]');
+            if (hours && matches.length) {
+                // Sum integer tenths to avoid floating-point rounding errors.
+                const tenths = matches.reduce(function (sum, match) {
+                    return sum + Number(match[1]) * 10 + Number(match[2] || 0);
+                }, 0);
+                hours.value = (tenths / 10).toFixed(1).replace('.', ',');
+            }
+        });
+        description.appendChild(textarea);
         row.appendChild(description);
         row.appendChild(NS.readonlyAmount('Summe', 'myx-line-net'));
 

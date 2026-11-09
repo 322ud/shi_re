@@ -5,7 +5,7 @@
     <name>meine X-Rechnung</name>
     <summary>erstellt neue X-Rechnung</summary>
     <description>fragt Parameter in GUI ab, setzt diese in XML- und ODT-Templates, druckt in PDF und bindet XML ein</description>
-    <version>0.1.1</version>
+    <version>0.2.1</version>
     <licence>AGPL-3.0-or-later</licence>
     <author>Frank Busse</author>
     <namespace>MyXRechnung</namespace>

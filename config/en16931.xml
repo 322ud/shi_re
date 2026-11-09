@@ -16,6 +16,11 @@
     <ram:IssueDateTime>
       <udt:DateTimeString format="102">20260522</udt:DateTimeString>
     </ram:IssueDateTime>
+
+    <ram:IncludedNote>
+      <ram:Content>Ich hafte nur bei Vorsatz oder grober Fahrlässigkeit, gleich aus welchem Grunde. Die Haftung je Auftrag ist auf 50.000 € beschränkt.</ram:Content>
+      <ram:SubjectCode>AAK</ram:SubjectCode>
+    </ram:IncludedNote>
   </rsm:ExchangedDocument>
 
   <rsm:SupplyChainTradeTransaction>
@@ -120,7 +125,7 @@
       </ram:ApplicableTradeTax>
 
       <ram:SpecifiedTradePaymentTerms>
-        <ram:Description>Zahlbar sofort ohne Abzug.</ram:Description>
+        <ram:Description>zahlbar sofort ohne Abzug</ram:Description>
         <ram:DueDateDateTime>
           <udt:DateTimeString format="102">20260522</udt:DateTimeString>
         </ram:DueDateDateTime>

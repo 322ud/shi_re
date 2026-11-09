@@ -43,17 +43,17 @@ namespace {
     }
     $root = sys_get_temp_dir() . '/myx-kosit-test-' . bin2hex(random_bytes(5));
     mkdir($root, 0700);
-    $tar = tarEntry('kosit_validator/appinfo/info.xml', '<info><id>kosit_validator</id><version>0.5.1</version></info>')
-        . tarEntry('kosit_validator/lib/AppInfo/Application.php', '<?php')
-        . tarEntry('kosit_validator/lib/Service/KoSITValidatorService.php', '<?php') . str_repeat("\0", 1024);
+    $tar = tarEntry('inv_validator/appinfo/info.xml', '<info><id>inv_validator</id><version>0.5.1</version></info>')
+        . tarEntry('inv_validator/lib/AppInfo/Application.php', '<?php')
+        . tarEntry('inv_validator/lib/Service/KoSITValidatorService.php', '<?php') . str_repeat("\0", 1024);
     $package = gzencode($tar);
     $archive = $root . '/valid.tar.gz'; file_put_contents($archive, $package);
     mkdir($root . '/unpacked');
     KositReleaseArchive::unpack($archive, $root . '/unpacked', '0.5.1');
-    check(is_file($root . '/unpacked/kosit_validator/appinfo/info.xml'), 'Valid archive');
-    foreach ([tarEntry('kosit_validator/../../escape', 'x'), tarEntry('kosit_validator/link', '', '2', '/tmp'),
-        tarEntry('kosit_validator/hard', '', '1', 'target'), tarEntry('kosit_validator/dev', '', '3'),
-        substr($tar, 0, 100), str_replace('kosit_validator', 'wrong_validator', $tar)] as $i => $bad) {
+    check(is_file($root . '/unpacked/inv_validator/appinfo/info.xml'), 'Valid archive');
+    foreach ([tarEntry('inv_validator/../../escape', 'x'), tarEntry('inv_validator/link', '', '2', '/tmp'),
+        tarEntry('inv_validator/hard', '', '1', 'target'), tarEntry('inv_validator/dev', '', '3'),
+        substr($tar, 0, 100), str_replace('inv_validator', 'wrong_validator', $tar)] as $i => $bad) {
         $path = $root . '/bad' . $i . '.tar.gz'; file_put_contents($path, gzencode($bad));
         $dir = $root . '/bad' . $i; mkdir($dir);
         rejects(fn () => KositReleaseArchive::unpack($path, $dir, '0.5.1'));
@@ -61,17 +61,42 @@ namespace {
     mkdir($root . '/wrong-version');
     rejects(fn () => KositReleaseArchive::unpack($archive, $root . '/wrong-version', '9.0.0'));
 
-    $apps = new class implements \OCP\App\IAppManager {
+    $apps = new class($root) implements \OCP\App\IAppManager {
         public array $versions = [];
         public bool $enabled = false;
+        public int $upgrades = 0;
+        public int $enables = 0;
+        public int $cacheClears = 0;
+        public bool $failUpgrade = false;
+        public bool $throwUpgrade = false;
+        public ?string $appRoot = null;
+        public function __construct(private string $root) {}
         public function getAppInstalledVersions(): array { return $this->versions; }
         public function isEnabledForAnyone(string $id): bool { return $this->enabled; }
         public function isEnabledForUser(string $id): bool { return $this->enabled; }
-        public function getAppPath(string $id): string { throw new \OCP\App\AppPathNotFoundException(); }
-        public function clearAppsCache(): void {}
+        public function getAppPath(string $id, bool $ignoreCache = false): string {
+            $path = ($this->appRoot ?? $this->root . '/apps') . '/' . $id;
+            if (!is_dir($path)) throw new \OCP\App\AppPathNotFoundException();
+            return $path;
+        }
+        public function getAppInfoByPath(string $path): array {
+            return ['version' => (string)simplexml_load_file($path)->version];
+        }
+        public function clearAppsCache(): void { $this->cacheClears++; }
+        public function upgradeApp(string $id): bool {
+            check($this->cacheClears > 0, 'Cache cleared before upgrade');
+            $this->upgrades++;
+            $info = $this->getAppInfoByPath($this->getAppPath($id) . '/appinfo/info.xml');
+            check($info['version'] === '0.5.1', 'New code deployed before upgrade');
+            check(!file_exists($this->getAppPath($id) . '/obsolete.php'), 'Old files removed');
+            if ($this->throwUpgrade) throw new \RuntimeException('Migration failed');
+            if ($this->failUpgrade) return false;
+            $this->versions[$id] = $info['version'];
+            return true;
+        }
         public function loadApp(string $id): void {}
         public function enableApp(string $id): void {
-            check(isset($this->versions[$id]), 'Must install before enabling'); $this->enabled = true;
+            check(isset($this->versions[$id]), 'Must install before enabling'); $this->enabled = true; $this->enables++;
         }
     };
     $config = new class implements \OCP\IConfig {
@@ -88,12 +113,12 @@ namespace {
         public array $requests = [];
         public bool $badDigest = false;
         public bool $evilRedirect = false;
-        public function __construct(private string $package) {}
+        public function __construct(public string $package) {}
         public function newClient(): object { return $this; }
         public function get(string $url, array $options): object {
             $this->requests[] = [$url, $options];
             if (str_ends_with($url, '/latest')) {
-                $body = json_encode(['tag_name' => '0.5.1', 'assets' => [['name' => 'kosit_validator-0.5.1.tar.gz',
+                $body = json_encode(['tag_name' => '0.5.1', 'assets' => [['name' => 'inv_validator-0.5.1.tar.gz',
                     'id' => 42, 'size' => strlen($this->package), 'digest' => 'sha256:' . ($this->badDigest ? str_repeat('0', 64) : hash('sha256', $this->package))]]]);
                 return self::response(200, $body);
             }
@@ -120,21 +145,97 @@ namespace {
     $dependency = new KositDependencyService($apps, $config, $http, $temp, $installer);
     $http->evilRedirect = true;
     rejects(fn () => $dependency->ensureInstalled());
-    check(!is_dir($root . '/apps/kosit_validator'), 'Malicious redirect rejected');
+    check(!is_dir($root . '/apps/inv_validator'), 'Malicious redirect rejected');
     $http->evilRedirect = false; $http->badDigest = true;
     rejects(fn () => $dependency->ensureInstalled());
-    check(!is_dir($root . '/apps/kosit_validator'), 'Hash mismatch rejected');
+    check(!is_dir($root . '/apps/inv_validator'), 'Hash mismatch rejected');
     $http->badDigest = false;
     $dependency->ensureInstalled();
     check($apps->enabled && count($installer->calls) === 1, 'Installed and enabled');
     $dependency->ensureInstalled();
     check(count($installer->calls) === 1, 'Existing app not reinstalled');
+    $apps->versions['inv_validator'] = '0.6.0';
+    $requests = count($http->requests);
+    $dependency->ensureInstalled();
+    check(count($http->requests) === $requests + 1 && $apps->upgrades === 0, 'No downgrade or package download');
+
+    // Eine ältere Installation im tatsächlich verwendeten App-Root ersetzen.
+    mkdir($root . '/custom-apps');
+    rename($root . '/apps/inv_validator', $root . '/custom-apps/inv_validator');
+    $apps->appRoot = $root . '/custom-apps';
+    $destination = $apps->getAppPath('inv_validator');
+    $oldInfo = '<info><id>inv_validator</id><version>0.5.0</version></info>';
+    file_put_contents($destination . '/appinfo/info.xml', $oldInfo);
+    file_put_contents($destination . '/obsolete.php', 'old code');
+    $apps->versions['inv_validator'] = '0.5.0';
+    $apps->enabled = false;
     $dependency->save(['hide_navigation' => true]);
-    check($config->values['kosit_validator']['hide_navigation'] === 'yes', 'Visibility stored in dependency app');
+
+    $lock = fopen($root . '/custom-apps/.my_xrechnung-kosit-install.lock', 'c');
+    flock($lock, LOCK_EX);
+    rejects(fn () => $dependency->ensureInstalled());
+    flock($lock, LOCK_UN); fclose($lock);
+    check(file_exists($destination . '/obsolete.php'), 'Concurrent update leaves old code intact');
+    $http->badDigest = true;
+    rejects(fn () => $dependency->ensureInstalled());
+    $http->badDigest = false;
+    $http->evilRedirect = true;
+    rejects(fn () => $dependency->ensureInstalled());
+    $http->evilRedirect = false;
+    check(file_get_contents($destination . '/appinfo/info.xml') === $oldInfo, 'Failed verification preserves old code');
+    check($apps->upgrades === 0, 'No migration for unverified packages');
+    $http->package = gzencode(str_replace('0.5.1', '9.9.9', $tar));
+    rejects(fn () => $dependency->ensureInstalled());
+    $http->package = $package;
+    check(file_get_contents($destination . '/appinfo/info.xml') === $oldInfo, 'Invalid archive preserves old code');
+
+    check(glob($root . '/custom-apps/.myx-kosit-*') === [], 'Failed verification leaves no staging directories');
+
+    file_put_contents($destination . '/appinfo/info.xml', str_replace('0.5.0', '0.6.0', $oldInfo));
+    rejects(fn () => $dependency->ensureInstalled());
+    check(file_exists($destination . '/obsolete.php'), 'Newer deployed code is not downgraded');
+    file_put_contents($destination . '/appinfo/info.xml', $oldInfo);
+    rename($destination, $destination . '-linked');
+    symlink($destination . '-linked', $destination);
+    rejects(fn () => $dependency->ensureInstalled());
+    unlink($destination); rename($destination . '-linked', $destination);
+
+    $dependency->ensureInstalled();
+    check($apps->versions['inv_validator'] === '0.5.1' && $apps->upgrades === 1, 'Existing installation upgraded');
+    check(count($installer->calls) === 1 && $apps->enables === 1, 'Update uses upgrade, preserves disabled state');
+    check(!$apps->enabled, 'Disabled app stays disabled');
+    check(!file_exists($root . '/apps/inv_validator'), 'Update stays in original app root');
+    check(glob($root . '/custom-apps/.myx-kosit-*') === [], 'Successful update removes staging and backup');
+    check($config->values['inv_validator']['hide_navigation'] === 'yes', 'Update preserves settings');
+    $dependency->ensureInstalled();
+    check($apps->upgrades === 1, 'Current version not upgraded again');
+
+    foreach ([false, true] as $throws) {
+        $apps->versions['inv_validator'] = '0.5.0';
+        file_put_contents($destination . '/appinfo/info.xml', $oldInfo);
+        $apps->failUpgrade = !$throws;
+        $apps->throwUpgrade = $throws;
+        try {
+            $dependency->ensureInstalled();
+            throw new \LogicException('Expected migration failure');
+        } catch (\RuntimeException $e) {
+            check(str_contains($e->getMessage(), 'Sicherung:'), 'Migration failure reports retained backup');
+        }
+        $backups = glob($root . '/custom-apps/.myx-kosit-*/previous/appinfo/info.xml');
+        check(count($backups) === ($throws ? 2 : 1), 'Migration failure preserves old code backup');
+        check(file_get_contents(end($backups)) === $oldInfo, 'Backup contains previous release');
+        check($apps->getAppInfoByPath($destination . '/appinfo/info.xml')['version'] === '0.5.1', 'Migration failure keeps new code');
+    }
+    $apps->failUpgrade = false; $apps->throwUpgrade = false;
+    $dependency->ensureInstalled();
+    check($apps->versions['inv_validator'] === '0.5.1', 'Migration can be retried after failure');
+    $apps->enabled = true;
+    $dependency->save(['hide_navigation' => true]);
+    check($config->values['inv_validator']['hide_navigation'] === 'yes', 'Visibility stored in dependency app');
 
     \OCP\AppFramework\App::$container = new class {
         public function get(string $name): object {
-            check($name === 'OCA\\KoSITValidator\\Service\\KoSITValidatorService', 'Separate validator service');
+            check($name === 'OCA\\INValidator\\Service\\KoSITValidatorService', 'Separate validator service');
             return new class {
                 public function validateXml(string $xml): object {
                     check($xml === '<invoice/>', 'Exact XML forwarded');
@@ -147,9 +248,9 @@ namespace {
         }
     };
     $result = (new KositValidatorService($apps))->validateXml('<invoice/>');
-    check(\OCP\AppFramework\App::$id === 'kosit_validator', 'Correct app config scope');
+    check(\OCP\AppFramework\App::$id === 'inv_validator', 'Correct app config scope');
     check($result === ['valid' => false, 'html' => '<p>Invalid invoice</p>'], 'Validation result forwarded');
     $apps->enabled = false;
     rejects(fn () => (new KositValidatorService($apps))->validateXml('<invoice/>'));
-    echo "KoSIT adapter, archive, installation, digest and redirect tests passed.\n";
+    echo "KoSIT adapter, archive, installation, updates, migration failures, digest and redirect tests passed.\n";
 }

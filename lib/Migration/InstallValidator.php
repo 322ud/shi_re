@@ -20,7 +20,7 @@ class InstallValidator implements IRepairStep {
         try {
             if ($this->dependency->settings()['installed'] === null) {
                 $this->dependency->ensureInstalled();
-                $output->info('kosit_validator wurde installiert.');
+                $output->info('inv_validator wurde installiert.');
             }
         } catch (\Throwable $e) {
             $output->warning($e->getMessage() . ' Die Einrichtung kann beim nächsten App-Start durch einen Administrator wiederholt werden.');

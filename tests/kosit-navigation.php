@@ -9,7 +9,7 @@ namespace OCP\App { interface IAppManager {} }
 namespace OCP\EventDispatcher { class Event {} interface IEventListener { public function handle(Event $event): void; } }
 namespace OCP\Navigation\Events { class LoadAdditionalEntriesEvent extends \OCP\EventDispatcher\Event {} }
 namespace {
-    require ($argv[1] ?? __DIR__ . '/../../kosit_validator') . '/lib/Listener/NavigationListener.php';
+    require ($argv[1] ?? __DIR__ . '/../../inv_validator') . '/lib/Listener/NavigationListener.php';
     $navigation = new class implements \OCP\INavigationManager {
         public array $entries = [];
         public function add(array $entry): void { $this->entries[] = $entry; }
@@ -31,11 +31,11 @@ namespace {
         public function isEnabledForUser($app, $user): bool { return $this->enabled; }
     };
     $urls = new class implements \OCP\IURLGenerator {
-        public function linkToRoute($route): string { return '/apps/kosit_validator'; }
+        public function linkToRoute($route): string { return '/apps/inv_validator'; }
         public function imagePath($app, $icon): string { return '/icon.svg'; }
     };
     $l10n = new class implements \OCP\IL10N { public function t($text): string { return $text; } };
-    $listener = new \OCA\KoSITValidator\Listener\NavigationListener($navigation, $config, $session, $groups, $apps, $urls, $l10n);
+    $listener = new \OCA\INValidator\Listener\NavigationListener($navigation, $config, $session, $groups, $apps, $urls, $l10n);
     foreach ([[false,false,true,true,1], [true,false,true,true,0], [true,true,true,true,1],
         [false,false,false,true,0], [false,true,true,false,0]] as [$hide,$admin,$loggedIn,$enabled,$count]) {
         $config->hide = $hide; $groups->admin = $admin; $session->loggedIn = $loggedIn; $apps->enabled = $enabled;

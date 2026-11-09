@@ -46,7 +46,7 @@ final class KositReleaseArchive {
                     throw new \RuntimeException('Release enthält Links, Sonderdateien oder nicht unterstützte TAR-Metadaten.');
                 }
                 if ($total > 200 * 1024 * 1024 || $size > 20 * 1024 * 1024
-                    || !preg_match('~^kosit_validator(?:/[A-Za-z0-9_.+-]+)*$~D', $name)
+                    || !preg_match('~^inv_validator(?:/[A-Za-z0-9_.+-]+)*$~D', $name)
                     || in_array('..', explode('/', $name), true) || in_array('.', explode('/', $name), true)
                     || isset($seen[$name])) {
                     throw new \RuntimeException('Ungültiger oder zu großer Archiveintrag.');
@@ -72,7 +72,7 @@ final class KositReleaseArchive {
         } finally {
             gzclose($stream);
         }
-        $info = $destination . '/kosit_validator/appinfo/info.xml';
+        $info = $destination . '/inv_validator/appinfo/info.xml';
         $xml = is_file($info) ? file_get_contents($info) : false;
         if ($xml === false || stripos($xml, '<!DOCTYPE') !== false) {
             throw new \RuntimeException('App-Metadaten fehlen oder sind ungültig.');
@@ -83,12 +83,12 @@ final class KositReleaseArchive {
             throw new \RuntimeException('App-Metadaten sind ungültig.');
         }
         $xpath = new \DOMXPath($dom);
-        if ($xpath->evaluate('string(/info/id)') !== 'kosit_validator'
+        if ($xpath->evaluate('string(/info/id)') !== 'inv_validator'
             || $xpath->evaluate('string(/info/version)') !== $version) {
             throw new \RuntimeException('App-ID oder Release-Version stimmt nicht überein.');
         }
         foreach (['lib/AppInfo/Application.php', 'lib/Service/KoSITValidatorService.php'] as $required) {
-            if (!is_file($destination . '/kosit_validator/' . $required)) {
+            if (!is_file($destination . '/inv_validator/' . $required)) {
                 throw new \RuntimeException('Release-Paket ist unvollständig.');
             }
         }

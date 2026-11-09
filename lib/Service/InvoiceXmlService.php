@@ -43,6 +43,10 @@ final class InvoiceXmlService {
         foreach (['rsm' => 'CrossIndustryInvoice', 'ram' => 'ReusableAggregateBusinessInformationEntity', 'udt' => 'UnqualifiedDataType'] as $prefix => $name) {
             $xpath->registerNamespace($prefix, 'urn:un:unece:uncefact:data:standard:' . $name . ':100');
         }
+        $typeCode = trim($xpath->evaluate('string(/rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:TypeCode)'));
+        if ($typeCode !== '380') {
+            throw new \InvalidArgumentException('Typecode [' . $typeCode . '] kann (noch) nicht verarbeitet werden.');
+        }
         $node = static function (string $path) use ($xpath): \DOMElement {
             $nodes = $xpath->query($path);
             if ($nodes === false || $nodes->length !== 1 || !($nodes->item(0) instanceof \DOMElement)) {

@@ -12,9 +12,11 @@ const assert = require('node:assert/strict');
         const calls = [];
         let starts = 0;
         const ns = {
+            state: {},
             root: () => ({}), initLayout() {}, log() {}, stopHeartbeat() {},
             startInvoice: async () => { starts++; },
-            post: async (path) => { calls.push(path); return {status}; },
+            post: async (path) => { calls.push(path); return {status: path === '/pdf/status'
+                ? {enabled: false, message: 'PDF-Modul ist deaktiviert.'} : status}; },
         };
         vm.runInNewContext(fs.readFileSync(require.resolve('../js/main.js'), 'utf8'), {
             window: {MyXRechnung: ns, addEventListener() {}}, document: {readyState: 'complete'},
@@ -23,6 +25,8 @@ const assert = require('node:assert/strict');
         assert.equal(starts, 1, 'Invoice remains usable if release check fails');
         assert.equal(calls.includes('/admin/validator/install'), shouldInstall);
         assert.equal(calls[0], '/validator/status');
+        assert.ok(calls.includes('/pdf/status'), 'PDF dependencies checked at startup');
+        assert.equal(ns.state.pdfStatus.enabled, false);
     }
     console.log('Startup release-check and admin-only installation tests passed.');
 })().catch(error => { console.error(error); process.exit(1); });

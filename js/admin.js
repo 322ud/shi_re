@@ -46,6 +46,42 @@
                 if (!status.enabled) output.textContent += ' Die App ist deaktiviert; bitte in der App-Verwaltung aktivieren.';
             }
         });
+        const pdfOutput = document.getElementById('myx-pdf-status');
+        const veraPdfOutput = document.getElementById('myx-verapdf-status');
+        function showPdfStatus(status) {
+            const veraPdfVersion = (status.versions || {}).verapdf || '';
+            veraPdfOutput.hidden = !veraPdfVersion;
+            veraPdfOutput.querySelector('strong').textContent = veraPdfVersion;
+            pdfOutput.textContent = status.enabled ? 'PDF-Modul ist aktiv.'
+                : 'PDF-Modul ist deaktiviert. ' + (status.errors || []).join(' ');
+            if (status.enabled && !status.pdfaVerification) {
+                pdfOutput.textContent += ' Zusätzliche veraPDF-Prüfung ist nicht eingerichtet.';
+            }
+        }
+        document.getElementById('myx-pdf-check').addEventListener('click', async function () {
+            this.disabled = true;
+            pdfOutput.textContent = 'Verfügbarkeit wird geprüft …';
+            try { showPdfStatus((await post('/admin/pdf/status')).status); }
+            catch (error) { pdfOutput.textContent = error.message; }
+            finally { this.disabled = false; }
+        });
+        document.getElementById('myx-pdf-templates').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const button = document.getElementById('myx-pdf-upload');
+            button.disabled = true;
+            pdfOutput.textContent = 'Vorlagensatz wird geprüft …';
+            try {
+                const response = await fetch(OC.generateUrl('/apps/my_xrechnung/admin/pdf/templates'), {
+                    method: 'POST', headers: {requesttoken: OC.requestToken}, body: new FormData(this),
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.error || 'Upload fehlgeschlagen.');
+                this.reset();
+                showPdfStatus(data.status);
+            } catch (error) {
+                pdfOutput.textContent = 'PDF-Modul ist deaktiviert. ' + error.message;
+            } finally { button.disabled = false; }
+        });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once: true});
     else init();

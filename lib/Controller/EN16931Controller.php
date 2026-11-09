@@ -203,9 +203,19 @@ class EN16931Controller extends Controller {
             'urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'
         );
 
+        $xpath->registerNamespace('rsm', 'urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100');
+
         return [
+            'typeCode' => trim($this->getValue($xpath, '/rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:TypeCode') ?? ''),
             'seller' => [
                 'name' => $this->getValue($xpath, '//ram:SellerTradeParty/ram:Name') ?? '',
+                'address' => $this->getValue($xpath, '//ram:SellerTradeParty/ram:PostalTradeAddress/ram:LineOne') ?? '',
+                'address2' => $this->getValue($xpath, '//ram:SellerTradeParty/ram:PostalTradeAddress/ram:LineTwo') ?? '',
+                'address3' => $this->getValue($xpath, '//ram:SellerTradeParty/ram:PostalTradeAddress/ram:LineThree') ?? '',
+                'postcode' => $this->getValue($xpath, '//ram:SellerTradeParty/ram:PostalTradeAddress/ram:PostcodeCode') ?? '',
+                'city' => $this->getValue($xpath, '//ram:SellerTradeParty/ram:PostalTradeAddress/ram:CityName') ?? '',
+                'country' => $this->getValue($xpath, '//ram:SellerTradeParty/ram:PostalTradeAddress/ram:CountryID') ?? '',
+                'iban' => $this->getValue($xpath, '//ram:ApplicableHeaderTradeSettlement/ram:SpecifiedTradeSettlementPaymentMeans/ram:PayeePartyCreditorFinancialAccount/ram:IBANID') ?? '',
             ],
             'buyer' => [
                 'buyerReference' => $this->getValue($xpath, '//ram:ApplicableHeaderTradeAgreement/ram:BuyerReference') ?? '',

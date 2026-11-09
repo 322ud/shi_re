@@ -80,3 +80,14 @@ $data['items'][0]['quantity'] = 0.1;
 $service->apply($small, $data, '26 201', $date);
 check($small->getElementsByTagNameNS('urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100', 'GrandTotalAmount')->item(0)->textContent === '0.01', 'Half-cent rounding');
 echo "Invoice XML tests passed.\n";
+
+foreach (['381', ''] as $unsupportedType) {
+    $unsupported = template();
+    $unsupported->getElementsByTagNameNS('urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100', 'TypeCode')->item(0)->nodeValue = $unsupportedType;
+    try {
+        $service->apply($unsupported, $data, '26 201', $date);
+        throw new RuntimeException('Unsupported document type accepted');
+    } catch (InvalidArgumentException $error) {
+        check($error->getMessage() === 'Typecode [' . $unsupportedType . '] kann (noch) nicht verarbeitet werden.', 'Unsupported type message');
+    }
+}

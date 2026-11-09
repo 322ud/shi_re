@@ -119,7 +119,7 @@ box-sizing: border-box;
 .myx-address-line {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0;
     width: 100%;
 }
 
@@ -130,6 +130,7 @@ box-sizing: border-box;
 
 .myx-address-line .myx-field:nth-of-type(1) {
     width: 70px;
+    margin-right: 4px;
 }
 
 .myx-address-line .myx-field:nth-of-type(2) {
@@ -469,4 +470,56 @@ button:hover {
 .myx-reference-line .myx-hours-field input {
     flex: 1;
     text-align: right;
+}
+
+.myx-parties {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 32px;
+    margin-bottom: 18px;
+}
+
+.myx-parties > section {
+    min-width: 0;
+}
+
+.myx-seller {
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+    .myx-parties {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+    .myx-address-line .myx-field:nth-of-type(2) {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+}
+
+.myx-address-line .myx-country-field {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+}
+
+.myx-country-field::before {
+    content: '/';
+}
+
+.myx-country-field input {
+    padding-left: 0;
+    margin-left: 0;
+}
+
+.myx-field textarea.myx-description {
+    display: block;
+    resize: none;
+    overflow: hidden;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-family: inherit;
 }

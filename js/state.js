@@ -11,7 +11,8 @@
     NS.state = {
         windowId: getWindowId(),
         ramID: null,
-        sellerName: null,
+        seller: null,
+        typeCode: null,
         todayText: null,
         xmlInvoiceFile: null,
         invoiceData: null,
@@ -34,7 +35,8 @@
 
         NS.state.windowId = getWindowId();
         NS.state.ramID = null;
-        NS.state.sellerName = null;
+        NS.state.seller = null;
+        NS.state.typeCode = null;
         NS.state.todayText = null;
         NS.state.xmlInvoiceFile = null;
         NS.state.invoiceData = null;

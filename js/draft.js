@@ -4,6 +4,7 @@
     const NS = window.MyXRechnung;
 
     NS.startInvoice = async function () {
+        NS.releasePdfDownload();
         NS.clear(NS.inputArea());
         NS.clear(NS.outputArea());
 
@@ -12,10 +13,9 @@
 
         NS.state.xmlInvoiceFile = null;
         NS.state.ramID = data.ramID || null;
-        NS.state.sellerName = seed.seller?.name || '';
+        NS.state.seller = seed.seller || {};
+        NS.state.typeCode = String(seed.typeCode ?? '').trim();
         NS.state.todayText = NS.todayDE();
-
-        NS.log('Rechnungsteller: ' + NS.state.sellerName);
 
         NS.state.invoiceData = NS.defaultInvoiceData(seed);
 

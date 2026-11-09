@@ -83,6 +83,14 @@
         } catch (error) {
             notices.push('KoSIT-Einrichtung: ' + error.message);
         }
+        try {
+            const {status} = await NS.post('/pdf/status');
+            NS.state.pdfStatus = status;
+            if (!status.enabled) notices.push(status.message);
+        } catch (error) {
+            NS.state.pdfStatus = {enabled: false};
+            notices.push('PDF-Modul konnte nicht geprüft werden: ' + error.message);
+        }
         await startSafely();
         notices.forEach(NS.log);
     }

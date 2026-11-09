@@ -11,7 +11,7 @@ use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\ITempManager;
 
-/** Ermittelt das aktuelle stabile GitHub-Release und installiert die fehlende App. */
+/** Ermittelt das aktuelle stabile GitHub-Release und installiert oder aktualisiert die App. */
 class KositDependencyService {
     public function __construct(
         private IAppManager $apps,
@@ -24,13 +24,13 @@ class KositDependencyService {
 
     public function settings(): array {
         $result = [];
-        $result['hide_navigation'] = $this->config->getAppValue('kosit_validator', 'hide_navigation', 'no') === 'yes';
-        $result['installed'] = $this->apps->getAppInstalledVersions()['kosit_validator'] ?? null;
-        $result['enabled'] = $this->apps->isEnabledForAnyone('kosit_validator');
+        $result['hide_navigation'] = $this->config->getAppValue('inv_validator', 'hide_navigation', 'no') === 'yes';
+        $result['installed'] = $this->apps->getAppInstalledVersions()['inv_validator'] ?? null;
+        $result['enabled'] = $this->apps->isEnabledForAnyone('inv_validator');
         $result['navigation_supported'] = false;
         if ($result['enabled']) {
-            $this->apps->loadApp('kosit_validator');
-            $result['navigation_supported'] = defined('OCA\\KoSITValidator\\AppInfo\\Application::SUPPORTS_HIDDEN_NAVIGATION');
+            $this->apps->loadApp('inv_validator');
+            $result['navigation_supported'] = defined('OCA\\INValidator\\AppInfo\\Application::SUPPORTS_HIDDEN_NAVIGATION');
         }
         return $result;
     }
@@ -39,13 +39,13 @@ class KositDependencyService {
         if (!is_bool($data['hide_navigation'] ?? null)) {
             throw new \InvalidArgumentException('Ungültige Navigationseinstellung.');
         }
-        $this->config->setAppValue('kosit_validator', 'hide_navigation', $data['hide_navigation'] ? 'yes' : 'no');
+        $this->config->setAppValue('inv_validator', 'hide_navigation', $data['hide_navigation'] ? 'yes' : 'no');
     }
 
     public function latest(): array {
         $client = $this->clients->newClient();
         try {
-            $response = $client->get('https://api.github.com/repos/322ud/kosit_validator/releases/latest', [
+            $response = $client->get('https://api.github.com/repos/322ud/inv_validator/releases/latest', [
                 'headers' => $this->githubHeaders(), 'timeout' => 10, 'allow_redirects' => false,
             ]);
             if ($response->getStatusCode() !== 200) {
@@ -56,7 +56,7 @@ class KositDependencyService {
                 throw new \RuntimeException('Kein stabiles Release.');
             }
             foreach ($release['assets'] ?? [] as $asset) {
-                if (preg_match('/^kosit_validator-([0-9]+\.[0-9]+\.[0-9]+)\.tar\.gz$/D', $asset['name'] ?? '', $match)
+                if (preg_match('/^inv_validator-([0-9]+\.[0-9]+\.[0-9]+)\.tar\.gz$/D', $asset['name'] ?? '', $match)
                     && is_int($asset['id'] ?? null) && ($asset['size'] ?? PHP_INT_MAX) <= 20 * 1024 * 1024
                     && preg_match('/^sha256:([a-f0-9]{64})$/D', $asset['digest'] ?? '', $digest)) {
                     return ['release_tag' => $release['tag_name'], 'release_version' => $match[1],
@@ -65,7 +65,7 @@ class KositDependencyService {
             }
             throw new \RuntimeException('Release-Paket oder SHA-256-Digest fehlt.');
         } catch (\Throwable $e) {
-            throw new \RuntimeException('Aktuelles GitHub-Release nicht abrufbar. Ein veröffentlichtes kosit_validator-VERSION.tar.gz mit SHA-256-Digest und bei privatem Repository ein serverseitiger GitHub-Token werden benötigt.');
+            throw new \RuntimeException('Aktuelles GitHub-Release nicht abrufbar. Ein veröffentlichtes inv_validator-VERSION.tar.gz mit SHA-256-Digest und bei privatem Repository ein serverseitiger GitHub-Token werden benötigt.');
         }
     }
 
@@ -80,26 +80,29 @@ class KositDependencyService {
 
     public function ensureInstalled(): void {
         $settings = $this->latest();
-        $installed = $this->apps->getAppInstalledVersions()['kosit_validator'] ?? null;
+        $installed = $this->apps->getAppInstalledVersions()['inv_validator'] ?? null;
         if ($installed !== null && version_compare($installed, $settings['release_version'], '>=')) {
             return;
         }
-        // Vorhandenen Code über den administrativen Release-Deploymentweg aktualisieren.
-        if ($installed !== null) {
-            throw new \RuntimeException('Ein neueres kosit_validator-Release ist verfügbar. Bitte über den administrativen Release-Deploymentweg aktualisieren.');
-        }
-        try {
-            $path = $this->apps->getAppPath('kosit_validator');
-            $info = $this->apps->getAppInfoByPath($path . '/appinfo/info.xml');
-            if (($info['version'] ?? '') !== $settings['release_version']) {
-                throw new \RuntimeException('Vorhandener Validator-App-Code entspricht nicht dem aktuellen Release. Bitte administrativ aktualisieren.');
+        if ($installed === null) {
+            try {
+                $path = $this->apps->getAppPath('inv_validator');
+                $info = $this->apps->getAppInfoByPath($path . '/appinfo/info.xml');
+                if (($info['version'] ?? '') !== $settings['release_version']) {
+                    throw new \RuntimeException('Vorhandener Validator-App-Code entspricht nicht dem aktuellen Release. Bitte administrativ aktualisieren.');
+                }
+                $this->installer->installApp('inv_validator');
+                $this->apps->enableApp('inv_validator');
+                return;
+            } catch (AppPathNotFoundException) {
             }
-            $this->installer->installApp('kosit_validator');
-            $this->apps->enableApp('kosit_validator');
-            return;
-        } catch (AppPathNotFoundException) {
+            $installRoot = $this->installer->getInstallPath();
+            $destination = $installRoot === null ? null : $installRoot . '/inv_validator';
+        } else {
+            // Im tatsächlich verwendeten App-Verzeichnis aktualisieren, auch bei mehreren App-Roots.
+            $destination = $this->apps->getAppPath('inv_validator', true);
+            $installRoot = dirname($destination);
         }
-        $installRoot = $this->installer->getInstallPath();
         if ($installRoot === null || !is_writable($installRoot)) {
             throw new \RuntimeException('Kein beschreibbares Nextcloud-App-Verzeichnis vorhanden.');
         }
@@ -108,13 +111,29 @@ class KositDependencyService {
             throw new \RuntimeException('Installationssperre konnte nicht geöffnet werden.');
         }
         $staging = null;
+        $keepBackup = false;
         try {
             if (!flock($lock, LOCK_EX | LOCK_NB)) {
                 throw new \RuntimeException('Die Validator-App wird bereits installiert.');
             }
-            $destination = $installRoot . '/kosit_validator';
-            if (file_exists($destination) || is_link($destination)) {
-                throw new \RuntimeException('Validator-App-Verzeichnis ist inzwischen vorhanden. Bitte erneut prüfen.');
+            // Nach Erwerb der Sperre erneut prüfen: Ein anderer Aufruf könnte fertig sein.
+            $installed = $this->apps->getAppInstalledVersions()['inv_validator'] ?? null;
+            if ($installed !== null && version_compare($installed, $settings['release_version'], '>=')) {
+                return;
+            }
+            if ($installed === null) {
+                if (file_exists($destination) || is_link($destination)) {
+                    throw new \RuntimeException('Validator-App-Verzeichnis ist inzwischen vorhanden. Bitte erneut prüfen.');
+                }
+            } else {
+                if (is_link($destination) || !is_dir($destination)
+                    || $this->apps->getAppPath('inv_validator', true) !== $destination) {
+                    throw new \RuntimeException('Validator-App-Verzeichnis kann nicht sicher aktualisiert werden.');
+                }
+                $info = $this->apps->getAppInfoByPath($destination . '/appinfo/info.xml');
+                if (version_compare($info['version'] ?? '0', $settings['release_version'], '>')) {
+                    throw new \RuntimeException('Vorhandener Validator-App-Code ist neuer als das GitHub-Release.');
+                }
             }
             $archive = $this->download($settings);
             $staging = $installRoot . '/.myx-kosit-' . bin2hex(random_bytes(8));
@@ -122,15 +141,38 @@ class KositDependencyService {
                 throw new \RuntimeException('Installationsverzeichnis konnte nicht erstellt werden.');
             }
             KositReleaseArchive::unpack($archive, $staging, $settings['release_version']);
-            if (!rename($staging . '/kosit_validator', $destination)) {
+            $backup = $staging . '/previous';
+            if ($installed !== null && !rename($destination, $backup)) {
+                throw new \RuntimeException('Vorhandene Validator-App konnte nicht gesichert werden.');
+            }
+            if (!rename($staging . '/inv_validator', $destination)) {
+                if ($installed !== null && !rename($backup, $destination)) {
+                    $keepBackup = true;
+                    throw new \RuntimeException('Validator-App konnte nicht wiederhergestellt werden. Sicherung: ' . $backup);
+                }
                 throw new \RuntimeException('Validator-App konnte nicht bereitgestellt werden.');
             }
-            // Nextcloud prüft Kompatibilität und übernimmt Installation/Migrationen.
+            $keepBackup = $installed !== null;
             $this->apps->clearAppsCache();
-            $this->installer->installApp('kosit_validator');
-            $this->apps->enableApp('kosit_validator');
+            if (function_exists('opcache_reset')) {
+                opcache_reset();
+            }
+            if ($installed === null) {
+                $this->installer->installApp('inv_validator');
+                $this->apps->enableApp('inv_validator');
+            } else {
+                // Migrationen können die Datenbank bereits verändert haben: kein Code-Downgrade bei Fehlern.
+                try {
+                    if (!$this->apps->upgradeApp('inv_validator')) {
+                        throw new \RuntimeException('Nextcloud hat das App-Update nicht abgeschlossen.');
+                    }
+                } catch (\Throwable $e) {
+                    throw new \RuntimeException('Nextcloud-Update der Validator-App fehlgeschlagen. Neuer Code und Sicherung bleiben erhalten; Migrationen administrativ prüfen. Sicherung: ' . $backup, 0, $e);
+                }
+                $keepBackup = false;
+            }
         } finally {
-            if ($staging !== null && is_dir($staging)) {
+            if (!$keepBackup && $staging !== null && is_dir($staging)) {
                 self::removeTemporaryTree($staging);
             }
             flock($lock, LOCK_UN);
@@ -141,7 +183,7 @@ class KositDependencyService {
     private function download(array $settings): string {
         $client = $this->clients->newClient();
         $headers = $this->githubHeaders();
-        $base = 'https://api.github.com/repos/322ud/kosit_validator';
+        $base = 'https://api.github.com/repos/322ud/inv_validator';
         try {
             $archive = $this->temp->getTemporaryFile('.tar.gz');
             if ($archive === false) {
