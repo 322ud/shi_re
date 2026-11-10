@@ -53,3 +53,10 @@ transition: transform 0.15s;
 #myx-admin .shire-switch input, #myx-admin .shire-switch input::after { transition: none; }
 }
 #myx-pdf-templates[hidden] { display: none !important; }
+
+.shire-state { display: inline-block; font-size: 24px; font-weight: bold; width: 36px; text-align: center; }
+.shire-state--available { color: var(--color-success, #228b22); }
+.shire-state--missing { color: var(--color-error, #c00); }
+.shire-system [data-detail] { display: block; }
+.shire-system [data-version] { overflow-wrap: anywhere; max-width: 220px; }
+.shire-system [data-readme-help] { display: inline-block; margin-top: 6px; text-decoration: underline; }

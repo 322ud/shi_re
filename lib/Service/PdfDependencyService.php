@@ -44,25 +44,55 @@ class PdfDependencyService {
             if ($this->templates->error() !== '') $errors[] = $this->templates->error();
         } catch (\Throwable $e) { $errors[] = $e->getMessage(); }
         $templateErrors = $errors;
-        try {
-            $tools = $this->tools();
-            $dir = $this->workspace->create();
+        $custom = $this->templates->usesCustomTemplates();
+        $checks = ['templates' => ['ok' => !$templateErrors, 'version' => $custom ? ($bundle['version'] ?? '') : '',
+            'detail' => !$custom ? 'Deaktiviert – Standardvorlagen werden verwendet.' : ($templateErrors ? implode(' ', $templateErrors) : 'Vorlagensatz geprüft.')]];
+        $tools = [
+            'libreoffice' => $this->config->getSystemValueString('shi_re_libreoffice', '/usr/bin/libreoffice'),
+            'java' => $this->config->getSystemValueString('shi_re_java', '/usr/bin/java'),
+            'mustang' => $this->config->getSystemValueString('shi_re_mustang_jar', ''),
+            'verapdf' => $this->config->getSystemValueString('shi_re_verapdf', ''),
+        ];
+        foreach ($tools as $key => $path) {
+            $dir = null;
             try {
-                if ($tools['verapdf'] !== '') {
-                    $versions['verapdf'] = trim($this->runner->run([$tools['verapdf'], '--version'], $dir, 10));
+                if ($path === '' && $key === 'verapdf') {
+                    $checks[$key] = ['ok' => false, 'version' => '', 'detail' => 'Optional; nicht eingerichtet.'];
+                    continue;
                 }
-                $versions['libreoffice'] = trim($this->runner->run([$tools['libreoffice'], '--version'], $dir, 10));
-                $versions['java'] = trim($this->runner->run([$tools['java'], '-version'], $dir, 10));
-                $help = $this->runner->run([$tools['java'], '-jar', $tools['mustang'], '--help'], $dir, 15);
-                foreach (['combine', 'extract', 'validate', 'no-additional-attachments'] as $feature) {
-                    if (!str_contains($help, $feature)) throw new \RuntimeException('Mustang-CLI unterstützt nicht alle benötigten Parameter: ' . $feature);
+                if (!str_starts_with($path, '/') || !is_file($path) || !is_readable($path)
+                    || ($key !== 'mustang' && !is_executable($path))) {
+                    throw new \RuntimeException("PDF-Werkzeug $key fehlt oder ist nicht zugreifbar. Pfad in config.php prüfen.");
                 }
-                $versions['mustang'] = mb_substr(trim($help), 0, 120);
-            } finally { $this->workspace->remove($dir); }
-        } catch (\Throwable $e) { $errors[] = $e->getMessage(); }
-        return ['enabled' => !$errors, 'errors' => $errors, 'versions' => $versions,
-            'customTemplatesStatus' => !$this->templates->usesCustomTemplates() ? 'Deaktiviert – Standardvorlagen werden verwendet.' : ($templateErrors ? implode(' ', $templateErrors) : 'Aktiv – Vorlagensatz geprüft.'),
+                $dir = $this->workspace->create();
+                $command = $key === 'mustang' ? [$tools['java'], '-jar', $path, '--help']
+                    : [$path, $key === 'java' ? '-version' : '--version'];
+                $result = trim($this->runner->run($command, $dir, $key === 'mustang' ? 15 : 10));
+                if ($key === 'mustang') {
+                    foreach (['combine', 'extract', 'validate', 'no-additional-attachments'] as $feature) {
+                        if (!str_contains($result, $feature)) throw new \RuntimeException('MustangCLI unterstützt nicht alle benötigten Parameter: ' . $feature);
+                    }
+                }
+                preg_match('/\b\d+\.\d+(?:\.[\w.-]+)*/', $result, $match);
+                $versions[$key] = $match[0] ?? mb_substr(strtok($result, "\n") ?: '', 0, 120);
+                $checks[$key] = ['ok' => true, 'version' => $versions[$key], 'detail' => $path];
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+                $checks[$key] = ['ok' => false, 'version' => '', 'detail' => $e->getMessage()];
+            } finally {
+                if ($dir !== null) $this->workspace->remove($dir);
+            }
+        }
+        if (!class_exists(\ZipArchive::class) || !class_exists(\DOMDocument::class) || !function_exists('proc_open')) {
+            $errors[] = 'PDF-Modul benötigt PHP ZIP, DOM und proc_open.';
+        }
+        if (!$checks['java']['ok']) {
+            $checks['mustang']['ok'] = false;
+            $checks['mustang']['detail'] .= ' Java: ' . $checks['java']['detail'];
+        }
+        return ['enabled' => !$errors, 'errors' => $errors, 'versions' => $versions, 'checks' => $checks,
+            'customTemplatesStatus' => $checks['templates']['detail'],
             'templateVersion' => $bundle['version'] ?? null,
-            'pdfaVerification' => ($tools['verapdf'] ?? '') !== ''];
+            'pdfaVerification' => $tools['verapdf'] !== ''];
     }
 }

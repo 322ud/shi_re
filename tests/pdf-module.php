@@ -147,6 +147,16 @@ namespace {
     $runner = new PdfProcessRunner();
     $dependencies = new PdfDependencyService($config, $runner, $workspace, $templates, $consistency);
     check(!$dependencies->status()['enabled'], 'Missing Mustang disables module');
+    $config->system['shi_re_libreoffice'] = PHP_BINARY;
+    $config->system['shi_re_java'] = PHP_BINARY;
+    $probeRunner = new class extends PdfProcessRunner {
+        public function run(array $command, string $cwd, int $timeout = 60): string { return 'Test tool 24.2.1'; }
+    };
+    $probe = (new PdfDependencyService($config, $probeRunner, $workspace, $templates, $consistency))->status();
+    check($probe['checks']['libreoffice']['ok'] && $probe['checks']['libreoffice']['version'] === '24.2.1', 'Independent LibreOffice check and version');
+    check(!$probe['checks']['mustang']['ok'] && !$probe['enabled'], 'Missing Mustang has its own failure');
+    check(!$probe['checks']['verapdf']['ok'] && str_contains($probe['checks']['verapdf']['detail'], 'Optional'), 'Missing optional veraPDF is explicit');
+    unset($config->system['shi_re_libreoffice'], $config->system['shi_re_java']);
     $dir = $workspace->create();
     try {
         check($runner->run([PHP_BINARY, '-r', 'echo $argv[1];', '$(echo unsafe);x'], $dir) === '$(echo unsafe);x', 'No shell interpolation');

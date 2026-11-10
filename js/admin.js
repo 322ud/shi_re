@@ -38,7 +38,6 @@
                     input.checked = !checked;
                     output.textContent = error.message;
                 } finally {
-                    input.closest('label').querySelector('[data-switch-value]').textContent = input.checked ? 'ja' : 'nein';
                     input.disabled = false;
                 }
             });
@@ -52,11 +51,12 @@
         });
         bind('myx-check-validator', async () => {
             const {status} = await post('/validator/status');
-            document.getElementById('myx-validator-version').textContent = (status.installed || 'Nicht installiert') + (status.enabled ? '' : ' – deaktiviert');
+            showValidatorStatus(status);
             if (status.check_error) throw new Error(status.check_error);
             if (!status.installed) {
                 output.textContent = 'Aktuelle Validator-App wird installiert …';
-                await post('/admin/validator/install');
+                const installed = await post('/admin/validator/install');
+                showValidatorStatus(installed.status);
                 output.textContent = 'Validator-App installiert. Seite neu laden. Java und Prüfszenarien können in der KoSIT-Administration eingerichtet werden.';
             } else {
                 output.textContent = status.update_available
@@ -66,27 +66,42 @@
             }
         });
         const pdfOutput = document.getElementById('myx-pdf-status');
-        const veraPdfOutput = document.getElementById('myx-verapdf-status');
+        function showCheck(key, check) {
+            const row = root.querySelector('[data-check="' + key + '"]');
+            if (!row) return;
+            const state = row.querySelector('.shire-state');
+            state.textContent = check.ok ? '✓' : '✕';
+            state.className = 'shire-state shire-state--' + (check.ok ? 'available' : 'missing');
+            state.setAttribute('aria-label', check.ok ? 'Bereit' : 'Nicht bereit');
+            row.querySelector('[data-version]').textContent = check.version || '—';
+            row.querySelector('[data-detail]').textContent = check.detail || '';
+        }
+        function showValidatorStatus(status) {
+            showCheck('validator', {ok: Boolean(status.installed && status.enabled && !status.check_error),
+                version: status.installed, detail: status.check_error || (!status.enabled ? 'INValidator fehlt oder ist deaktiviert.'
+                    : status.update_available ? 'Update auf ' + status.latest + ' verfügbar.' : '')});
+        }
         function showPdfStatus(status) {
-            document.getElementById('myx-template-status').textContent = status.customTemplatesStatus;
-            root.querySelectorAll('[data-pdf-version]').forEach(cell => {
-                cell.textContent = (status.versions || {})[cell.dataset.pdfVersion] || 'Nicht ermittelt';
-            });
-            const veraPdfVersion = (status.versions || {}).verapdf || '';
-            veraPdfOutput.hidden = !veraPdfVersion;
-            veraPdfOutput.querySelector('strong').textContent = veraPdfVersion;
+            Object.entries(status.checks || {}).forEach(([key, check]) => showCheck(key, check));
             pdfOutput.textContent = status.enabled ? 'PDF-Modul ist aktiv.'
                 : 'PDF-Modul ist deaktiviert. ' + (status.errors || []).join(' ');
-            if (status.enabled && !status.pdfaVerification) {
-                pdfOutput.textContent += ' Zusätzliche veraPDF-Prüfung ist nicht eingerichtet.';
-            }
         }
-        document.getElementById('myx-pdf-check').addEventListener('click', async function () {
-            this.disabled = true;
-            pdfOutput.textContent = 'Verfügbarkeit wird geprüft …';
-            try { showPdfStatus((await post('/admin/pdf/status')).status); }
-            catch (error) { pdfOutput.textContent = error.message; }
-            finally { this.disabled = false; }
+        bind('myx-check-system', async () => {
+            const results = await Promise.allSettled([
+                post('/validator/status').then(data => showValidatorStatus(data.status)),
+                post('/admin/pdf/status').then(data => showPdfStatus(data.status)),
+            ]);
+            const failures = results.filter(result => result.status === 'rejected');
+            output.textContent = failures.length ? failures.map(result => result.reason.message).join(' ') : 'Systemprüfung abgeschlossen.';
+        });
+        root.addEventListener('click', async event => {
+            const help = event.target.closest('[data-readme-help]');
+            if (!help) return;
+            event.preventDefault();
+            await window.OCA?.ShiRE?.initializeReadme(root.querySelector('[data-shire-readme]'));
+            const heading = [...root.querySelectorAll('.shire-readme-rich h1, .shire-readme-rich h2, .shire-readme-rich h3')]
+                .find(node => node.textContent.trim() === help.dataset.readmeHelp);
+            (heading || document.getElementById('shire-admin-readme-title')).scrollIntoView({block: 'start'});
         });
         document.getElementById('myx-pdf-templates').addEventListener('submit', async function (event) {
             event.preventDefault();

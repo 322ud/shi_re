@@ -2,7 +2,7 @@
 
 Nextcloud-App zur Erstellung und Validierung einer EN16931-CII-Rechnung mit einer Rechnungsposition. Nach erfolgreicher KoSIT-Validierung und ausdrücklicher XML-Annahme erzeugt das PDF-Modul auf Wunsch eine PDF/A-3b-Rechnung aus einer ODT-Vorlage und bettet dieselbe XML mit Mustangproject ein.
 
-Die Dokumentation ist auf den Rechnungsseiten über das Info-Symbol rechts oben (Mouseover „Readme“) erreichbar. In der Administration wird diese README formatiert eingebettet angezeigt.
+Die Dokumentation ist auf den Rechnungsseiten über das Info-Symbol rechts oben (Mouseover „Readme“) erreichbar. In der Administration wird diese README im schreibgeschützten Markdown-Viewer der Nextcloud-App Text eingebettet angezeigt, wie bei INValidator.
 
 ## Einstellungen
 
@@ -24,7 +24,7 @@ In Nextclouds `config.php` konfigurieren (absolute Pfade):
 'shi_re_verapdf' => '/opt/verapdf/verapdf',
 ```
 
-Die Einträge `shi_re_libreoffice` und `shi_re_java` sind nur bei abweichenden Programmpfaden nötig. Ohne Konfiguration gelten die oben gezeigten Standardpfade. Für Mustang gibt es keinen Standardpfad. In **Administration → ShiRE → System** zeigt „Verfügbarkeit prüfen“ fehlende Abhängigkeiten und Vorlagenfehler. Dieselbe Prüfung erfolgt beim App-Start und vor jeder PDF-Erzeugung. Ein deaktiviertes PDF-Modul verhindert weder die XML-Erstellung noch deren Download.
+Die Einträge `shi_re_libreoffice` und `shi_re_java` sind nur bei abweichenden Programmpfaden nötig. Ohne Konfiguration gelten die oben gezeigten Standardpfade. Für Mustang gibt es keinen Standardpfad. In **Administration → ShiRE → System** zeigt „Systemprüfung wiederholen“ fehlende Abhängigkeiten und Vorlagenfehler. Dieselbe Prüfung erfolgt beim App-Start und vor jeder PDF-Erzeugung. Ein deaktiviertes PDF-Modul verhindert weder die XML-Erstellung noch deren Download.
 
 Der Webserver-Benutzer benötigt ein beschreibbares Nextcloud-Tempverzeichnis und Zugriff auf die Programme und die verwendeten Schriften. HTTP-/Proxy-Zeitlimits müssen die Konvertierung und die Validierung zulassen. Jeder externe Aufruf hat ein Zeitlimit von 60 Sekunden (Verfügbarkeitsprüfungen 10–15 Sekunden). LibreOffice verwendet ein eigenes Profil pro Vorgang. Dateien liegen in privaten, von Nextcloud verwalteten temporären Verzeichnissen; sie werden bei Erfolg und Fehler sofort gelöscht. Bei einem harten Prozessabbruch greift Nextclouds Tempbereinigung.
 
