@@ -71,7 +71,7 @@ class KositDependencyService {
 
     private function githubHeaders(): array {
         $headers = ['Accept' => 'application/vnd.github+json', 'User-Agent' => 'shi_re', 'X-GitHub-Api-Version' => '2022-11-28'];
-        $token = $this->config->getSystemValueString('my_xrechnung_github_token', '');
+        $token = $this->config->getSystemValueString('shi_re_github_token', '');
         if ($token !== '') {
             $headers['Authorization'] = 'Bearer ' . $token;
         }

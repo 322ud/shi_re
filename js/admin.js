@@ -49,6 +49,9 @@
         const pdfOutput = document.getElementById('myx-pdf-status');
         const veraPdfOutput = document.getElementById('myx-verapdf-status');
         function showPdfStatus(status) {
+            root.querySelectorAll('[data-pdf-version]').forEach(cell => {
+                cell.textContent = (status.versions || {})[cell.dataset.pdfVersion] || 'Nicht ermittelt';
+            });
             const veraPdfVersion = (status.versions || {}).verapdf || '';
             veraPdfOutput.hidden = !veraPdfVersion;
             veraPdfOutput.querySelector('strong').textContent = veraPdfVersion;

@@ -286,7 +286,7 @@ namespace {
     }
     foreach ($argv as $arg) {
         if (!str_starts_with($arg, '--mustang=')) continue;
-        $config->system['my_xrechnung_mustang_jar'] = substr($arg, 10);
+        $config->system['shi_re_mustang_jar'] = substr($arg, 10);
         check($dependencies->status()['enabled'], implode(' ', $dependencies->status()['errors']));
         $realPdf = new PdfInvoiceService($dependencies, $templates, $renderer, $runner, $workspace);
         $result = $realPdf->generate($bundle['xml'], $saved['version']);

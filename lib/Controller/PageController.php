@@ -14,7 +14,9 @@ class PageController extends Controller {
 
     public function __construct(
         string $appName,
-        IRequest $request
+        IRequest $request,
+        private \OCP\IURLGenerator $urls,
+        private \OCA\ShiRE\Service\TextEditorLoader $textEditorLoader
     ) {
         parent::__construct($appName, $request);
     }
@@ -25,6 +27,7 @@ class PageController extends Controller {
     public function index(): TemplateResponse {
         // Gemeinsames Layout der App laden.
         Util::addStyle('shi_re', 'style');
+        Util::addStyle('shi_re', 'readme');
         Util::addStyle('shi_re', 'validation-actions');
 
         // Reihenfolge ist wichtig:
@@ -44,6 +47,18 @@ class PageController extends Controller {
         Util::addScript('shi_re', 'views/create-xml-invoice');
         Util::addScript('shi_re', 'main');
 
-        return new TemplateResponse('shi_re', 'index');
+        return new TemplateResponse('shi_re', 'index', ['readmeUrl' => $this->urls->linkToRoute('shi_re.page.readme')]);
+    }
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    #[Route(Route::TYPE_FRONTPAGE, verb: 'GET', url: '/readme')]
+    public function readme(): TemplateResponse {
+        $this->textEditorLoader->load();
+        Util::addStyle('shi_re', 'readme');
+        Util::addScript('shi_re', 'readme');
+        return new TemplateResponse('shi_re', 'readme', [
+            'readmeUrl' => $this->urls->linkToRoute('shi_re.page.readme'),
+            'appUrl' => $this->urls->linkToRoute('shi_re.page.index'),
+        ]);
     }
 }

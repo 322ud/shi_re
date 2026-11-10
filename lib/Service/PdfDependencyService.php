@@ -16,10 +16,10 @@ class PdfDependencyService {
 
     public function tools(): array {
         $tools = [
-            'libreoffice' => $this->config->getSystemValueString('my_xrechnung_libreoffice', '/usr/bin/libreoffice'),
-            'java' => $this->config->getSystemValueString('my_xrechnung_java', '/usr/bin/java'),
-            'mustang' => $this->config->getSystemValueString('my_xrechnung_mustang_jar', ''),
-            'verapdf' => $this->config->getSystemValueString('my_xrechnung_verapdf', ''),
+            'libreoffice' => $this->config->getSystemValueString('shi_re_libreoffice', '/usr/bin/libreoffice'),
+            'java' => $this->config->getSystemValueString('shi_re_java', '/usr/bin/java'),
+            'mustang' => $this->config->getSystemValueString('shi_re_mustang_jar', ''),
+            'verapdf' => $this->config->getSystemValueString('shi_re_verapdf', ''),
         ];
         foreach ($tools as $name => $path) {
             if ($name === 'verapdf' && $path === '') continue;

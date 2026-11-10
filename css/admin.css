@@ -1,0 +1,16 @@
+#myx-admin { max-width: 1100px; padding-right: 80px; box-sizing: border-box; }
+#myx-admin section { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--color-border); }
+#myx-admin h3 { margin-bottom: 12px; }
+#myx-admin p { margin: 12px 0; }
+#myx-admin details { margin: 16px 0; }
+#myx-admin summary { cursor: pointer; }
+#myx-admin code { overflow-wrap: anywhere; }
+#myx-admin input[type="file"] { max-width: 100%; }
+#myx-admin form label { display: block; margin-bottom: 6px; }
+#myx-admin-result { min-height: 1.5em; }
+@media (max-width: 600px) { #myx-admin { padding-right: 20px; } #myx-admin > h2 { padding-right: 60px; } }
+
+.shire-table-scroll { overflow-x: auto; margin-top: 12px; }
+.shire-system { width: 100%; border-collapse: collapse; }
+.shire-system th, .shire-system td { padding: 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--color-border); }
+.shire-system td { white-space: pre-wrap; overflow-wrap: anywhere; }

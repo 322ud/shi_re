@@ -9,6 +9,11 @@
     <licence>AGPL-3.0-or-later</licence>
     <author>Frank Busse</author>
     <namespace>ShiRE</namespace>
+    <documentation>
+        <user>https://github.com/322ud/shi_re/blob/HEAD/README.md</user>
+        <admin>https://github.com/322ud/shi_re/blob/HEAD/README.md#pdf-modul-einrichten</admin>
+        <developer>https://github.com/322ud/shi_re/blob/HEAD/README.md#tests</developer>
+    </documentation>
     <category>tools</category>
 
     <dependencies>

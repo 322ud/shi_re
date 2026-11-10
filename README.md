@@ -2,7 +2,7 @@
 
 Nextcloud-App zur Erstellung und Validierung einer EN16931-CII-Rechnung mit einer Rechnungsposition. Nach erfolgreicher KoSIT-Validierung und ausdrücklicher XML-Annahme erzeugt das PDF-Modul auf Wunsch eine PDF/A-3b-Rechnung aus einer ODT-Vorlage und bettet dieselbe XML mit Mustangproject ein.
 
-Die App-ID lautet ab Version 0.3.0 `shi_re`, der PHP-Namespace `OCA\ShiRE`. Das Installationsverzeichnis muss `shi_re` heißen. Nextcloud behandelt diese ID als neue App: Archiv, Vorlagen und App-Einstellungen der bisherigen ID `my_xrechnung` werden nicht automatisch übernommen. Die bestehenden Systemkonfigurationsschlüssel `my_xrechnung_*` in `config.php` bleiben aus Kompatibilitätsgründen gültig.
+Die Dokumentation ist auf jeder App-Seite über das Info-Symbol rechts oben (Mouseover „Readme“) erreichbar. In der Administration wird diese README zusätzlich eingebettet angezeigt.
 
 ## PDF-Modul einrichten
 
@@ -11,14 +11,14 @@ Auf dem Nextcloud-Server werden LibreOffice Writer, Java, die Mustang-CLI sowie 
 In Nextclouds `config.php` konfigurieren (absolute Pfade):
 
 ```php
-'my_xrechnung_libreoffice' => '/usr/bin/libreoffice',
-'my_xrechnung_java' => '/usr/bin/java',
-'my_xrechnung_mustang_jar' => '/opt/mustang/Mustang-CLI-2.26.0.jar',
+'shi_re_libreoffice' => '/usr/bin/libreoffice',
+'shi_re_java' => '/usr/bin/java',
+'shi_re_mustang_jar' => '/opt/mustang/Mustang-CLI-2.26.0.jar',
 // Optional: zusätzliche unabhängige PDF/A-3b-Prüfung des fertigen Dokuments.
-'my_xrechnung_verapdf' => '/opt/verapdf/verapdf',
+'shi_re_verapdf' => '/opt/verapdf/verapdf',
 ```
 
-LibreOffice und Java verwenden ohne Konfiguration die oben gezeigten Standardpfade. Für Mustang gibt es keinen Standardpfad. In **Administration → ShiRE → PDF-Rechnung** zeigt „Verfügbarkeit prüfen“ fehlende Abhängigkeiten und Vorlagenfehler. Dieselbe Prüfung erfolgt beim App-Start und vor jeder PDF-Erzeugung. Ein deaktiviertes PDF-Modul verhindert weder die XML-Erstellung noch deren Download.
+Die Einträge `shi_re_libreoffice` und `shi_re_java` sind nur bei abweichenden Programmpfaden nötig. Ohne Konfiguration gelten die oben gezeigten Standardpfade. Für Mustang gibt es keinen Standardpfad. In **Administration → ShiRE → PDF-Rechnung** zeigt „Verfügbarkeit prüfen“ fehlende Abhängigkeiten und Vorlagenfehler. Dieselbe Prüfung erfolgt beim App-Start und vor jeder PDF-Erzeugung. Ein deaktiviertes PDF-Modul verhindert weder die XML-Erstellung noch deren Download.
 
 Der Webserver-Benutzer benötigt ein beschreibbares Nextcloud-Tempverzeichnis und Zugriff auf die Programme und die verwendeten Schriften. HTTP-/Proxy-Zeitlimits müssen die Konvertierung und die Validierung zulassen. Jeder externe Aufruf hat ein Zeitlimit von 60 Sekunden (Verfügbarkeitsprüfungen 10–15 Sekunden). LibreOffice verwendet ein eigenes Profil pro Vorgang. Dateien liegen in privaten, von Nextcloud verwalteten temporären Verzeichnissen; sie werden bei Erfolg und Fehler sofort gelöscht. Bei einem harten Prozessabbruch greift Nextclouds Tempbereinigung.
 
