@@ -68,6 +68,7 @@
                 const accepted = choice === 'pdf' || choice.startsWith('accept-');
                 const result = await NS.post('/en16931/review', {xmlHash: data.xmlHash, accept: accepted});
                 finished = true;
+                if (accepted) NS.log('XML-Rechnung archiviert');
                 NS.stopHeartbeat();
                 menu.destroy();
                 if (choice === 'pdf') {
@@ -102,13 +103,12 @@
         window.location.assign(OC.generateUrl('/'));
     };
 
-    NS.showFinishedInvoice = function () {
+    NS.showFinishedInvoice = function (savePdf) {
         const input = NS.inputArea();
         NS.clear(input);
-        input.appendChild(NS.make('p', {}, 'Der Vorgang ist abgeschlossen. Angenommene Rechnungen sind im Archiv verfügbar.'));
         const host = NS.make('div');
         input.appendChild(host);
-        NS.finishedActions = NS.mountFinishedActions(host, NS.startInvoice, NS.closeApp);
+        NS.finishedActions = NS.mountFinishedActions(host, NS.startInvoice, NS.closeApp, savePdf);
     };
 
     NS.showAcceptedPdf = async function (filename, xmlHash) {
@@ -129,13 +129,19 @@
             const type = (response.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
             if (!response.ok || response.redirected || type !== 'application/pdf') {
                 let message = 'PDF-Erstellung fehlgeschlagen (HTTP ' + response.status + ').';
-                if (type === 'application/json') message = (await response.json()).error || message;
+                if (type === 'application/json') message = (await NS.readJsonResponse(response, '/en16931/downloadPdfInvoice')).error || message;
                 throw new Error(message);
             }
             NS.state.pdfDownloadUrl = URL.createObjectURL(await response.blob());
-            NS.showFinishedInvoice();
+            NS.log('PDF-Rechnung erstellt');
+            NS.log('PDF-Rechnung archiviert');
+            NS.showFinishedInvoice(function () {
+                const link = NS.make('a', {href: NS.state.pdfDownloadUrl, download: filename.replace(/\.xml$/, '.pdf')});
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            });
             input.appendChild(NS.make('iframe', {src: NS.state.pdfDownloadUrl, title: 'PDF-Rechnung', class: 'myx-validation-frame'}));
-            input.appendChild(NS.make('a', {href: NS.state.pdfDownloadUrl, download: filename.replace(/\.xml$/, '.pdf')}, 'PDF speichern'));
         } catch (error) {
             NS.showFinishedInvoice();
             NS.log('XML ist archiviert. PDF: ' + error.message);

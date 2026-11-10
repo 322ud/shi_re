@@ -31,10 +31,11 @@ window.MyXRechnung.mountReviewActions = function (element, valid, choose, report
     return {setBusy: value => { vm.busy = value }, destroy: () => { vm.$destroy(); vm.$el.remove() }}
 }
 
-window.MyXRechnung.mountFinishedActions = function (element, start, close) {
+window.MyXRechnung.mountFinishedActions = function (element, start, close, savePdf) {
     return new Vue({
         render(h) {
             return h('div', {class: 'myx-review-actions'}, [
+                savePdf ? h(NcButton, {on: {click: savePdf}}, ['PDF-Rechnung speichern']) : null,
                 h(NcButton, {on: {click: start}}, ['neue Rechnung starten']),
                 h(NcButton, {on: {click: close}}, ['meine X-Rechnung schließen']),
             ])

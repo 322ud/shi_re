@@ -4,10 +4,15 @@
     const NS = window.MyXRechnung;
 
     NS.route = function (path) {
-        if (typeof OC !== 'undefined' && OC.generateUrl) {
-            return OC.generateUrl('/apps/' + NS.APP_ID + path);
-        }
-        return '/apps/' + NS.APP_ID + path;
+        const appPath = '/apps/' + NS.APP_ID;
+        const url = typeof OC !== 'undefined' && OC.generateUrl
+            ? OC.generateUrl(appPath + path)
+            : appPath + path;
+        // Keep Nextcloud's installation prefix, but bypass web-server URL rewriting.
+        const appOffset = url.lastIndexOf(appPath);
+        const prefix = url.slice(0, appOffset);
+        return prefix + (prefix.endsWith('/index.php') ? '' : '/index.php')
+            + url.slice(appOffset);
     };
 
     NS.clear = function (el) {
