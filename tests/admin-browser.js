@@ -83,9 +83,13 @@ const path = require('node:path');
             require 'templates/readme-link.php';
             echo '<input id="invoice-value" value="Entwurf bleibt erhalten">';
         `], {encoding: 'utf8'});
-        await page.setContent(appHtml);
+        await page.setContent('<div id=content><div id=app-content>' + appHtml + '</div></div>');
+        // Reproduce host layout rules overriding the browser's closed-dialog default.
+        await page.addStyleTag({content: '#app-content > * { display: block; }'});
         await page.addStyleTag({path: path.resolve('css/readme.css')});
         await page.addScriptTag({path: path.resolve('js/readme.js')});
+        assert.equal(await page.locator('dialog').isVisible(), false, 'README stays hidden on startup despite host CSS');
+        assert.equal(await page.locator('dialog').count(), 1);
         const originalUrl = page.url();
         for (const action of ['button', 'escape', 'backdrop']) {
             await page.locator('.shire-readme-link').click();
