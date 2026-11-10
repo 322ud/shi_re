@@ -1,9 +1,9 @@
 <?php
 
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
 use DOMDocument;
-use OCA\MyXRechnung\Config\AppFiles;
+use OCA\ShiRE\Config\AppFiles;
 use OCP\Files\IAppData;
 
 final class DraftXmlService {

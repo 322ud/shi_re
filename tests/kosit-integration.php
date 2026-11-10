@@ -24,9 +24,9 @@ namespace {
     require __DIR__ . '/../lib/Service/KositDependencyService.php';
     require __DIR__ . '/../lib/Service/KositReleaseArchive.php';
     require __DIR__ . '/../lib/Service/KositValidatorService.php';
-    use OCA\MyXRechnung\Service\KositDependencyService;
-    use OCA\MyXRechnung\Service\KositReleaseArchive;
-    use OCA\MyXRechnung\Service\KositValidatorService;
+    use OCA\ShiRE\Service\KositDependencyService;
+    use OCA\ShiRE\Service\KositReleaseArchive;
+    use OCA\ShiRE\Service\KositValidatorService;
     function check(bool $ok, string $message): void { if (!$ok) throw new \RuntimeException($message); }
     function rejects(callable $action): void {
         try { $action(); } catch (\RuntimeException $e) { return; }
@@ -171,7 +171,7 @@ namespace {
     $apps->enabled = false;
     $dependency->save(['hide_navigation' => true]);
 
-    $lock = fopen($root . '/custom-apps/.my_xrechnung-kosit-install.lock', 'c');
+    $lock = fopen($root . '/custom-apps/.shi_re-kosit-install.lock', 'c');
     flock($lock, LOCK_EX);
     rejects(fn () => $dependency->ensureInstalled());
     flock($lock, LOCK_UN); fclose($lock);

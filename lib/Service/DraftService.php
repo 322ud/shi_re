@@ -1,8 +1,8 @@
 <?php
 
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
-use OCA\MyXRechnung\Config\AppFiles;
+use OCA\ShiRE\Config\AppFiles;
 use OCP\Files\IAppData;
 
 final class DraftService {
@@ -233,7 +233,7 @@ final class DraftService {
      * File-Handle und wird beim Schließen automatisch freigegeben.
      */
     private function withLock(callable $callback): mixed {
-        $lockPath = sys_get_temp_dir() . '/my_xrechnung_' . AppFiles::DraftLockFile;
+        $lockPath = sys_get_temp_dir() . '/shi_re_' . AppFiles::DraftLockFile;
         $handle = fopen($lockPath, 'c');
 
         if ($handle === false) {

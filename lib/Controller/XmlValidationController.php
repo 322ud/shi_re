@@ -1,9 +1,9 @@
 <?php
 
-namespace OCA\MyXRechnung\Controller;
+namespace OCA\ShiRE\Controller;
 
-use OCA\MyXRechnung\Config\AppFiles;
-use OCA\MyXRechnung\Service\KositValidatorService;
+use OCA\ShiRE\Config\AppFiles;
+use OCA\ShiRE\Service\KositValidatorService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\Route;

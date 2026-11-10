@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
 /** Befüllt die vorhandene CII-Vorlage für genau einen Stundenposten. */
 final class InvoiceXmlService {

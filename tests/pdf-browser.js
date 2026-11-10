@@ -45,7 +45,7 @@ class Element {
                 },
             };
             vm.runInNewContext(fs.readFileSync(require.resolve('../js/views/create-xml-invoice.js'), 'utf8'), {
-                window: {MyXRechnung: ns, addEventListener() {}, location: {assign: () => { destination = 'close'; }}},
+                window: {ShiRE: ns, addEventListener() {}, location: {assign: () => { destination = 'close'; }}},
                 OC: {requestToken: 'csrf', generateUrl: path => path},
                 URL: {createObjectURL: () => 'blob:pdf', revokeObjectURL() {}},
                 fetch: async (path, options) => {

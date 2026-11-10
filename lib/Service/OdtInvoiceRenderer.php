@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
 class OdtInvoiceRenderer {
     private const TEXT = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0';

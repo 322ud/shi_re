@@ -21,7 +21,7 @@ class Element {
             return {invoices};
         },
     };
-    vm.runInNewContext(fs.readFileSync(require.resolve('../js/views/form.js'), 'utf8'), {window: {MyXRechnung: ns}});
+    vm.runInNewContext(fs.readFileSync(require.resolve('../js/views/form.js'), 'utf8'), {window: {ShiRE: ns}});
     const wrapper = ns.savedInvoiceDropdown();
     const [button, menu] = wrapper.children;
     assert.equal(button.text, 'Archiv');

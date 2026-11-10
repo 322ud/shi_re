@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
 use OCP\App\IAppManager;
 use OCP\AppFramework\App;

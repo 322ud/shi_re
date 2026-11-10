@@ -1,6 +1,6 @@
 <?php
 
-namespace OCA\MyXRechnung\Config;
+namespace OCA\ShiRE\Config;
 
 final class AppFiles {
     public const ConfigDir = 'config';

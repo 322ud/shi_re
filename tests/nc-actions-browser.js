@@ -12,16 +12,16 @@ const path = require('node:path');
         await page.route('http://myx.test/**', route => route.fulfill({contentType: 'text/html', body: '<html lang="de"><body><div id="content"><div id="mount"></div></div></body></html>'}));
         await page.goto('http://myx.test/');
         await page.evaluate(() => {
-            window.OC = {config: {}, getLanguage: () => 'de', getLocale: () => 'de_DE', webroot: '', appswebroots: {my_xrechnung: '/apps/my_xrechnung'}, currentUser: 'test'};
+            window.OC = {config: {}, getLanguage: () => 'de', getLocale: () => 'de_DE', webroot: '', appswebroots: {shi_re: '/apps/shi_re'}, currentUser: 'test'};
             window._oc_config = {};
-            window.MyXRechnung = {};
+            window.ShiRE = {};
         });
         await page.addStyleTag({path: path.resolve('css/validation-actions.css')});
         await page.addStyleTag({path: path.resolve('css/style.css')});
         await page.addScriptTag({path: path.resolve('js/validation-actions.js')});
         await page.evaluate(() => {
             window.choices = [];
-            window.controls = window.MyXRechnung.mountReviewActions(document.getElementById('mount'), true,
+            window.controls = window.ShiRE.mountReviewActions(document.getElementById('mount'), true,
                 choice => window.choices.push(choice), () => window.choices.push('report'));
         });
         await page.getByRole('button', {name: 'XML annehmen', exact: true}).click();
@@ -38,7 +38,7 @@ const path = require('node:path');
         await page.evaluate(() => {
             window.controls.destroy();
             const mount = document.createElement('div'); document.body.appendChild(mount);
-            window.MyXRechnung.mountReviewActions(mount, false, () => {}, () => {});
+            window.ShiRE.mountReviewActions(mount, false, () => {}, () => {});
         });
         assert.equal(await page.getByRole('button', {name: 'XML annehmen', exact: true}).count(), 0);
         assert.equal(await page.getByRole('button', {name: 'abbrechen', exact: true}).count(), 1);

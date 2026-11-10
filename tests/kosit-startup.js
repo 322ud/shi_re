@@ -19,7 +19,7 @@ const assert = require('node:assert/strict');
                 ? {enabled: false, message: 'PDF-Modul ist deaktiviert.'} : status}; },
         };
         vm.runInNewContext(fs.readFileSync(require.resolve('../js/main.js'), 'utf8'), {
-            window: {MyXRechnung: ns, addEventListener() {}}, document: {readyState: 'complete'},
+            window: {ShiRE: ns, addEventListener() {}}, document: {readyState: 'complete'},
         });
         await new Promise(setImmediate);
         assert.equal(starts, 1, 'Invoice remains usable if release check fails');

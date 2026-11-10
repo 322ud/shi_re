@@ -12,7 +12,7 @@ namespace OCP\AppFramework\Http {
         public function __construct(public string $data, public string $filename, public string $type, public int $status, public array $headers) {}
     }
 }
-namespace OCA\MyXRechnung\Service {
+namespace OCA\ShiRE\Service {
     class KositValidatorService {
         public bool $valid = true;
         public int $calls = 0;
@@ -37,8 +37,8 @@ namespace {
         public function fileExists($name) { return true; }
         public function getContent() { return $this->xml; }
     };
-    $validator = new \OCA\MyXRechnung\Service\KositValidatorService();
-    $controller = new \OCA\MyXRechnung\Controller\XmlValidationController('my_xrechnung', $request, $storage, $validator);
+    $validator = new \OCA\ShiRE\Service\KositValidatorService();
+    $controller = new \OCA\ShiRE\Controller\XmlValidationController('shi_re', $request, $storage, $validator);
     function check(bool $value): void { if (!$value) throw new \RuntimeException('Download test failed'); }
     $validation = $controller->validateXmlInvoice();
     $request->hash = $validation->data['xmlHash'];

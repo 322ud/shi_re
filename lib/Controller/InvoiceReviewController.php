@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace OCA\MyXRechnung\Controller;
+namespace OCA\ShiRE\Controller;
 
-use OCA\MyXRechnung\Service\InvoiceReviewService;
+use OCA\ShiRE\Service\InvoiceReviewService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\Route;

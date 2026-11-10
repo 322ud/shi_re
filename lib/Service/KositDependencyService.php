@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
 use OC\Installer;
 use OCP\App\AppPathNotFoundException;
@@ -70,7 +70,7 @@ class KositDependencyService {
     }
 
     private function githubHeaders(): array {
-        $headers = ['Accept' => 'application/vnd.github+json', 'User-Agent' => 'my_xrechnung', 'X-GitHub-Api-Version' => '2022-11-28'];
+        $headers = ['Accept' => 'application/vnd.github+json', 'User-Agent' => 'shi_re', 'X-GitHub-Api-Version' => '2022-11-28'];
         $token = $this->config->getSystemValueString('my_xrechnung_github_token', '');
         if ($token !== '') {
             $headers['Authorization'] = 'Bearer ' . $token;
@@ -106,7 +106,7 @@ class KositDependencyService {
         if ($installRoot === null || !is_writable($installRoot)) {
             throw new \RuntimeException('Kein beschreibbares Nextcloud-App-Verzeichnis vorhanden.');
         }
-        $lock = fopen($installRoot . '/.my_xrechnung-kosit-install.lock', 'c');
+        $lock = fopen($installRoot . '/.shi_re-kosit-install.lock', 'c');
         if ($lock === false) {
             throw new \RuntimeException('Installationssperre konnte nicht geöffnet werden.');
         }
@@ -209,7 +209,7 @@ class KositDependencyService {
                     || isset($url['user']) || isset($url['pass']) || isset($url['port'])) {
                     throw new \RuntimeException('Unerwartetes Download-Ziel.');
                 }
-                $options['headers'] = ['User-Agent' => 'my_xrechnung'];
+                $options['headers'] = ['User-Agent' => 'shi_re'];
                 $download = $client->get($location, $options);
             }
             if ($download->getStatusCode() !== 200 || filesize($archive) > 20 * 1024 * 1024

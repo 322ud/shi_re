@@ -3,8 +3,8 @@ import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NcButton from '@nextcloud/vue/components/NcButton'
 
-window.MyXRechnung.mountReviewActions = function (element, valid, choose, report) {
-    const appName = 'meine X-Rechnung'
+window.ShiRE.mountReviewActions = function (element, valid, choose, report) {
+    const appName = 'ShiRE'
     const vm = new Vue({
         data: () => ({busy: false}),
         render(h) {
@@ -31,13 +31,13 @@ window.MyXRechnung.mountReviewActions = function (element, valid, choose, report
     return {setBusy: value => { vm.busy = value }, destroy: () => { vm.$destroy(); vm.$el.remove() }}
 }
 
-window.MyXRechnung.mountFinishedActions = function (element, start, close, savePdf) {
+window.ShiRE.mountFinishedActions = function (element, start, close, savePdf) {
     return new Vue({
         render(h) {
             return h('div', {class: 'myx-review-actions'}, [
                 savePdf ? h(NcButton, {on: {click: savePdf}}, ['PDF-Rechnung speichern']) : null,
                 h(NcButton, {on: {click: start}}, ['neue Rechnung starten']),
-                h(NcButton, {on: {click: close}}, ['meine X-Rechnung schließen']),
+                h(NcButton, {on: {click: close}}, ['ShiRE schließen']),
             ])
         },
     }).$mount(element)

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
 /** Liest nur reguläre TAR-Dateien/Verzeichnisse; entpackt niemals Links. */
 final class KositReleaseArchive {

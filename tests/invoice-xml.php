@@ -5,7 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/../lib/Service/IncRamID.php';
 require __DIR__ . '/../lib/Service/InvoiceXmlService.php';
 
-use OCA\MyXRechnung\Service\InvoiceXmlService;
+use OCA\ShiRE\Service\InvoiceXmlService;
 
 function check(bool $condition, string $message): void {
     if (!$condition) {
@@ -53,8 +53,8 @@ foreach ([
 foreach ($x->query('//udt:DateTimeString') as $node) {
     check($node->textContent === '20261103', 'Stale template date');
 }
-check(OCA\MyXRechnung\Service\IncRamID::get($dom) === '26 201', 'Reserved number');
-check(OCA\MyXRechnung\Service\IncRamID::next($dom) === '26 202', 'Next number');
+check(OCA\ShiRE\Service\IncRamID::get($dom) === '26 201', 'Reserved number');
+check(OCA\ShiRE\Service\IncRamID::next($dom) === '26 202', 'Next number');
 foreach ([0, -1, 1.23, 'abc', null] as $bad) {
     $invalid = $data;
     $invalid['items'][0]['quantity'] = $bad;

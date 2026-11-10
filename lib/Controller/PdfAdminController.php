@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Controller;
+namespace OCA\ShiRE\Controller;
 
-use OCA\MyXRechnung\Service\InvoiceTemplateService;
-use OCA\MyXRechnung\Service\PdfDependencyService;
-use OCA\MyXRechnung\Service\OdtInvoiceRenderer;
+use OCA\ShiRE\Service\InvoiceTemplateService;
+use OCA\ShiRE\Service\PdfDependencyService;
+use OCA\ShiRE\Service\OdtInvoiceRenderer;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\Route;
 use OCP\AppFramework\Http\JSONResponse;

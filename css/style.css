@@ -2,7 +2,7 @@
  * Nur innerhalb dieser App:
  * Die Nextcloud-App-Leiste wird ausgeblendet.
  */
-.app-my_xrechnung #header .app-menu {
+.app-shi_re #header .app-menu {
     display: none !important;
 }
 

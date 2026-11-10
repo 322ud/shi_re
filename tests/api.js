@@ -7,7 +7,7 @@ const assert = require('node:assert/strict');
     let response;
     const ns = {state: {windowId: 'window'}, route: path => path};
     vm.runInNewContext(fs.readFileSync(require.resolve('../js/api.js'), 'utf8'), {
-        window: {MyXRechnung: ns},
+        window: {ShiRE: ns},
         fetch: async () => response,
     });
     for (const body of ['', '<html>Gateway timeout</html>', '{']) {
@@ -35,7 +35,7 @@ const assert = require('node:assert/strict');
         post: async () => ({status: {enabled: true, templateVersion: 'v1'}}),
     });
     vm.runInNewContext(fs.readFileSync(require.resolve('../js/views/create-xml-invoice.js'), 'utf8'), {
-        window: {MyXRechnung: ns, addEventListener() {}},
+        window: {ShiRE: ns, addEventListener() {}},
         OC: {requestToken: 'csrf'}, fetch: async () => response,
     });
     ns.showFinishedInvoice = () => { finished++; };

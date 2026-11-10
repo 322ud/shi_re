@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Controller;
+namespace OCA\ShiRE\Controller;
 
-use OCA\MyXRechnung\Config\AppFiles;
-use OCA\MyXRechnung\Service\InvoiceTemplateService;
-use OCA\MyXRechnung\Service\KositValidatorService;
-use OCA\MyXRechnung\Service\PdfDependencyService;
-use OCA\MyXRechnung\Service\PdfInvoiceService;
+use OCA\ShiRE\Config\AppFiles;
+use OCA\ShiRE\Service\InvoiceTemplateService;
+use OCA\ShiRE\Service\KositValidatorService;
+use OCA\ShiRE\Service\PdfDependencyService;
+use OCA\ShiRE\Service\PdfInvoiceService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\Route;
@@ -59,7 +59,7 @@ class PdfInvoiceController extends Controller {
             $result = $this->pdf->generate($xml, $version);
             // Prüfung und Neuanlage gemeinsam sperren: Auch parallele Requests
             // dürfen eine bereits archivierte Rechnung niemals ersetzen.
-            $lock = 'my_xrechnung/pdf/' . hash('sha256', $result['filename']);
+            $lock = 'shi_re/pdf/' . hash('sha256', $result['filename']);
             $this->locking->acquireLock($lock, ILockingProvider::LOCK_EXCLUSIVE);
             try {
                 $folder = $this->appData->getFolder('/');
@@ -78,7 +78,7 @@ class PdfInvoiceController extends Controller {
                 'X-Invoice-Filename' => rawurlencode($result['filename']),
             ]);
         } catch (\Throwable $e) {
-            $this->logger->error('PDF-Rechnung fehlgeschlagen', ['exception' => $e, 'app' => 'my_xrechnung']);
+            $this->logger->error('PDF-Rechnung fehlgeschlagen', ['exception' => $e, 'app' => 'shi_re']);
             $status = in_array($e->getCode(), [409, 422, 503], true) ? $e->getCode() : 500;
             return new JSONResponse(['success' => false, 'error' => in_array($status, [409, 422], true) ? $e->getMessage()
                 : 'PDF-Erzeugung fehlgeschlagen. Bitte die Administration bzw. das Serverprotokoll prüfen.'], $status);

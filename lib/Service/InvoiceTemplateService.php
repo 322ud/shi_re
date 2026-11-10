@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
-use OCA\MyXRechnung\AppInfo\Application;
+use OCA\ShiRE\AppInfo\Application;
 use OCP\App\IAppManager;
 use OCP\Files\IAppData;
 use OCP\IConfig;

@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 <info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
-    <id>my_xrechnung</id>
-    <name>meine X-Rechnung</name>
+    <id>shi_re</id>
+    <name>ShiRE</name>
     <summary>erstellt neue X-Rechnung</summary>
     <description>fragt Parameter in GUI ab, setzt diese in XML- und ODT-Templates, druckt in PDF und bindet XML ein</description>
-    <version>0.2.1</version>
+    <version>0.3.0</version>
     <licence>AGPL-3.0-or-later</licence>
     <author>Frank Busse</author>
-    <namespace>MyXRechnung</namespace>
+    <namespace>ShiRE</namespace>
     <category>tools</category>
 
     <dependencies>
@@ -17,8 +17,8 @@
 
     <navigations>
       <navigation>
-        <name>meine X-Rechnung</name>
-        <route>my_xrechnung.page.index</route>
+        <name>ShiRE</name>
+        <route>shi_re.page.index</route>
         <icon>app.svg</icon>
         <order>10</order>
       </navigation>
@@ -26,12 +26,12 @@
 
     <repair-steps>
         <install>
-            <step>OCA\MyXRechnung\Migration\InstallValidator</step>
+            <step>OCA\ShiRE\Migration\InstallValidator</step>
         </install>
     </repair-steps>
 
     <settings>
-        <admin>OCA\MyXRechnung\Settings\Admin</admin>
-        <admin-section>OCA\MyXRechnung\Settings\AdminSection</admin-section>
+        <admin>OCA\ShiRE\Settings\Admin</admin>
+        <admin-section>OCA\ShiRE\Settings\AdminSection</admin-section>
     </settings>
 </info>

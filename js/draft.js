@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const NS = window.MyXRechnung;
+    const NS = window.ShiRE;
 
     NS.startInvoice = async function () {
         NS.releasePdfDownload();

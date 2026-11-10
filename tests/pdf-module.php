@@ -14,7 +14,7 @@ namespace OCP\AppFramework\Http {
 }
 namespace Psr\Log { interface LoggerInterface {} }
 namespace OCP\Lock { interface ILockingProvider { public const LOCK_EXCLUSIVE = 2; } }
-namespace OCA\MyXRechnung\Service {
+namespace OCA\ShiRE\Service {
     class KositValidatorService {
         public bool $valid = true;
         public int $calls = 0;
@@ -23,7 +23,7 @@ namespace OCA\MyXRechnung\Service {
 }
 namespace {
     require __DIR__ . '/../lib/AppInfo/Application.php';
-    use OCA\MyXRechnung\Service\{PdfWorkspace, PdfProcessRunner, OdtInvoiceRenderer, TemplateConsistencyService,
+    use OCA\ShiRE\Service\{PdfWorkspace, PdfProcessRunner, OdtInvoiceRenderer, TemplateConsistencyService,
         InvoiceTemplateService, PdfDependencyService, PdfInvoiceService, KositValidatorService};
     foreach (['PdfWorkspace', 'PdfProcessRunner', 'OdtInvoiceRenderer', 'TemplateConsistencyService',
         'InvoiceTemplateService', 'PdfDependencyService', 'PdfInvoiceService'] as $class) {
@@ -193,7 +193,7 @@ namespace {
         }
         public function releaseLock($path, $type): void { $this->locked = false; }
     };
-    $controller = new \OCA\MyXRechnung\Controller\PdfInvoiceController('my_xrechnung', $request, $storage, $validator, $fakeDependencies, $templates, $pdf, $logger, $locking);
+    $controller = new \OCA\ShiRE\Controller\PdfInvoiceController('shi_re', $request, $storage, $validator, $fakeDependencies, $templates, $pdf, $logger, $locking);
     $storage->files['en16931.xml'] = $bundle['xml'];
     check($controller->download()->status === 400 && $validator->calls === 0, 'Temporary XML cannot generate PDF');
     $storage->files['26 200.xml'] = $bundle['xml'];
@@ -239,8 +239,8 @@ namespace {
     check($controller->download()->status === 409, 'Concurrent XML change blocked');
     // Review acceptance/discard uses the real draft lifecycle and exact XML bytes.
     $storage->files = [];
-    $drafts = new \OCA\MyXRechnung\Service\DraftService($storage);
-    $review = new \OCA\MyXRechnung\Service\InvoiceReviewService($storage, $drafts, $validator, $locking);
+    $drafts = new \OCA\ShiRE\Service\DraftService($storage);
+    $review = new \OCA\ShiRE\Service\InvoiceReviewService($storage, $drafts, $validator, $locking);
     $drafts->create('window', '26 200');
     $storage->files['en16931.xml'] = $bundle['xml'];
     $storage->files['draft.xml'] = 'temporary';
@@ -262,12 +262,12 @@ namespace {
     rejects(fn () => $review->finish('window', $hash, true), 'überschrieben');
     check($storage->files['26 200.xml'] === $bundle['xml'], 'Accepted XML never overwritten');
     $review->finish('window', $hash, false);
-    $domService = new \OCA\MyXRechnung\Service\DomService('my_xrechnung', $logger, $storage, $apps, $templates);
+    $domService = new \OCA\ShiRE\Service\DomService('shi_re', $logger, $storage, $apps, $templates);
     check($domService->nextInvoiceNumber() === '26 201', 'Number advances from archive after temporary XML deletion');
     $storage->files['26 202.pdf'] = '%PDF legacy';
     check($domService->nextInvoiceNumber() === '26 203', 'Legacy PDF also reserves its number');
     foreach (['upload', 'status'] as $method) {
-        $reflection = new ReflectionMethod(\OCA\MyXRechnung\Controller\PdfAdminController::class, $method);
+        $reflection = new ReflectionMethod(\OCA\ShiRE\Controller\PdfAdminController::class, $method);
         check(count($reflection->getAttributes('OCP\\AppFramework\\Http\\Attribute\\NoAdminRequired')) === 0, 'Admin-only upload/status');
         check(count($reflection->getAttributes('OCP\\AppFramework\\Http\\Attribute\\NoCSRFRequired')) === 0, 'Upload requires CSRF');
     }

@@ -1,14 +1,14 @@
 <?php
 
-namespace OCA\MyXRechnung\Controller;
+namespace OCA\ShiRE\Controller;
 
-use OCA\MyXRechnung\Config\AppFiles;
-use OCA\MyXRechnung\Service\DomService;
-use OCA\MyXRechnung\Service\DraftService;
-use OCA\MyXRechnung\Service\IncRamID;
-use OCA\MyXRechnung\Service\InvoiceXmlService;
-use OCA\MyXRechnung\Service\StripItems;
-use OCA\MyXRechnung\Service\DraftXmlService;
+use OCA\ShiRE\Config\AppFiles;
+use OCA\ShiRE\Service\DomService;
+use OCA\ShiRE\Service\DraftService;
+use OCA\ShiRE\Service\IncRamID;
+use OCA\ShiRE\Service\InvoiceXmlService;
+use OCA\ShiRE\Service\StripItems;
+use OCA\ShiRE\Service\DraftXmlService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\Route;
@@ -68,7 +68,7 @@ class EN16931Controller extends Controller {
                     'error' => $e->getMessage(),
                     'code' => 'active_draft',
                     'deletionToken' => $activeDraft === null
-                        || $this->config->getAppValue('my_xrechnung', 'allow_draft_deletion', 'no') !== 'yes'
+                        || $this->config->getAppValue('shi_re', 'allow_draft_deletion', 'no') !== 'yes'
                         ? null : $this->draftService->deletionToken($activeDraft),
                 ], 409);
             }
@@ -80,7 +80,7 @@ class EN16931Controller extends Controller {
     #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/en16931/deleteActiveDraft')]
     public function deleteActiveDraft(): JSONResponse {
         try {
-            if ($this->config->getAppValue('my_xrechnung', 'allow_draft_deletion', 'no') !== 'yes') {
+            if ($this->config->getAppValue('shi_re', 'allow_draft_deletion', 'no') !== 'yes') {
                 return new JSONResponse([
                     'success' => false,
                     'error' => 'Das Löschen aktiver Rechnungsentwürfe ist deaktiviert.',

@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
 /** Private Arbeitsverzeichnisse; Nextcloud räumt sie auch nach einem Prozessabbruch auf. */
 class PdfWorkspace {

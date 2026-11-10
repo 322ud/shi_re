@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
 class TemplateConsistencyService {
     public function __construct(private OdtInvoiceRenderer $renderer) {}

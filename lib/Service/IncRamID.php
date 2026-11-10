@@ -1,6 +1,6 @@
 <?php
 
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
 final class IncRamID {
 

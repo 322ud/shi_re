@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
-use OCA\MyXRechnung\Config\AppFiles;
+use OCA\ShiRE\Config\AppFiles;
 use OCP\Files\IAppData;
 use OCP\Lock\ILockingProvider;
 
@@ -12,7 +12,7 @@ class InvoiceReviewService {
         private KositValidatorService $validator, private ILockingProvider $locking) {}
 
     public function finish(string $windowId, string $hash, bool $accept): ?string {
-        $lock = 'my_xrechnung/review';
+        $lock = 'shi_re/review';
         $this->locking->acquireLock($lock, ILockingProvider::LOCK_EXCLUSIVE);
         try {
             $draft = $this->drafts->requireActive($windowId);

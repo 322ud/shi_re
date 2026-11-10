@@ -14,7 +14,7 @@ $status = $_['status'];
     <h2>KoSIT-Validierung</h2>
     <p>Die Rechnungsprüfung verwendet die separate App „inv_validator“.</p>
     <p>Installierte Version: <strong><?php p($status['installed'] ?? 'nicht installiert'); ?></strong></p>
-    <p>Beim Öffnen von „meine X-Rechnung“ wird das aktuelle GitHub-Release geprüft.
+    <p>Beim Öffnen von „ShiRE“ wird das aktuelle GitHub-Release geprüft.
        Fehlt die App, wird sie beim Start durch einen Administrator automatisch installiert.
        Vorhandene Installationen werden nicht automatisch überschrieben.</p>
     <p>Solange das Repository privat ist, benötigt Nextcloud den Konfigurationseintrag

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Settings;
+namespace OCA\ShiRE\Settings;
 
-use OCA\MyXRechnung\Service\KositDependencyService;
-use OCA\MyXRechnung\Service\PdfDependencyService;
+use OCA\ShiRE\Service\KositDependencyService;
+use OCA\ShiRE\Service\PdfDependencyService;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\Settings\ISettings;
 use OCP\Util;
@@ -16,16 +16,16 @@ class Admin implements ISettings {
     }
 
     public function getForm(): TemplateResponse {
-        Util::addScript('my_xrechnung', 'admin');
-        return new TemplateResponse('my_xrechnung', 'admin', [
+        Util::addScript('shi_re', 'admin');
+        return new TemplateResponse('shi_re', 'admin', [
             'status' => $this->dependency->settings(),
-            'allowDraftDeletion' => $this->config->getAppValue('my_xrechnung', 'allow_draft_deletion', 'no') === 'yes',
+            'allowDraftDeletion' => $this->config->getAppValue('shi_re', 'allow_draft_deletion', 'no') === 'yes',
             'pdfStatus' => $this->pdf->status(),
         ]);
     }
 
     public function getSection(): string {
-        return 'my_xrechnung';
+        return 'shi_re';
     }
 
     public function getPriority(): int {

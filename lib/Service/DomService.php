@@ -1,10 +1,10 @@
 <?php
 
-namespace OCA\MyXRechnung\Service;
+namespace OCA\ShiRE\Service;
 
 use DOMDocument;
 use DOMXPath;
-use OCA\MyXRechnung\Config\AppFiles;
+use OCA\ShiRE\Config\AppFiles;
 use OCP\Files\IAppData;
 use OCP\App\IAppManager;
 use Psr\Log\LoggerInterface;

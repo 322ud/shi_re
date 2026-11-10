@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Controller;
+namespace OCA\ShiRE\Controller;
 
-use OCA\MyXRechnung\Service\KositDependencyService;
+use OCA\ShiRE\Service\KositDependencyService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\Route;
@@ -59,7 +59,7 @@ class ValidatorAdminController extends Controller {
         if (!is_bool($allowed)) {
             return new JSONResponse(['success' => false, 'error' => 'Ungültige Entwurfseinstellung.'], 400);
         }
-        $this->config->setAppValue('my_xrechnung', 'allow_draft_deletion', $allowed ? 'yes' : 'no');
+        $this->config->setAppValue('shi_re', 'allow_draft_deletion', $allowed ? 'yes' : 'no');
         return new JSONResponse(['success' => true]);
     }
 

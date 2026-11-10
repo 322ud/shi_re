@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const NS = window.MyXRechnung;
+    const NS = window.ShiRE;
 
     NS.route = function (path) {
         const appPath = '/apps/' + NS.APP_ID;

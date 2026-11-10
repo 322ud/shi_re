@@ -28,8 +28,8 @@ namespace {
         return $object;
     }
     function check(bool $condition): void { if (!$condition) throw new RuntimeException('Setting test failed'); }
-    $invoice = controller(\OCA\MyXRechnung\Controller\EN16931Controller::class, $config, $request);
-    $admin = controller(\OCA\MyXRechnung\Controller\ValidatorAdminController::class, $config, $request);
+    $invoice = controller(\OCA\ShiRE\Controller\EN16931Controller::class, $config, $request);
+    $admin = controller(\OCA\ShiRE\Controller\ValidatorAdminController::class, $config, $request);
     check($invoice->deleteActiveDraft()->status === 403); // Default: aus, kein Dateizugriff.
     $request->values = ['allow_draft_deletion' => 'yes'];
     check($admin->saveDraftSettings()->status === 400);

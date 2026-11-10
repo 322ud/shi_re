@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace OCA\MyXRechnung\Migration;
+namespace OCA\ShiRE\Migration;
 
-use OCA\MyXRechnung\Service\KositDependencyService;
+use OCA\ShiRE\Service\KositDependencyService;
 use OCP\Migration\IOutput;
 use OCP\Migration\IRepairStep;
 

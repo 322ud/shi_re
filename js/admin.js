@@ -5,7 +5,7 @@
         if (!root) return;
         const output = document.getElementById('myx-admin-result');
         async function post(path, body = {}) {
-            const response = await fetch(OC.generateUrl('/apps/my_xrechnung' + path), {
+            const response = await fetch(OC.generateUrl('/apps/shi_re' + path), {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', requesttoken: OC.requestToken},
                 body: JSON.stringify(body),
@@ -71,7 +71,7 @@
             button.disabled = true;
             pdfOutput.textContent = 'Vorlagensatz wird geprüft …';
             try {
-                const response = await fetch(OC.generateUrl('/apps/my_xrechnung/admin/pdf/templates'), {
+                const response = await fetch(OC.generateUrl('/apps/shi_re/admin/pdf/templates'), {
                     method: 'POST', headers: {requesttoken: OC.requestToken}, body: new FormData(this),
                 });
                 const data = await response.json();
