@@ -23,6 +23,7 @@ class InvoiceTemplateService {
     public function current(): array {
         if ($this->snapshot !== null) return $this->snapshot;
         $version = $this->config->getAppValue(Application::APP_ID, 'pdf_template_version', '');
+        if (!$this->usesCustomTemplates()) $version = '';
         if ($version === '') {
             $base = $this->apps->getAppPath(Application::APP_ID) . '/config/';
             $bundle = [];
@@ -45,7 +46,17 @@ class InvoiceTemplateService {
         return $this->snapshot = $bundle;
     }
 
+    public function usesCustomTemplates(): bool {
+        return $this->config->getAppValue(Application::APP_ID, 'custom_templates', 'no') === 'yes';
+    }
+
+    public function setCustomTemplates(bool $enabled): void {
+        $this->config->setAppValue(Application::APP_ID, 'custom_templates', $enabled ? 'yes' : 'no');
+        $this->snapshot = null;
+    }
+
     public function error(): string {
+        if (!$this->usesCustomTemplates()) return '';
         return $this->config->getAppValue(Application::APP_ID, 'pdf_template_error', '');
     }
 

@@ -24,7 +24,11 @@ class KositDependencyService {
 
     public function settings(): array {
         $result = [];
-        $result['hide_navigation'] = $this->config->getAppValue('inv_validator', 'hide_navigation', 'no') === 'yes';
+        $result['auto_update'] = $this->config->getAppValue('shi_re', 'auto_update_validator', 'no') === 'yes';
+        if ($this->config->getAppValue('inv_validator', 'hide_navigation', '') === '') {
+            $this->config->setAppValue('inv_validator', 'hide_navigation', 'yes');
+        }
+        $result['hide_navigation'] = $this->config->getAppValue('inv_validator', 'hide_navigation', 'yes') === 'yes';
         $result['installed'] = $this->apps->getAppInstalledVersions()['inv_validator'] ?? null;
         $result['enabled'] = $this->apps->isEnabledForAnyone('inv_validator');
         $result['navigation_supported'] = false;
@@ -36,10 +40,15 @@ class KositDependencyService {
     }
 
     public function save(array $data): void {
-        if (!is_bool($data['hide_navigation'] ?? null)) {
-            throw new \InvalidArgumentException('Ungültige Navigationseinstellung.');
+        foreach ($data as $key => $value) {
+            if (!in_array($key, ['hide_navigation', 'auto_update'], true) || !is_bool($value)) {
+                throw new \InvalidArgumentException('Ungültige Einstellung.');
+            }
         }
-        $this->config->setAppValue('inv_validator', 'hide_navigation', $data['hide_navigation'] ? 'yes' : 'no');
+        foreach ($data as $key => $value) {
+            $this->config->setAppValue($key === 'hide_navigation' ? 'inv_validator' : 'shi_re',
+                $key === 'hide_navigation' ? $key : 'auto_update_validator', $value ? 'yes' : 'no');
+        }
     }
 
     public function latest(): array {

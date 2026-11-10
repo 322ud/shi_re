@@ -22,8 +22,17 @@ class PdfAdminController extends Controller {
         return new JSONResponse(['success' => true, 'status' => $this->dependencies->status()]);
     }
 
+    #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/admin/pdf/settings')]
+    public function saveSettings(): JSONResponse {
+        $enabled = $this->request->getParam('custom_templates');
+        if (!is_bool($enabled)) return new JSONResponse(['success' => false, 'error' => 'Ungültige Vorlageneinstellung.'], 400);
+        $this->templates->setCustomTemplates($enabled);
+        return $this->status();
+    }
+
     #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/admin/pdf/templates')]
     public function upload(): JSONResponse {
+        if (!$this->templates->usesCustomTemplates()) return new JSONResponse(['success' => false, 'error' => 'Eigene Vorlagen sind deaktiviert.'], 400);
         try {
             // Bei überschrittenem post_max_size verwirft PHP den gesamten Multipart-Body.
             if ($this->request->getParam('templatesCheck') !== 'yes') {

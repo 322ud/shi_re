@@ -43,6 +43,7 @@ class PdfDependencyService {
             $this->consistency->check($bundle);
             if ($this->templates->error() !== '') $errors[] = $this->templates->error();
         } catch (\Throwable $e) { $errors[] = $e->getMessage(); }
+        $templateErrors = $errors;
         try {
             $tools = $this->tools();
             $dir = $this->workspace->create();
@@ -60,6 +61,7 @@ class PdfDependencyService {
             } finally { $this->workspace->remove($dir); }
         } catch (\Throwable $e) { $errors[] = $e->getMessage(); }
         return ['enabled' => !$errors, 'errors' => $errors, 'versions' => $versions,
+            'customTemplatesStatus' => !$this->templates->usesCustomTemplates() ? 'Deaktiviert – Standardvorlagen werden verwendet.' : ($templateErrors ? implode(' ', $templateErrors) : 'Aktiv – Vorlagensatz geprüft.'),
             'templateVersion' => $bundle['version'] ?? null,
             'pdfaVerification' => ($tools['verapdf'] ?? '') !== ''];
     }

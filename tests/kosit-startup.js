@@ -7,6 +7,8 @@ const assert = require('node:assert/strict');
         [{installed: null, admin: true}, true],
         [{installed: null, admin: false}, false],
         [{installed: null, admin: true, check_error: 'offline'}, false],
+        [{installed: '0.5.1', enabled: true, admin: true, auto_update: true, update_available: true}, true],
+        [{installed: '0.5.1', enabled: true, admin: false, auto_update: true, update_available: true}, false],
         [{installed: '0.5.1', enabled: true, admin: true, update_available: true, latest: '0.5.2'}, false],
     ]) {
         const calls = [];

@@ -66,7 +66,13 @@ class ValidatorAdminController extends Controller {
     #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/admin/validator/settings')]
     public function save(): JSONResponse {
         try {
-            $this->dependency->save(['hide_navigation' => $this->request->getParam('hide_navigation')]);
+            $data = [];
+            foreach (['hide_navigation', 'auto_update'] as $key) {
+                $value = $this->request->getParam($key);
+                if ($value !== null) $data[$key] = $value;
+            }
+            if (!$data) throw new \InvalidArgumentException('Einstellung fehlt.');
+            $this->dependency->save($data);
             return new JSONResponse(['success' => true]);
         } catch (\InvalidArgumentException $e) {
             return new JSONResponse(['success' => false, 'error' => $e->getMessage()], 400);

@@ -2,7 +2,13 @@
 
 Nextcloud-App zur Erstellung und Validierung einer EN16931-CII-Rechnung mit einer Rechnungsposition. Nach erfolgreicher KoSIT-Validierung und ausdrücklicher XML-Annahme erzeugt das PDF-Modul auf Wunsch eine PDF/A-3b-Rechnung aus einer ODT-Vorlage und bettet dieselbe XML mit Mustangproject ein.
 
-Die Dokumentation ist auf jeder App-Seite über das Info-Symbol rechts oben (Mouseover „Readme“) erreichbar. In der Administration wird diese README zusätzlich eingebettet angezeigt.
+Die Dokumentation ist auf den Rechnungsseiten über das Info-Symbol rechts oben (Mouseover „Readme“) erreichbar. In der Administration wird diese README formatiert eingebettet angezeigt.
+
+## Einstellungen
+
+Die Schalter in der Administration speichern Änderungen sofort. Standardwerte: automatisches INValidator-Update beim App-Start **nein**, INValidator für normale Nutzer ausblenden **ja**, Button zum Löschen bei Entwurfskonflikt **nein**, eigene Vorlagen **nein**. Automatische Updates erfolgen nur beim Start durch einen Administrator. Fehlt INValidator, wird die App weiterhin beim Start durch einen Administrator installiert.
+
+Bei „eigene Vorlagen: nein“ verwendet ShiRE die mitgelieferten Standardvorlagen. Gespeicherte eigene Vorlagen bleiben erhalten und werden beim Einschalten wieder verwendet. Nur bei aktivierter Option erscheinen Dateiauswahl und „Vorlagen prüfen“.
 
 ## PDF-Modul einrichten
 
@@ -18,7 +24,7 @@ In Nextclouds `config.php` konfigurieren (absolute Pfade):
 'shi_re_verapdf' => '/opt/verapdf/verapdf',
 ```
 
-Die Einträge `shi_re_libreoffice` und `shi_re_java` sind nur bei abweichenden Programmpfaden nötig. Ohne Konfiguration gelten die oben gezeigten Standardpfade. Für Mustang gibt es keinen Standardpfad. In **Administration → ShiRE → PDF-Rechnung** zeigt „Verfügbarkeit prüfen“ fehlende Abhängigkeiten und Vorlagenfehler. Dieselbe Prüfung erfolgt beim App-Start und vor jeder PDF-Erzeugung. Ein deaktiviertes PDF-Modul verhindert weder die XML-Erstellung noch deren Download.
+Die Einträge `shi_re_libreoffice` und `shi_re_java` sind nur bei abweichenden Programmpfaden nötig. Ohne Konfiguration gelten die oben gezeigten Standardpfade. Für Mustang gibt es keinen Standardpfad. In **Administration → ShiRE → System** zeigt „Verfügbarkeit prüfen“ fehlende Abhängigkeiten und Vorlagenfehler. Dieselbe Prüfung erfolgt beim App-Start und vor jeder PDF-Erzeugung. Ein deaktiviertes PDF-Modul verhindert weder die XML-Erstellung noch deren Download.
 
 Der Webserver-Benutzer benötigt ein beschreibbares Nextcloud-Tempverzeichnis und Zugriff auf die Programme und die verwendeten Schriften. HTTP-/Proxy-Zeitlimits müssen die Konvertierung und die Validierung zulassen. Jeder externe Aufruf hat ein Zeitlimit von 60 Sekunden (Verfügbarkeitsprüfungen 10–15 Sekunden). LibreOffice verwendet ein eigenes Profil pro Vorgang. Dateien liegen in privaten, von Nextcloud verwalteten temporären Verzeichnissen; sie werden bei Erfolg und Fehler sofort gelöscht. Bei einem harten Prozessabbruch greift Nextclouds Tempbereinigung.
 
@@ -38,7 +44,7 @@ Die Prüfung verlangt:
 2. Jeder Mapping-Platzhalter kommt im ODT vor (mehrfaches Vorkommen ist erlaubt).
 3. Jeder XPath findet genau ein XML-Blattelement. Die Vorlage enthält genau eine Rechnungsposition.
 
-Ein fehlgeschlagener Upload deaktiviert das PDF-Modul und zeigt den Grund. Der letzte gültige Satz bleibt gespeichert und für die XML-Erstellung verfügbar. Ein korrigierter Upload oder „Vorlagensatz prüfen und übernehmen“ ohne Dateiauswahl hebt die Sperre nach erfolgreicher Prüfung auf.
+Ein fehlgeschlagener Upload deaktiviert das PDF-Modul und zeigt den Grund. Der letzte gültige Satz bleibt gespeichert und für die XML-Erstellung verfügbar. Ein korrigierter Upload oder „Vorlagen prüfen“ ohne Dateiauswahl hebt die Sperre nach erfolgreicher Prüfung auf.
 
 TSV ohne Kopfzeile, UTF-8, zwei oder drei Spalten:
 

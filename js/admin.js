@@ -24,16 +24,35 @@
                 finally { button.disabled = false; }
             });
         }
-        bind('myx-save-draft-settings', async () => {
-            await post('/admin/draft/settings', {allow_draft_deletion: document.getElementById('myx-allow-draft-deletion').checked});
-            output.textContent = 'Entwurfseinstellung gespeichert. Rechnungs-App neu laden.';
-        });
-        bind('myx-save-validator', async () => {
-            await post('/admin/validator/settings', {hide_navigation: document.getElementById('myx-hide-validator').checked});
-            output.textContent = 'Gespeichert. Die Navigation wird beim nächsten Seitenaufruf aktualisiert.';
+        function bindSwitch(id, path, key, onSaved = () => {}) {
+            const input = document.getElementById(id);
+            input.addEventListener('change', async () => {
+                const checked = input.checked;
+                input.disabled = true;
+                output.textContent = 'Wird gespeichert …';
+                try {
+                    const data = await post(path, {[key]: checked});
+                    onSaved(data);
+                    output.textContent = 'Einstellung gespeichert.';
+                } catch (error) {
+                    input.checked = !checked;
+                    output.textContent = error.message;
+                } finally {
+                    input.closest('label').querySelector('[data-switch-value]').textContent = input.checked ? 'ja' : 'nein';
+                    input.disabled = false;
+                }
+            });
+        }
+        bindSwitch('myx-allow-draft-deletion', '/admin/draft/settings', 'allow_draft_deletion');
+        bindSwitch('myx-hide-validator', '/admin/validator/settings', 'hide_navigation');
+        bindSwitch('myx-auto-update', '/admin/validator/settings', 'auto_update');
+        bindSwitch('myx-custom-templates', '/admin/pdf/settings', 'custom_templates', data => {
+            document.getElementById('myx-pdf-templates').hidden = !document.getElementById('myx-custom-templates').checked;
+            showPdfStatus(data.status);
         });
         bind('myx-check-validator', async () => {
             const {status} = await post('/validator/status');
+            document.getElementById('myx-validator-version').textContent = (status.installed || 'Nicht installiert') + (status.enabled ? '' : ' – deaktiviert');
             if (status.check_error) throw new Error(status.check_error);
             if (!status.installed) {
                 output.textContent = 'Aktuelle Validator-App wird installiert …';
@@ -49,6 +68,7 @@
         const pdfOutput = document.getElementById('myx-pdf-status');
         const veraPdfOutput = document.getElementById('myx-verapdf-status');
         function showPdfStatus(status) {
+            document.getElementById('myx-template-status').textContent = status.customTemplatesStatus;
             root.querySelectorAll('[data-pdf-version]').forEach(cell => {
                 cell.textContent = (status.versions || {})[cell.dataset.pdfVersion] || 'Nicht ermittelt';
             });

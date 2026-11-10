@@ -78,7 +78,11 @@
             } else if (!status.enabled) {
                 notices.push('KoSIT-App ist deaktiviert. Bitte durch einen Administrator aktivieren lassen.');
             } else if (status.update_available) {
-                notices.push('KoSIT-App: Release ' + status.latest + ' verfügbar. Bitte administrativ aktualisieren.');
+                if (status.auto_update && status.admin && !status.check_error) {
+                    NS.log('INValidator wird aktualisiert …');
+                    await NS.post('/admin/validator/install');
+                    notices.push('INValidator wurde aktualisiert.');
+                } else notices.push('KoSIT-App: Release ' + status.latest + ' verfügbar. Bitte administrativ aktualisieren.');
             }
         } catch (error) {
             notices.push('KoSIT-Einrichtung: ' + error.message);
