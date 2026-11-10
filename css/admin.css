@@ -12,8 +12,9 @@
 
 .shire-table-scroll { overflow-x: auto; margin-top: 12px; }
 .shire-system { width: 100%; border-collapse: collapse; }
-.shire-system th, .shire-system td { padding: 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--color-border); }
-.shire-system td { white-space: pre-wrap; overflow-wrap: anywhere; }
+.shire-system th, .shire-system td { padding: 10px; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--color-border); }
+.shire-system td, .shire-system th { white-space: nowrap; }
+.shire-system td[data-detail] { white-space: normal; overflow-wrap: anywhere; }
 
 .shire-switch { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
 #myx-admin .shire-switch input {
@@ -54,9 +55,9 @@ transition: transform 0.15s;
 }
 #myx-pdf-templates[hidden] { display: none !important; }
 
-.shire-state { display: inline-block; font-size: 24px; font-weight: bold; width: 36px; text-align: center; }
-.shire-state--available { color: var(--color-success, #228b22); }
-.shire-state--missing { color: var(--color-error, #c00); }
-.shire-system [data-detail] { display: block; }
+.shire-state { display: inline-block; font-size: 28px; font-weight: 900; line-height: 1; width: 36px; text-align: center; }
+.shire-state--available { color: #16833b; text-shadow: 0.5px 0 currentColor; }
+.shire-state--missing { color: #c62828; }
+
 .shire-system [data-version] { overflow-wrap: anywhere; max-width: 220px; }
-.shire-system [data-readme-help] { display: inline-block; margin-top: 6px; text-decoration: underline; }
+.shire-system [data-readme-help] { display: inline-block; margin-left: 8px; text-decoration: underline; }

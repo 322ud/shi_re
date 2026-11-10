@@ -37,6 +37,13 @@ const path = require('node:path');
                 const heading = document.createElement('h1');
                 heading.textContent = 'ShiRE';
                 options.el.append(heading);
+                const section = document.createElement('h2');
+                section.textContent = 'Vorlagen und Mapping';
+                const decoration = document.createElement('button');
+                decoration.textContent = 'Link kopieren';
+                section.append(decoration);
+                section.scrollIntoView = () => { window.helpHeadingScrolled = true; };
+                options.el.append(section);
                 return {setReadOnly(value) { window.editorReadOnly = value; }};
             }}};
         });
@@ -51,7 +58,7 @@ const path = require('node:path');
         await page.locator('#myx-auto-update').check();
         await page.waitForFunction(() => !document.getElementById('myx-auto-update').disabled);
         assert.ok((await page.evaluate(() => calls)).some(call => call.body.auto_update === true));
-        assert.deepEqual(await page.locator('.shire-system thead th').allTextContents(), ['Ergebnis', 'Komponente', 'Version', 'Aktion/Hilfe']);
+        assert.deepEqual(await page.locator('.shire-system thead th').allTextContents(), ['Ergebnis', 'Komponente', 'Version', 'Pfad/Details', 'Aktion/Hilfe']);
         assert.deepEqual(await page.locator('.shire-system tbody th').allTextContents(), ['INValidator', 'LibreOffice', 'MustangCLI', 'veraPDF', 'eigene Vorlagen']);
         await page.locator('#myx-check-system').click();
         await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
@@ -64,9 +71,33 @@ const path = require('node:path');
         await page.waitForFunction(() => !document.getElementById('myx-hide-validator').disabled);
         assert.equal(await page.locator('#myx-hide-validator').isChecked(), true, 'Failed save restores switch');
         assert.equal(await page.locator('.shire-readme-rich h1').textContent(), 'ShiRE');
+        await page.locator('[data-check=templates] [data-readme-help]').click();
+        assert.equal(await page.evaluate(() => window.helpHeadingScrolled), true);
         assert.equal(await page.locator('.shire-readme-fallback').isVisible(), false);
         assert.equal(await page.evaluate(() => editorOptions.readOnly && editorReadOnly), true);
         assert.ok(await page.evaluate(() => editorOptions.content.startsWith('# ShiRE')));
+        const appHtml = execFileSync('php', ['-r', `
+            function p($value) { echo htmlspecialchars((string)$value, ENT_QUOTES); }
+            function print_unescaped($value) { echo $value; }
+            $_ = ['readmeUrl' => '/apps/shi_re/readme'];
+            require 'templates/readme-link.php';
+            echo '<input id="invoice-value" value="Entwurf bleibt erhalten">';
+        `], {encoding: 'utf8'});
+        await page.setContent(appHtml);
+        await page.addStyleTag({path: path.resolve('css/readme.css')});
+        await page.addScriptTag({path: path.resolve('js/readme.js')});
+        const originalUrl = page.url();
+        for (const action of ['button', 'escape', 'backdrop']) {
+            await page.locator('.shire-readme-link').click();
+            assert.equal(await page.locator('dialog').isVisible(), true);
+            assert.equal(page.url(), originalUrl);
+            if (action === 'button') await page.locator('#shire-readme-close').click();
+            else if (action === 'escape') await page.keyboard.press('Escape');
+            else await page.mouse.click(2, 2);
+            assert.equal(await page.locator('dialog').isVisible(), false);
+            assert.equal(await page.locator('#invoice-value').inputValue(), 'Entwurf bleibt erhalten');
+            assert.equal(await page.locator('.shire-readme-link').evaluate(node => node === document.activeElement), true);
+        }
         assert.deepEqual(errors, []);
         console.log('Admin browser: defaults, immediate saves, failure rollback, conditional uploads system check rows and Nextcloud Text viewer integration passed.');
     } finally { await browser.close(); }

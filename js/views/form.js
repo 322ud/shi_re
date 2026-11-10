@@ -23,7 +23,8 @@
             )
         );
 
-        const form = NS.make('form', { id: 'myx-invoice-form' });
+        // Recipient data belongs to an invoice, not to the browser user's address profile.
+        const form = NS.make('form', { id: 'myx-invoice-form', autocomplete: 'off' });
         form.addEventListener('input', NS.recalculate);
 
         const parties = NS.make('div', { class: 'myx-parties' });
@@ -39,6 +40,7 @@
         country.classList.add('myx-country-field');
         addressLine.appendChild(country);
         buyer.appendChild(addressLine);
+        buyer.querySelectorAll('input').forEach(field => field.setAttribute('autocomplete', 'off'));
         parties.appendChild(buyer);
 
         const seller = NS.state.seller || {};

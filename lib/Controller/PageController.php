@@ -25,6 +25,8 @@ class PageController extends Controller {
     #[NoCSRFRequired]
     #[Route(Route::TYPE_FRONTPAGE, verb: 'GET', url: '/')]
     public function index(): TemplateResponse {
+        $this->textEditorLoader->load();
+        Util::addScript('shi_re', 'readme');
         // Gemeinsames Layout der App laden.
         Util::addStyle('shi_re', 'style');
         Util::addStyle('shi_re', 'readme');

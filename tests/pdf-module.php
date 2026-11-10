@@ -130,6 +130,7 @@ namespace {
     $apps = new class implements \OCP\App\IAppManager { public function getAppPath($id): string { return dirname(__DIR__); } };
     $templates = new InvoiceTemplateService($storage, $config, $apps, $consistency);
     check(!$templates->usesCustomTemplates(), 'Own templates default off');
+    check($templates->customStatus()['detail'] === 'nicht vorhanden' && !$templates->customStatus()['ok'], 'No custom set must not pass as defaults');
     $templates->setCustomTemplates(true);
     $defaultVersion = $templates->current()['version'];
     rejects(fn () => $templates->upload(['mapping' => '{{broken}}']), 'Mapping');
@@ -138,7 +139,13 @@ namespace {
     check($templates->error() === '' && $templates->current()['version'] === $defaultVersion, 'Standard templates ignore failed custom upload');
     $templates->setCustomTemplates(true);
     check($templates->error() !== '', 'Re-enabling preserves custom validation error');
+    check($templates->customStatus()['detail'] === 'prüfung fehlgeschlagen', 'Custom failure is explicit');
     $saved = $templates->upload([]);
+    check($templates->customStatus()['ok'], 'Successful upload marks saved version checked');
+    unset($config->app['pdf_template_checked_version']);
+    check($templates->customStatus()['detail'] === 'nicht geprüft' && !$templates->customStatus()['ok'], 'Unverified saved set is red');
+    $templates->upload([]);
+    check($templates->customStatus()['ok'], 'Rechecking marks set checked');
     check($templates->error() === '' && $saved['xml'] === $bundle['xml'], 'Valid complete bundle and recovery');
     $templates->setCustomTemplates(false);
     check($templates->current()['version'] === $defaultVersion, 'Disabling restores bundled templates');

@@ -46,6 +46,30 @@ class InvoiceTemplateService {
         return $this->snapshot = $bundle;
     }
 
+    /** Status of the saved custom set, independent of the currently selected defaults. */
+    public function customStatus(): array {
+        $version = $this->config->getAppValue(Application::APP_ID, 'pdf_template_version', '');
+        $result = ['ok' => false, 'version' => $version === '' ? '' : substr($version, 0, 12), 'detail' => 'nicht vorhanden'];
+        if ($this->config->getAppValue(Application::APP_ID, 'pdf_template_error', '') !== '') {
+            $result['detail'] = 'prüfung fehlgeschlagen';
+            return $result;
+        }
+        if ($version === '') return $result;
+        try {
+            if (!preg_match('/^[a-f0-9]{64}$/D', $version)) throw new \RuntimeException('Ungültige Version');
+            $json = $this->appData->getFolder('pdf-templates')->getFile($version . '.json')->getContent();
+            if (!hash_equals($version, hash('sha256', $json))) throw new \RuntimeException('Beschädigte Vorlagen');
+        } catch (\OCP\Files\NotFoundException) {
+            return $result;
+        } catch (\Throwable) {
+            $result['detail'] = 'prüfung fehlgeschlagen';
+            return $result;
+        }
+        $result['ok'] = $this->config->getAppValue(Application::APP_ID, 'pdf_template_checked_version', '') === $version;
+        $result['detail'] = $result['ok'] ? 'geprüft' : 'nicht geprüft';
+        return $result;
+    }
+
     public function usesCustomTemplates(): bool {
         return $this->config->getAppValue(Application::APP_ID, 'custom_templates', 'no') === 'yes';
     }
@@ -77,6 +101,7 @@ class InvoiceTemplateService {
             }
             if (!$folder->fileExists($version . '.json')) $folder->newFile($version . '.json', $json);
             $this->config->setAppValue(Application::APP_ID, 'pdf_template_version', $version);
+            $this->config->setAppValue(Application::APP_ID, 'pdf_template_checked_version', $version);
             $this->config->setAppValue(Application::APP_ID, 'pdf_template_error', '');
             $this->snapshot = null;
             return $this->current();

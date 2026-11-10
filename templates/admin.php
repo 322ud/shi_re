@@ -37,7 +37,7 @@ $status = $_['status'];
     <button id="myx-check-system" type="button">Systemprüfung wiederholen</button>
     <div class="shire-table-scroll" role="region" aria-label="Ergebnisse der Systemprüfung" tabindex="0">
         <table class="shire-system">
-            <thead><tr><th scope="col">Ergebnis</th><th scope="col">Komponente</th><th scope="col">Version</th><th scope="col">Aktion/Hilfe</th></tr></thead>
+            <thead><tr><th scope="col">Ergebnis</th><th scope="col">Komponente</th><th scope="col">Version</th><th scope="col">Pfad/Details</th><th scope="col">Aktion/Hilfe</th></tr></thead>
             <tbody>
             <?php
             $checks = ['validator' => ['ok' => !empty($status['installed']) && $status['enabled'],
@@ -49,7 +49,8 @@ $status = $_['status'];
                     <td><span class="shire-state shire-state--<?php p($check['ok'] ? 'available' : 'missing'); ?>" role="img" aria-label="<?php p($check['ok'] ? 'Bereit' : 'Nicht bereit'); ?>"><?php p($check['ok'] ? '✓' : '✕'); ?></span></td>
                     <th scope="row"><?php p($label); ?></th>
                     <td data-version><?php p($check['version'] ?: '—'); ?></td>
-                    <td><span data-detail><?php p($check['detail']); ?></span>
+                    <td data-detail><?php p($check['detail']); ?></td>
+                    <td class="shire-system-actions">
                         <?php if ($key === 'validator'): ?><button id="myx-check-validator" type="button">Release prüfen / installieren</button><?php endif; ?>
                         <a href="#shire-admin-readme-title" data-readme-help="<?php p($key === 'templates' ? 'Vorlagen und Mapping' : ($key === 'validator' ? 'Einstellungen' : 'PDF-Modul einrichten')); ?>">Info ↗</a>
                     </td>

@@ -74,7 +74,27 @@
     };
 
     function init() {
-        document.querySelectorAll('[data-shire-readme]').forEach(initializeReadme);
+        document.querySelectorAll('[data-shire-readme]').forEach(viewer => {
+            if (!viewer.closest('dialog')) initializeReadme(viewer);
+        });
+        const open = document.querySelector('.shire-readme-link');
+        const dialog = document.getElementById('shire-readme-dialog');
+        const close = document.getElementById('shire-readme-close');
+        if (!open || !dialog || !close) return;
+        let ready;
+        open.addEventListener('click', event => {
+            event.preventDefault();
+            dialog.showModal();
+            close.focus();
+            ready ||= initializeReadme(dialog.querySelector('[data-shire-readme]'));
+        });
+        close.addEventListener('click', () => dialog.close());
+        dialog.addEventListener('click', event => {
+            const bounds = dialog.getBoundingClientRect();
+            if (event.target === dialog && (event.clientX < bounds.left || event.clientX > bounds.right
+                || event.clientY < bounds.top || event.clientY > bounds.bottom)) dialog.close();
+        });
+        dialog.addEventListener('close', () => open.focus());
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once: true});
     else init();

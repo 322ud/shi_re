@@ -2,7 +2,7 @@
 
 Nextcloud-App zur Erstellung und Validierung einer EN16931-CII-Rechnung mit einer Rechnungsposition. Nach erfolgreicher KoSIT-Validierung und ausdrücklicher XML-Annahme erzeugt das PDF-Modul auf Wunsch eine PDF/A-3b-Rechnung aus einer ODT-Vorlage und bettet dieselbe XML mit Mustangproject ein.
 
-Die Dokumentation ist auf den Rechnungsseiten über das Info-Symbol rechts oben (Mouseover „Readme“) erreichbar. In der Administration wird diese README im schreibgeschützten Markdown-Viewer der Nextcloud-App Text eingebettet angezeigt, wie bei INValidator.
+Die Dokumentation ist auf den Rechnungsseiten über das Info-Symbol rechts oben (Mouseover „Readme“) in einem überlagernden Fenster erreichbar. Die App bleibt dabei geöffnet; Schließen, Escape oder ein Klick auf den Hintergrund schließen die README. In der Administration wird diese README im schreibgeschützten Markdown-Viewer der Nextcloud-App Text eingebettet angezeigt, wie bei INValidator.
 
 ## Einstellungen
 

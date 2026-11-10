@@ -43,10 +43,11 @@ class PdfDependencyService {
             $this->consistency->check($bundle);
             if ($this->templates->error() !== '') $errors[] = $this->templates->error();
         } catch (\Throwable $e) { $errors[] = $e->getMessage(); }
-        $templateErrors = $errors;
-        $custom = $this->templates->usesCustomTemplates();
-        $checks = ['templates' => ['ok' => !$templateErrors, 'version' => $custom ? ($bundle['version'] ?? '') : '',
-            'detail' => !$custom ? 'Deaktiviert – Standardvorlagen werden verwendet.' : ($templateErrors ? implode(' ', $templateErrors) : 'Vorlagensatz geprüft.')]];
+        $checks = ['templates' => $this->templates->customStatus()];
+        if ($this->templates->usesCustomTemplates() && $errors) {
+            $checks['templates']['ok'] = false;
+            $checks['templates']['detail'] = 'prüfung fehlgeschlagen';
+        }
         $tools = [
             'libreoffice' => $this->config->getSystemValueString('shi_re_libreoffice', '/usr/bin/libreoffice'),
             'java' => $this->config->getSystemValueString('shi_re_java', '/usr/bin/java'),
