@@ -51,7 +51,7 @@ namespace {
     $request->download = false;
     $validator->valid = false;
     check($controller->downloadXmlInvoice()->status === 422);
-    check($controller->validateXmlInvoice()->data['xmlHash'] === null);
+    check($controller->validateXmlInvoice()->data['xmlHash'] === hash('sha256', $storage->xml));
     $storage->xml = '<changed/>';
     $calls = $validator->calls;
     check($controller->downloadXmlInvoice()->status === 409);

@@ -13,6 +13,7 @@ namespace OCP\AppFramework\Http {
     class DataDownloadResponse { public function __construct(public string $data, public string $filename, public string $type, public int $status, public array $headers) {} }
 }
 namespace Psr\Log { interface LoggerInterface {} }
+namespace OCP\Lock { interface ILockingProvider { public const LOCK_EXCLUSIVE = 2; } }
 namespace OCA\MyXRechnung\Service {
     class KositValidatorService {
         public bool $valid = true;
@@ -29,6 +30,7 @@ namespace {
         require __DIR__ . '/../lib/Service/' . $class . '.php';
     }
     require __DIR__ . '/../lib/Config/AppFiles.php';
+    foreach (['DraftService', 'IncRamID', 'InvoiceReviewService', 'DomService'] as $class) require __DIR__ . '/../lib/Service/' . $class . '.php';
     require __DIR__ . '/../lib/Controller/PdfInvoiceController.php';
     require __DIR__ . '/../lib/Controller/PdfAdminController.php';
 
@@ -110,11 +112,18 @@ namespace {
         public function newFolder($name): object { return $this; }
         public function fileExists($name): bool { return isset($this->files[$name]); }
         public function newFile($name, $data): void { $this->files[$name] = $data; }
+        public function getDirectoryListing(): array {
+            return array_map(fn ($name) => $this->getFile($name), array_keys($this->files));
+        }
         public function getFile($name): object {
             if (!isset($this->files[$name])) throw new \OCP\Files\NotFoundException();
-            return new class($this->files[$name]) {
-                public function __construct(private string $content) {}
-                public function getContent(): string { return $this->content; }
+            return new class($this, $name) {
+                public function __construct(private object $storage, private string $name) {}
+                public function getContent(): string { return $this->storage->files[$this->name]; }
+                public function putContent(string $content): void { $this->storage->files[$this->name] = $content; }
+                public function delete(): void { unset($this->storage->files[$this->name]); }
+                public function getName(): string { return $this->name; }
+                public function getMTime(): int { return $this->name === 'older.pdf' ? 1 : 2; }
             };
         }
     };
@@ -175,22 +184,88 @@ namespace {
     };
     $logger = new class implements \Psr\Log\LoggerInterface { public function error(...$args): void {} };
     $validator = new KositValidatorService();
-    $controller = new \OCA\MyXRechnung\Controller\PdfInvoiceController('my_xrechnung', $request, $storage, $validator, $fakeDependencies, $templates, $pdf, $logger);
+    $locking = new class implements \OCP\Lock\ILockingProvider {
+        public bool $locked = false;
+        public bool $blocked = false;
+        public function acquireLock($path, $type): void {
+            if ($this->blocked || $this->locked) throw new RuntimeException('locked');
+            $this->locked = true;
+        }
+        public function releaseLock($path, $type): void { $this->locked = false; }
+    };
+    $controller = new \OCA\MyXRechnung\Controller\PdfInvoiceController('my_xrechnung', $request, $storage, $validator, $fakeDependencies, $templates, $pdf, $logger, $locking);
     $storage->files['en16931.xml'] = $bundle['xml'];
-    check($controller->download()->status === 409 && $validator->calls === 0, 'Missing hash blocked');
-    $request->params = ['xmlHash' => hash('sha256', $bundle['xml']), 'templateVersion' => $saved['version']];
+    check($controller->download()->status === 400 && $validator->calls === 0, 'Temporary XML cannot generate PDF');
+    $storage->files['26 200.xml'] = $bundle['xml'];
+    $storage->files['en16931.xml'] = '<unrelated-temporary-xml/>';
+    $request->params = ['filename' => '26 200.xml', 'xmlHash' => hash('sha256', $bundle['xml']), 'templateVersion' => $saved['version']];
     check($controller->download() instanceof \OCP\AppFramework\Http\DataDownloadResponse, 'Validated PDF response');
-    $storage->files['en16931.xml'] = $unsupportedXml;
+    check($storage->files['26 200.pdf'] === '%PDF-1.7 final', 'Generated PDF persisted');
+    check($storage->files['26 200.xml'] === $bundle['xml'], 'Exact validated XML archived beside PDF');
+    $storage->files['26 200.pdf'] = '%PDF original archived content';
+    $duplicate = $controller->download();
+    check($duplicate->status === 409 && str_contains($duplicate->data['error'], 'nicht überschrieben'), 'Duplicate invoice rejected explicitly');
+    check($storage->files['26 200.pdf'] === '%PDF original archived content', 'Archived bytes unchanged');
+    check(!$locking->locked, 'Lock released after conflict');
+    $locking->blocked = true;
+    check($controller->download()->status === 500, 'Unavailable lock fails closed');
+    check($storage->files['26 200.pdf'] === '%PDF original archived content', 'Lock contention preserves archive');
+    $locking->blocked = false;
+    $storage->files['older.pdf'] = '%PDF older';
+    check(array_column($controller->invoices()->data['invoices'], 'filename') === ['26 200.xml', '26 200.pdf', 'older.pdf'], 'PDF and archived XML listed, latest first');
+    $request->params['filename'] = '26 200.pdf';
+    check($controller->saved()->data === '%PDF original archived content', 'Stored PDF retrieved without regeneration');
+    $request->params['filename'] = '26 200.xml';
+    $xmlDownload = $controller->saved();
+    check($xmlDownload->data === $bundle['xml'] && $xmlDownload->type === 'application/xml', 'Archived XML downloadable');
+    foreach (['en16931.xml', 'draft.xml', '../26 200.pdf', 'folder\\invoice.pdf', "bad\0.pdf", 'draft.json', ['bad']] as $bad) {
+        $request->params['filename'] = $bad;
+        check($controller->saved()->status === 400, 'Unsafe filename rejected');
+    }
+    $request->params['filename'] = 'missing.pdf';
+    check($controller->saved()->status === 404, 'Missing invoice handled');
+    $request->params['filename'] = '26 200.xml';
+    $storage->files['26 200.xml'] = $unsupportedXml;
     $request->params['xmlHash'] = hash('sha256', $unsupportedXml);
     $unsupportedResponse = $controller->download();
     check($unsupportedResponse->status === 422 && $unsupportedResponse->data['error'] === $unsupportedMessage,
         'Unsupported TypeCode message returned to browser');
     $storage->files['en16931.xml'] = $bundle['xml'];
+    $storage->files['26 200.xml'] = $bundle['xml'];
     $request->params['xmlHash'] = hash('sha256', $bundle['xml']);
     $validator->valid = false;
     check($controller->download()->status === 422, 'Invalid XML blocked');
-    $storage->files['en16931.xml'] = '<changed/>';
+    $storage->files['26 200.xml'] = '<changed/>';
     check($controller->download()->status === 409, 'Concurrent XML change blocked');
+    // Review acceptance/discard uses the real draft lifecycle and exact XML bytes.
+    $storage->files = [];
+    $drafts = new \OCA\MyXRechnung\Service\DraftService($storage);
+    $review = new \OCA\MyXRechnung\Service\InvoiceReviewService($storage, $drafts, $validator, $locking);
+    $drafts->create('window', '26 200');
+    $storage->files['en16931.xml'] = $bundle['xml'];
+    $storage->files['draft.xml'] = 'temporary';
+    $hash = hash('sha256', $bundle['xml']);
+    rejects(fn () => $review->finish('other-window', $hash, true));
+    rejects(fn () => $review->finish('window', 'stale', true), 'geändert');
+    $validator->valid = false;
+    rejects(fn () => $review->finish('window', $hash, true), 'valide');
+    check(!isset($storage->files['26 200.xml']), 'Rejected XML never archived');
+    check($review->finish('window', $hash, false) === null, 'Invalid XML may be discarded');
+    check($storage->files === [], 'Discard removes all temporary invoice data without archiving');
+    $validator->valid = true;
+    $drafts->create('window', '26 200');
+    $storage->files['en16931.xml'] = $bundle['xml'];
+    check($review->finish('window', $hash, true) === '26 200.xml', 'Explicit acceptance archives XML');
+    check($storage->files === ['26 200.xml' => $bundle['xml']], 'Only exact accepted XML remains');
+    $drafts->create('window', '26 200');
+    $storage->files['en16931.xml'] = $bundle['xml'];
+    rejects(fn () => $review->finish('window', $hash, true), 'überschrieben');
+    check($storage->files['26 200.xml'] === $bundle['xml'], 'Accepted XML never overwritten');
+    $review->finish('window', $hash, false);
+    $domService = new \OCA\MyXRechnung\Service\DomService('my_xrechnung', $logger, $storage, $apps, $templates);
+    check($domService->nextInvoiceNumber() === '26 201', 'Number advances from archive after temporary XML deletion');
+    $storage->files['26 202.pdf'] = '%PDF legacy';
+    check($domService->nextInvoiceNumber() === '26 203', 'Legacy PDF also reserves its number');
     foreach (['upload', 'status'] as $method) {
         $reflection = new ReflectionMethod(\OCA\MyXRechnung\Controller\PdfAdminController::class, $method);
         check(count($reflection->getAttributes('OCP\\AppFramework\\Http\\Attribute\\NoAdminRequired')) === 0, 'Admin-only upload/status');

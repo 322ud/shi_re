@@ -50,7 +50,7 @@ class XmlValidationController extends Controller {
                 'success' => true,
                 'valid' => $result['valid'],
                 'html' => $result['html'],
-                'xmlHash' => $result['valid'] === true ? hash('sha256', $xml) : null,
+                'xmlHash' => hash('sha256', $xml),
             ]);
         } catch (\Throwable $e) {
             return new JSONResponse([

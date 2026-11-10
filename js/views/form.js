@@ -75,6 +75,7 @@
         const createButton = NS.button('Rechnung erstellen', NS.createXmlInvoice, 'myx-primary');
         createButton.disabled = !supportedType;
         actions.appendChild(createButton);
+        actions.appendChild(NS.savedInvoiceDropdown());
 
         form.appendChild(actions);
 
@@ -96,6 +97,69 @@
         let previousWidth = description.clientWidth;
         observer.observe(description);
         NS.recalculate();
+    };
+
+    NS.savedInvoiceDropdown = function () {
+        const wrapper = NS.make('div', {class: 'myx-saved-invoices'});
+        const menu = NS.make('div', {class: 'myx-saved-menu', id: 'myx-saved-menu'});
+        menu.hidden = true;
+        const button = NS.button('Archiv', async function () {
+            menu.hidden = !menu.hidden;
+            button.setAttribute('aria-expanded', String(!menu.hidden));
+            if (menu.hidden) return;
+            NS.clear(menu);
+            menu.appendChild(NS.make('p', {}, 'Rechnungen werden geladen …'));
+            try {
+                const data = await NS.post('/pdf/invoices');
+                NS.clear(menu);
+                if (!data.invoices.length) menu.appendChild(NS.make('p', {}, 'Keine Rechnungen vorhanden.'));
+                data.invoices.forEach(function (invoice) {
+                    const entry = NS.button(invoice.filename, async function () {
+                        entry.disabled = true;
+                        try {
+                            await NS.downloadSavedInvoice(invoice.filename);
+                        } finally {
+                            entry.disabled = false;
+                        }
+                    });
+                    menu.appendChild(entry);
+                });
+            } catch (error) {
+                NS.clear(menu);
+                menu.appendChild(NS.make('p', {}, 'Rechnungen konnten nicht geladen werden. Bitte erneut öffnen.'));
+                throw error;
+            }
+        });
+        button.setAttribute('aria-expanded', 'false');
+        button.setAttribute('aria-controls', 'myx-saved-menu');
+        wrapper.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                menu.hidden = true;
+                button.setAttribute('aria-expanded', 'false');
+                button.focus();
+            }
+        });
+        wrapper.appendChild(button);
+        wrapper.appendChild(menu);
+        return wrapper;
+    };
+
+    NS.downloadSavedInvoice = async function (filename) {
+        const response = await fetch(NS.route('/pdf/saved'), {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', requesttoken: OC.requestToken},
+            body: JSON.stringify({filename: filename}),
+        });
+        const type = (response.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
+        if (!response.ok || response.redirected || type !== (filename.endsWith('.xml') ? 'application/xml' : 'application/pdf')) {
+            throw new Error('Archivdatei konnte nicht geladen werden (HTTP ' + response.status + ').');
+        }
+        const url = URL.createObjectURL(await response.blob());
+        const link = NS.make('a', {href: url, download: filename});
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
     };
 
     NS.postenHeaderRow = function () {

@@ -25,6 +25,7 @@ class PageController extends Controller {
     public function index(): TemplateResponse {
         // Gemeinsames Layout der App laden.
         Util::addStyle('my_xrechnung', 'style');
+        Util::addStyle('my_xrechnung', 'validation-actions');
 
         // Reihenfolge ist wichtig:
         // 1. state stellt window.MyXRechnung und den gemeinsamen Zustand bereit.
@@ -35,6 +36,7 @@ class PageController extends Controller {
         // 6. main startet die App.
         Util::addScript('my_xrechnung', 'state');
         Util::addScript('my_xrechnung', 'dom');
+        Util::addScript('my_xrechnung', 'validation-actions');
         Util::addScript('my_xrechnung', 'api');
         Util::addScript('my_xrechnung', 'calc');
         Util::addScript('my_xrechnung', 'draft');

@@ -45,7 +45,7 @@ class EN16931Controller extends Controller {
             $windowId = $this->windowIdFromRequest();
 
             $dom = $this->domService->loadTemplate();
-            $ramID = IncRamID::next($this->domService->load());
+            $ramID = $this->domService->nextInvoiceNumber();
             IncRamID::set($dom, $ramID);
             StripItems::do($dom);
 
@@ -162,12 +162,13 @@ class EN16931Controller extends Controller {
             $this->domService->saveDom($dom, AppFiles::XmlWorkFile);
 
             $this->draftXmlService->delete();
-            $this->draftService->complete($windowId);
+            // Keep ownership until the user accepts or discards the reviewed XML.
 
             return new JSONResponse([
                 'success' => true,
                 'draft' => $this->publicDraftData($draft),
                 'xmlInvoiceFile' => AppFiles::XmlWorkFile,
+                'xmlHash' => hash('sha256', $dom->saveXML()),
                 'ramID' => IncRamID::get($dom),
             ]);
         } catch (\Throwable $e) {

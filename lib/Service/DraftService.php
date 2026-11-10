@@ -78,7 +78,7 @@ final class DraftService {
     }
 
     /**
-     * Nach erfolgreichem Schreiben der XML-Rechnung wird der Draft freigegeben
+     * Nach Annahme oder Verwerfen der geprüften XML wird der Draft freigegeben.
      */
     public function complete(string $windowId): void {
         $this->assertWindowId($windowId);

@@ -5,95 +5,73 @@ const assert = require('node:assert/strict');
 
 class Element {
     constructor(tag, attributes = {}, text = '') {
-        this.tag = tag;
-        this.attributes = attributes;
-        this.textContent = text;
-        this.children = [];
-        this.isConnected = true;
+        Object.assign(this, {tag, attributes, textContent: text, children: [], isConnected: true});
+        this.contentWindow = {focus() {}, print: () => { this.printed = true; }};
     }
     appendChild(child) { this.children.push(child); }
 }
-
 (async () => {
-    for (const scenario of ['valid', 'popup-blocked', 'invalid', 'disabled', 'changed', 'login', 'navigated']) {
-        const input = new Element('div');
-        const actions = [];
-        const calls = [];
-        const revoked = [];
-        const logs = [];
-        const opened = [];
-        const pdfWindow = {opener: {}};
-        let blobs = 0;
-        const ns = {
-            state: {pdfDownloadUrl: 'blob:previous'},
-            inputArea: () => input,
-            clear: element => { element.children = []; },
-            make: (tag, attributes, text) => {
-                const element = new Element(tag, attributes, text);
-                if (attributes?.class === 'myx-actions') actions.push(element);
-                return element;
-            },
-            button: text => new Element('button', {}, text),
-            log: message => logs.push(message),
-            route: path => path,
-            post: async path => {
-                calls.push(path);
-                if (path === '/pdf/status') return {status: {enabled: scenario !== 'disabled', templateVersion: 'v1', message: 'deaktiviert'}};
-                return {valid: scenario !== 'invalid', xmlHash: 'hash', html: '<p>report</p>'};
-            },
-        };
-        const listeners = {};
-        vm.runInNewContext(fs.readFileSync(require.resolve('../js/views/create-xml-invoice.js'), 'utf8'), {
-            window: {
-                MyXRechnung: ns,
-                addEventListener: (name, fn) => { listeners[name] = fn; },
-                open: (url, target) => {
-                    opened.push({url, target});
-                    return scenario === 'popup-blocked' ? null : pdfWindow;
+    for (const choice of ['cancel-close', 'cancel-new', 'accept-close', 'accept-new', 'pdf']) {
+        for (const valid of [true, false]) {
+            if (!valid && !choice.startsWith('cancel')) continue;
+            const input = new Element('div');
+            const calls = [], logs = [];
+            let menu, choose, report, downloaded, destination, stopped = false;
+            const ns = {
+                state: {pdfDownloadUrl: null}, inputArea: () => input,
+                clear: element => { element.children = []; },
+                make: (tag, attrs, text) => new Element(tag, attrs, text),
+                button: text => new Element('button', {}, text),
+                log: message => logs.push(message), route: path => path,
+                stopHeartbeat: () => { stopped = true; },
+                startInvoice: async () => { destination = 'new'; },
+                downloadSavedInvoice: async name => { downloaded = name; },
+                mountFinishedActions() {},
+                mountReviewActions: (host, isValid, callback, print) => {
+                    assert.equal(isValid, valid);
+                    choose = callback; report = print;
+                    menu = {busy: false, destroyed: false, setBusy(value) { this.busy = value; }, destroy() { this.destroyed = true; }};
+                    return menu;
                 },
-            },
-            OC: {requestToken: 'csrf'},
-            URL: {createObjectURL: () => { blobs++; return 'blob:pdf'; }, revokeObjectURL: url => revoked.push(url)},
-            fetch: async (path, options) => {
-                calls.push(path);
-                assert.deepEqual(JSON.parse(options.body), {xmlHash: 'hash', templateVersion: 'v1'});
-                assert.equal(options.headers.requesttoken, 'csrf');
-                if (scenario === 'navigated') actions[0].isConnected = false;
-                return {
-                    ok: scenario !== 'changed', status: scenario === 'changed' ? 409 : 200,
-                    redirected: scenario === 'login',
-                    headers: {get: name => name === 'Content-Type'
-                        ? (scenario === 'changed' ? 'application/json' : 'application/pdf') : '26%20200.pdf'},
-                    blob: async () => ({}), json: async () => ({error: 'erneut validieren'}),
-                };
-            },
-        });
-        await ns.showXmlValidation();
-        assert.ok(revoked.includes('blob:previous'), 'Previous invoice blob released');
-        const links = actions[0].children.filter(child => child.tag === 'a');
-        const success = scenario === 'valid' || scenario === 'popup-blocked';
-        assert.equal(links.length, 0, 'No PDF save button');
-        assert.equal(blobs, success ? 1 : 0);
-        assert.equal(opened.length, success ? 1 : 0, 'Open only after successful PDF response');
-        assert.equal(logs[0], 'XRechnung (XML) wird geprüft');
-        assert.equal(logs[1], scenario === 'invalid' ? 'XRechnung (XML) ist nicht valide' : 'XRechnung (XML) ist valide');
-        if (scenario === 'invalid') assert.ok(!calls.includes('/pdf/status'), 'No PDF for invalid XML');
-        if (scenario === 'disabled') assert.ok(!calls.includes('/en16931/downloadPdfInvoice'), 'Disabled module does not generate');
-        if (scenario === 'changed') assert.ok(logs.includes('PDF: erneut validieren'));
-        if (success) {
-            assert.deepEqual(opened[0], {url: 'blob:pdf', target: '_blank'});
-            assert.ok(logs.includes('PDF-Rechnung wird erstellt …'));
-            assert.ok(logs.includes('PDF-Rechnung ist bereit.'));
-            assert.ok(!input.children.some(child => child.tag === 'p'), 'Status messages appear in log only');
-            if (scenario === 'popup-blocked') {
-                assert.ok(input.children.some(child => child.tag === 'iframe' && child.attributes.src === 'blob:pdf'), 'Blocked popup opens embedded PDF');
+                post: async (path, payload) => {
+                    calls.push(path);
+                    if (path.endsWith('validateXmlInvoice')) return {valid, html: '<p>report</p>', xmlHash: 'hash'};
+                    if (path === '/pdf/status') return {status: {enabled: true, templateVersion: 'v1'}};
+                    assert.equal(path, '/en16931/review');
+                    assert.equal(payload.accept, !choice.startsWith('cancel'));
+                    assert.equal(payload.xmlHash, 'hash');
+                    assert.equal(menu.busy, true);
+                    return {filename: payload.accept ? '26 200.xml' : null};
+                },
+            };
+            vm.runInNewContext(fs.readFileSync(require.resolve('../js/views/create-xml-invoice.js'), 'utf8'), {
+                window: {MyXRechnung: ns, addEventListener() {}, location: {assign: () => { destination = 'close'; }}},
+                OC: {requestToken: 'csrf', generateUrl: path => path},
+                URL: {createObjectURL: () => 'blob:pdf', revokeObjectURL() {}},
+                fetch: async (path, options) => {
+                    assert.equal(menu.destroyed, true, 'Decision menu left before PDF creation');
+                    assert.deepEqual(JSON.parse(options.body), {filename: '26 200.xml', xmlHash: 'hash', templateVersion: 'v1'});
+                    assert.equal(options.headers.requesttoken, 'csrf');
+                    calls.push(path);
+                    return {ok: true, headers: {get: () => 'application/pdf'}, blob: async () => ({})};
+                },
+            });
+            await ns.showXmlValidation();
+            assert.deepEqual(calls, ['/en16931/validateXmlInvoice'], 'No automatic archive or PDF');
+            report();
+            assert.ok(input.children.find(child => child.tag === 'iframe').printed);
+            assert.equal(menu.destroyed, false, 'Print stays in decision menu');
+            await choose(choice);
+            assert.equal(menu.destroyed, true);
+            assert.equal(stopped, true);
+            if (choice === 'pdf') {
+                assert.ok(calls.includes('/en16931/downloadPdfInvoice'));
+                assert.ok(input.children.some(child => child.tag === 'iframe' && child.attributes.src === 'blob:pdf'));
             } else {
-                assert.equal(pdfWindow.opener, null);
+                assert.equal(destination, choice.endsWith('new') ? 'new' : 'close');
+                assert.equal(downloaded, choice.startsWith('accept') ? '26 200.xml' : undefined);
             }
-            listeners.pagehide();
-            assert.ok(revoked.includes('blob:pdf'));
-            assert.equal(ns.state.pdfDownloadUrl, null);
         }
     }
-    console.log('PDF browser tests passed: valid/invalid XML, disabled module, stale XML, login redirect, navigation and blob cleanup.');
+    console.log('Review browser tests passed: explicit acceptance, cancellation, printing, destinations and archive-based PDF.');
 })().catch(error => { console.error(error); process.exit(1); });
