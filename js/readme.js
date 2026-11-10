@@ -1,13 +1,18 @@
 (() => {
     const editors = new WeakMap();
+    const pending = new WeakMap();
 
-    const initializeReadme = async (viewer) => {
+    const mountReadme = async (viewer) => {
         if (!viewer || editors.has(viewer)) {
             return editors.get(viewer) || null;
         }
 
         const richContent = viewer.querySelector('.shire-readme-rich');
         const fallback = viewer.querySelector('.shire-readme-fallback');
+        // Text may register its editor after this script (deferred app assets).
+        for (let attempt = 0; attempt < 100 && typeof window.OCA?.Text?.createEditor !== 'function'; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
         const createEditor = window.OCA?.Text?.createEditor;
         const accessibleLabel = richContent?.getAttribute('aria-label');
 
@@ -73,28 +78,54 @@
         }
     };
 
+    const initializeReadme = (viewer) => {
+        if (!viewer) return Promise.resolve(null);
+        if (pending.has(viewer)) return pending.get(viewer);
+        const task = mountReadme(viewer).finally(() => pending.delete(viewer));
+        pending.set(viewer, task);
+        return task;
+    };
+
     function init() {
         document.querySelectorAll('[data-shire-readme]').forEach(viewer => {
-            if (!viewer.closest('dialog')) initializeReadme(viewer);
+            if (!viewer.closest('.shire-readme-modal')) initializeReadme(viewer);
         });
         const open = document.querySelector('.shire-readme-link');
         const dialog = document.getElementById('shire-readme-dialog');
         const close = document.getElementById('shire-readme-close');
         if (!open || !dialog || !close) return;
-        let ready;
+        // Keep the overlay outside Nextcloud's app content layout and stacking context.
+        document.body.append(dialog);
+        const closeReadme = () => {
+            dialog.hidden = true;
+            open.focus();
+        };
         open.addEventListener('click', event => {
             event.preventDefault();
-            dialog.showModal();
+            dialog.hidden = false;
             close.focus();
-            ready ||= initializeReadme(dialog.querySelector('[data-shire-readme]'));
+            initializeReadme(dialog.querySelector('[data-shire-readme]'));
         });
-        close.addEventListener('click', () => dialog.close());
+        close.addEventListener('click', closeReadme);
         dialog.addEventListener('click', event => {
-            const bounds = dialog.getBoundingClientRect();
-            if (event.target === dialog && (event.clientX < bounds.left || event.clientX > bounds.right
-                || event.clientY < bounds.top || event.clientY > bounds.bottom)) dialog.close();
+            if (event.target === dialog) closeReadme();
         });
-        dialog.addEventListener('close', () => open.focus());
+        document.addEventListener('keydown', event => {
+            if (dialog.hidden) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeReadme();
+            } else if (event.key === 'Tab') {
+                const controls = [...dialog.querySelectorAll('button, a[href], input, [tabindex="0"]')]
+                    .filter(node => node.getClientRects().length && !node.disabled);
+                const first = controls[0], last = controls[controls.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault(); last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault(); first.focus();
+                }
+            }
+        });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once: true});
     else init();

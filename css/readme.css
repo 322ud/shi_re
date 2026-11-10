@@ -55,10 +55,16 @@ border-bottom: 1px solid var(--color-border);
 margin: 0;
 }
 
-.shire-readme-dialog-panel { margin: auto; overflow: hidden; }
-.shire-readme-dialog-panel::backdrop { background: rgb(0 0 0 / 45%); }
+.shire-readme-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    box-sizing: border-box;
+    background: rgb(0 0 0 / 45%);
+}
+#shire-readme-dialog[hidden] { display: none !important; }
+.shire-readme-dialog-panel { overflow: hidden; }
 .shire-readme-dialog-panel > .shire-readme-viewer { height: calc(100% - 70px); max-height: none; margin: 0; border: 0; border-radius: 0; }
-
-/* Nextcloud layout rules must not expose a closed native dialog. */
-#shire-readme-dialog:not([open]) { display: none !important; }
-#shire-readme-dialog[open] { display: block; position: fixed; }

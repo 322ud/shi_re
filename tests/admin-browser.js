@@ -47,6 +47,12 @@ const path = require('node:path');
                 return {setReadOnly(value) { window.editorReadOnly = value; }};
             }}};
         });
+        // Simulate Text registering after the README initializer has already run.
+        await page.evaluate(() => {
+            const text = window.OCA.Text;
+            delete window.OCA.Text;
+            setTimeout(() => { window.OCA.Text = text; }, 150);
+        });
         await page.addScriptTag({path: path.resolve('js/readme.js')});
         assert.equal(await page.locator('[role=switch]').count(), 4);
         assert.equal(await page.locator('#myx-hide-validator').isChecked(), true);
@@ -70,6 +76,7 @@ const path = require('node:path');
         await page.locator('#myx-hide-validator').click();
         await page.waitForFunction(() => !document.getElementById('myx-hide-validator').disabled);
         assert.equal(await page.locator('#myx-hide-validator').isChecked(), true, 'Failed save restores switch');
+        await page.waitForSelector('.shire-readme-rich:not([hidden]) h1');
         assert.equal(await page.locator('.shire-readme-rich h1').textContent(), 'ShiRE');
         await page.locator('[data-check=templates] [data-readme-help]').click();
         assert.equal(await page.evaluate(() => window.helpHeadingScrolled), true);
@@ -88,17 +95,17 @@ const path = require('node:path');
         await page.addStyleTag({content: '#app-content > * { display: block; }'});
         await page.addStyleTag({path: path.resolve('css/readme.css')});
         await page.addScriptTag({path: path.resolve('js/readme.js')});
-        assert.equal(await page.locator('dialog').isVisible(), false, 'README stays hidden on startup despite host CSS');
-        assert.equal(await page.locator('dialog').count(), 1);
+        assert.equal(await page.locator('#shire-readme-dialog').isVisible(), false, 'README stays hidden on startup despite host CSS');
+        assert.equal(await page.locator('#shire-readme-dialog').count(), 1);
         const originalUrl = page.url();
         for (const action of ['button', 'escape', 'backdrop']) {
             await page.locator('.shire-readme-link').click();
-            assert.equal(await page.locator('dialog').isVisible(), true);
+            assert.equal(await page.locator('#shire-readme-dialog').isVisible(), true);
             assert.equal(page.url(), originalUrl);
             if (action === 'button') await page.locator('#shire-readme-close').click();
             else if (action === 'escape') await page.keyboard.press('Escape');
             else await page.mouse.click(2, 2);
-            assert.equal(await page.locator('dialog').isVisible(), false);
+            assert.equal(await page.locator('#shire-readme-dialog').isVisible(), false);
             assert.equal(await page.locator('#invoice-value').inputValue(), 'Entwurf bleibt erhalten');
             assert.equal(await page.locator('.shire-readme-link').evaluate(node => node === document.activeElement), true);
         }

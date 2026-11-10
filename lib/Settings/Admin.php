@@ -16,11 +16,11 @@ class Admin implements ISettings {
     }
 
     public function getForm(): TemplateResponse {
+        $this->textEditorLoader->load();
         Util::addScript('shi_re', 'admin');
         Util::addScript('shi_re', 'readme');
         Util::addStyle('shi_re', 'admin');
         Util::addStyle('shi_re', 'readme');
-        $this->textEditorLoader->load();
         return new TemplateResponse('shi_re', 'admin', [
             'readmeUrl' => $this->urls->linkToRoute('shi_re.page.readme'),
             'status' => $this->dependency->settings(),

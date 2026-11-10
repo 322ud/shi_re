@@ -5,10 +5,12 @@
         <circle cx="12" cy="7.5" r="1.25" fill="currentColor"/>
     </svg>
 </a>
-<dialog id="shire-readme-dialog" class="shire-readme-dialog-panel" aria-labelledby="shire-readme-title">
+<div id="shire-readme-dialog" class="shire-readme-modal" role="dialog" aria-modal="true" aria-labelledby="shire-readme-title" hidden>
+    <div class="shire-readme-dialog-panel" role="document">
     <div class="shire-readme-dialog-header">
         <h3 id="shire-readme-title">README</h3>
         <button id="shire-readme-close" type="button" aria-label="README schließen">Schließen</button>
     </div>
     <?php require __DIR__ . '/readme-content.php'; ?>
-</dialog>
+    </div>
+</div>
