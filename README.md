@@ -68,11 +68,13 @@ Für die Darstellung gelten:
 
 Ein neuer Rechnungsentwurf lädt die aktive XML-Vorlage. Bereits angelegte Entwürfe behalten ihre gespeicherte Entwurfs-XML. PDF-Erzeugung verwendet den bei ihrer Anforderung aktuellen vollständigen Vorlagensatz; eine Änderung während einer Anforderung wird anhand der Vorlagenversion erkannt.
 
+Die nächste Rechnungsnummer wird aus der höchsten Nummer der aktiven XML-Vorlage (`ExchangedDocument/ram:ID`) und der archivierten Dateinamen im Format `JJ NNN.xml` bzw. `JJ NNN.pdf` im AppData-Hauptverzeichnis berechnet. Die Arbeitsdatei `en16931.xml` wird dabei nicht berücksichtigt. Die Vorlagennummer gilt als vorherige Nummer: Ohne Archiv ergibt beispielsweise `26 200` im Jahr 2026 die erste Rechnungsnummer `26 201`. Liegt das Jahr der höchsten Nummer vor dem aktuellen Serverjahr, beginnt die Nummerierung bei `JJ 000` des aktuellen Jahres. Auch bei vorhandenem Archiv bleibt die Vorlagennummer als Untergrenze berücksichtigt.
+
 ## PDF-Erzeugung und Download
 
 Nach der KoSIT-Prüfung erscheinen echte Nextcloud-Komponenten (`NcActions`, `NcActionButton`, `NcButton`): links bei valider XML „XML annehmen“, daneben „abbrechen“, rechts „Bericht als PDF speichern“. Der Bericht-Button öffnet den Browser-Druckdialog; dort „Als PDF speichern“ auswählen. Das Entscheidungsmenü bleibt geöffnet.
 
-Nur die drei Annahmeoptionen archivieren die erneut validierten XML-Bytes dauerhaft als `<Rechnungsnummer>.xml`. „speichern und …“ lädt diese Datei herunter und schließt die App (Rückkehr zur Nextcloud-Startseite) oder beginnt eine neue Rechnung. „in PDF einbinden“ verlässt das Menü und erzeugt aus dieser Archivdatei die PDF. Ein PDF-Fehler lässt die bereits angenommene XML unverändert im Archiv. Abbrechen verwirft die Rechnung ohne Archivierung. Nach erfolgreicher Entscheidung werden Arbeits-XML und Entwurfsdaten entfernt; der Entwurf bleibt bis dahin gesperrt und per Heartbeat aktiv. Die nächste Nummer berücksichtigt archivierte XML und PDFs, auch wenn keine Arbeits-XML mehr vorhanden ist.
+Nur die drei Annahmeoptionen archivieren die erneut validierten XML-Bytes dauerhaft als `<Rechnungsnummer>.xml`. „speichern und …“ lädt diese Datei herunter und schließt die App (Rückkehr zur Nextcloud-Startseite) oder beginnt eine neue Rechnung. „in PDF einbinden“ verlässt das Menü und erzeugt aus dieser Archivdatei die PDF. Ein PDF-Fehler lässt die bereits angenommene XML unverändert im Archiv. Abbrechen verwirft die Rechnung ohne Archivierung. Nach erfolgreicher Entscheidung werden Arbeits-XML und Entwurfsdaten entfernt; der Entwurf bleibt bis dahin gesperrt und per Heartbeat aktiv.
 
 Die PDF-Route akzeptiert ausschließlich eine Archiv-XML. Sie prüft deren Hash und die aktuelle Vorlagenversion und validiert genau diese Bytes erneut, bevor sie die ODT rendert.
 

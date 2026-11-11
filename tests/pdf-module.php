@@ -291,8 +291,12 @@ namespace {
     $review->finish('window', $hash, false);
     $domService = new \OCA\ShiRE\Service\DomService('shi_re', $logger, $storage, $apps, $templates);
     check($domService->nextInvoiceNumber() === '26 201', 'Number advances from archive after temporary XML deletion');
-    $storage->files['26 202.pdf'] = '%PDF legacy';
-    check($domService->nextInvoiceNumber() === '26 203', 'Legacy PDF also reserves its number');
+    $storage->files['26 202.pdf'] = '%PDF archived';
+    check($domService->nextInvoiceNumber() === '26 203', 'Archived PDF also reserves its number');
+    $storage->files['en16931.xml'] = str_replace('26 200', '26 250', $bundle['xml']);
+    check($domService->nextInvoiceNumber() === '26 203', 'Unaccepted work XML does not advance archived number');
+    unset($storage->files['26 200.xml'], $storage->files['26 202.pdf']);
+    check($domService->nextInvoiceNumber() === '26 201', 'Without archives, template number advances and work XML is ignored');
     foreach (['upload', 'status'] as $method) {
         $reflection = new ReflectionMethod(\OCA\ShiRE\Controller\PdfAdminController::class, $method);
         check(count($reflection->getAttributes('OCP\\AppFramework\\Http\\Attribute\\NoAdminRequired')) === 0, 'Admin-only upload/status');

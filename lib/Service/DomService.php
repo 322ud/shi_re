@@ -32,17 +32,13 @@ class DomService {
     }
 
     /**
-     * Lädt die Arbeits-XML aus AppData. Falls sie noch nicht existiert, wird sie
-     * einmalig aus dem XML-Template im App-Verzeichnis erzeugt.
+     * Berechnet die nächste Nummer aus der höchsten Nummer der aktiven Vorlage
+     * und der archivierten XML-/PDF-Dateinamen in AppData.
      */
     public function nextInvoiceNumber(): string {
         $dom = $this->loadTemplate();
         $latest = IncRamID::get($dom);
         $folder = $this->appData->getFolder('/');
-        // Include legacy work files during migration, and both archive formats.
-        if ($folder->fileExists(AppFiles::XmlWorkFile)) {
-            $latest = max($latest, IncRamID::get($this->load()));
-        }
         foreach ($folder->getDirectoryListing() as $file) {
             if (preg_match('/^(\d{2} \d{3})\.(xml|pdf)$/D', $file->getName(), $matches)) {
                 $latest = max($latest, $matches[1]);

@@ -65,17 +65,6 @@ final class IncRamID {
         return trim(self::getIdNode($dom)->nodeValue);
     }
 
-    /**
-     * Abwärtskompatible Kurzform: berechnet die nächste Nummer und schreibt sie
-     * sofort in den DOM. Für den neuen createXmlInvoice-Ablauf besser next()+set()
-     * verwenden, damit die XML erst am Ende geändert wird.
-     */
-    public static function do(\DOMDocument $dom): string {
-        $newId = self::next($dom);
-        self::set($dom, $newId);
-        return $newId;
-    }
-
     private static function getIdNode(\DOMDocument $dom): \DOMNode {
         $xpath = new \DOMXPath($dom);
 
