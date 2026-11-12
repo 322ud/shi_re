@@ -35,15 +35,21 @@ $status = $_['status'];
     <section aria-labelledby="shire-system-title">
     <h3 id="shire-system-title">System</h3>
     <button id="myx-check-system" type="button">Systemprüfung wiederholen</button>
-    <div class="shire-table-scroll" role="region" aria-label="Ergebnisse der Systemprüfung" tabindex="0">
+    <?php
+    $validatorReady = !empty($status['installed']) && $status['enabled'] && empty($status['check_error']);
+    $checks = ['validator' => ['ok' => $validatorReady,
+        'version' => $status['installed'] ?? '', 'detail' => $status['check_error'] ?? ($status['enabled'] ? '' : 'INValidator fehlt oder ist deaktiviert.')]]
+        + $_['pdfStatus']['checks'];
+    foreach ([
+        'xml' => ['XML-Erzeugung', ['templates' => 'eigene Vorlagen', 'validator' => 'INValidator']],
+        'pdf' => ['für PDF-Erzeugung', ['libreoffice' => 'LibreOffice', 'mustang' => 'MustangCLI', 'verapdf' => 'veraPDF']],
+    ] as $group => [$heading, $components]): ?>
+    <h4><?php p($heading); ?></h4>
+    <div class="shire-table-scroll" role="region" aria-label="<?php p($heading); ?>" tabindex="0">
         <table class="shire-system">
             <thead><tr><th scope="col">Ergebnis</th><th scope="col">Komponente</th><th scope="col">Version</th><th scope="col">Pfad/Details</th><th scope="col">Aktion/Hilfe</th></tr></thead>
             <tbody>
-            <?php
-            $checks = ['validator' => ['ok' => !empty($status['installed']) && $status['enabled'],
-                'version' => $status['installed'] ?? '', 'detail' => $status['enabled'] ? '' : 'INValidator fehlt oder ist deaktiviert.']]
-                + $_['pdfStatus']['checks'];
-            foreach (['validator' => 'INValidator', 'libreoffice' => 'LibreOffice', 'mustang' => 'MustangCLI', 'verapdf' => 'veraPDF', 'templates' => 'eigene Vorlagen'] as $key => $label):
+            <?php foreach ($components as $key => $label):
                 $check = $checks[$key]; ?>
                 <tr data-check="<?php p($key); ?>">
                     <td><span class="shire-state shire-state--<?php p($check['ok'] ? 'available' : 'missing'); ?>" role="img" aria-label="<?php p($check['ok'] ? 'Bereit' : 'Nicht bereit'); ?>"><?php p($check['ok'] ? '✓' : '✕'); ?></span></td>
@@ -59,7 +65,16 @@ $status = $_['status'];
             </tbody>
         </table>
     </div>
-    <p id="myx-pdf-status" role="status" aria-live="polite"><?php p($_['pdfStatus']['enabled'] ? 'PDF-Modul ist aktiv.' : implode(' ', $_['pdfStatus']['errors'])); ?></p>
+    <?php if ($group === 'xml'): ?>
+    <p id="myx-xml-status" data-ready="<?php p($validatorReady ? 'true' : 'false'); ?>" role="status" aria-live="polite"><?php p($validatorReady ? 'XML-Rechnung wird erzeugt und validiert.' : 'XML-Rechnung wird erzeugt, aber nicht validiert.'); ?></p>
+    <?php else: ?>
+    <p id="myx-pdf-status" data-status="<?php p(json_encode($_['pdfStatus'])); ?>" role="status" aria-live="polite"><?php
+        p($_['pdfStatus']['enabled'] && $validatorReady
+            ? 'PDF-Rechnung wird erzeugt und mit MustangCLI geprüft. ' . (!empty($checks['verapdf']['ok']) ? 'Zusätzlich wird PDF/A-3b mit veraPDF geprüft.' : 'PDF/A-3b wird nicht mit veraPDF geprüft.')
+            : 'PDF-Rechnung wird nicht erzeugt und nicht geprüft. ' . implode(' ', $_['pdfStatus']['errors']) . (!$validatorReady ? 'XML-Validierung ist nicht verfügbar.' : ''));
+    ?></p>
+    <?php endif; ?>
+    <?php endforeach; ?>
     <details><summary>Programmpfade in config.php</summary>
     <p>Serverpfade in config.php: <code>shi_re_libreoffice</code> (Standard /usr/bin/libreoffice),
         <code>shi_re_java</code> (Standard /usr/bin/java), <code>shi_re_mustang_jar</code> (erforderlich).

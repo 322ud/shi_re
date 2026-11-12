@@ -64,14 +64,29 @@ const path = require('node:path');
         await page.locator('#myx-auto-update').check();
         await page.waitForFunction(() => !document.getElementById('myx-auto-update').disabled);
         assert.ok((await page.evaluate(() => calls)).some(call => call.body.auto_update === true));
-        assert.deepEqual(await page.locator('.shire-system thead th').allTextContents(), ['Ergebnis', 'Komponente', 'Version', 'Pfad/Details', 'Aktion/Hilfe']);
-        assert.deepEqual(await page.locator('.shire-system tbody th').allTextContents(), ['INValidator', 'LibreOffice', 'MustangCLI', 'veraPDF', 'eigene Vorlagen']);
+        assert.deepEqual(await page.locator('.shire-system').first().locator('thead th').allTextContents(), ['Ergebnis', 'Komponente', 'Version', 'Pfad/Details', 'Aktion/Hilfe']);
+        assert.deepEqual(await page.locator('.shire-system tbody th').allTextContents(), ['eigene Vorlagen', 'INValidator', 'LibreOffice', 'MustangCLI', 'veraPDF']);
         await page.locator('#myx-check-system').click();
         await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
         assert.equal(await page.locator('[data-check=libreoffice] .shire-state').textContent(), '✓');
         assert.equal(await page.locator('[data-check=mustang] .shire-state').textContent(), '✕');
         assert.equal(await page.locator('[data-check=validator] [data-version]').textContent(), '1.2');
         assert.equal(await page.locator('[data-check=libreoffice] [data-version]').textContent(), '24.2');
+        assert.equal(await page.locator('#myx-xml-status').textContent(), 'XML-Rechnung wird erzeugt und validiert.');
+        assert.match(await page.locator('#myx-pdf-status').textContent(), /PDF-Rechnung wird erzeugt und mit MustangCLI geprüft/);
+        assert.match(await page.locator('#myx-pdf-status').textContent(), /PDF\/A-3b wird nicht mit veraPDF geprüft/);
+        await page.evaluate(() => {
+            window.fetch = async url => ({ok: true, json: async () => ({success: true,
+                status: url.endsWith('/validator/status') ? {installed: '1.2', enabled: false}
+                    : {enabled: true, checks: {verapdf: {ok: true}}}})});
+        });
+        await page.locator('#myx-check-system').click();
+        await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
+        assert.equal(await page.locator('#myx-xml-status').textContent(), 'XML-Rechnung wird erzeugt, aber nicht validiert.');
+        assert.match(await page.locator('#myx-pdf-status').textContent(), /PDF-Rechnung wird nicht erzeugt und nicht geprüft/);
+        await page.evaluate(() => {
+            window.fetch = async () => ({ok: false, json: async () => ({success: false, error: 'Speichern fehlgeschlagen'})});
+        });
         await page.evaluate(() => { window.fail = true; });
         await page.locator('#myx-hide-validator').click();
         await page.waitForFunction(() => !document.getElementById('myx-hide-validator').disabled);

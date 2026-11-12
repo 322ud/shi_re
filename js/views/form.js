@@ -10,6 +10,7 @@
 
         input.appendChild(NS.make('div', { id: 'myx-bg-icon' }));
 
+        const archived = !!NS.state.archiveDraft;
         const supportedType = NS.state.typeCode === '380';
         if (!supportedType) {
             NS.log('Typecode [' + NS.state.typeCode + '] kann (noch) nicht verarbeitet werden.');
@@ -19,7 +20,7 @@
             NS.make(
                 'h1',
                 {},
-                (supportedType ? 'Neue Rechnung' : 'Neues Dokument') + ' "' + firstItemName + '" Nr. ' + NS.state.ramID + ' vom ' + NS.state.todayText
+                (archived ? 'archivierte Rechnung' : (supportedType ? 'Neue Rechnung' : 'Neues Dokument')) + ' "' + firstItemName + '" Nr. ' + NS.state.ramID + ' vom ' + NS.state.todayText
             )
         );
 
@@ -74,10 +75,16 @@
         form.appendChild(table);
 
         const actions = NS.make('div', { class: 'myx-actions' });
-        const createButton = NS.button('Rechnung erstellen', NS.createXmlInvoice, 'myx-primary');
-        createButton.disabled = !supportedType;
-        actions.appendChild(createButton);
-        actions.appendChild(NS.savedInvoiceDropdown());
+        if (archived) {
+            actions.appendChild(NS.archiveTemplateDropdown());
+            actions.appendChild(NS.button('zurück', () => NS.leaveArchive(false)));
+            form.querySelectorAll('input, textarea').forEach(field => { field.readOnly = true; });
+        } else {
+            const createButton = NS.button('Rechnung erstellen', NS.createXmlInvoice, 'myx-primary');
+            createButton.disabled = !supportedType;
+            actions.appendChild(createButton);
+            actions.appendChild(NS.savedInvoiceDropdown());
+        }
 
         form.appendChild(actions);
 
@@ -114,12 +121,13 @@
             try {
                 const data = await NS.post('/pdf/invoices');
                 NS.clear(menu);
-                if (!data.invoices.length) menu.appendChild(NS.make('p', {}, 'Keine Rechnungen vorhanden.'));
-                data.invoices.forEach(function (invoice) {
-                    const entry = NS.button(invoice.filename, async function () {
+                const invoices = data.invoices.filter(invoice => invoice.filename.endsWith('.xml'));
+                if (!invoices.length) menu.appendChild(NS.make('p', {}, 'Keine Rechnungen vorhanden.'));
+                invoices.forEach(function (invoice) {
+                    const entry = NS.button(invoice.filename.slice(0, -4), async function () {
                         entry.disabled = true;
                         try {
-                            await NS.downloadSavedInvoice(invoice.filename);
+                            await NS.openArchivedInvoice(invoice.filename);
                         } finally {
                             entry.disabled = false;
                         }
@@ -146,7 +154,7 @@
         return wrapper;
     };
 
-    NS.downloadSavedInvoice = async function (filename) {
+    NS.fetchSavedInvoice = async function (filename) {
         const response = await fetch(NS.route('/pdf/saved'), {
             method: 'POST',
             headers: {'Content-Type': 'application/json', requesttoken: OC.requestToken},
@@ -156,12 +164,117 @@
         if (!response.ok || response.redirected || type !== (filename.endsWith('.xml') ? 'application/xml' : 'application/pdf')) {
             throw new Error('Archivdatei konnte nicht geladen werden (HTTP ' + response.status + ').');
         }
+        return response;
+    };
+
+    NS.downloadSavedInvoice = async function (filename) {
+        const response = await NS.fetchSavedInvoice(filename);
         const url = URL.createObjectURL(await response.blob());
         const link = NS.make('a', {href: url, download: filename});
         document.body.appendChild(link);
         link.click();
         link.remove();
         window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    };
+
+    // Keep the active draft (including its reserved new number) while browsing the archive.
+    NS.openArchivedInvoice = async function (filename) {
+        const response = await NS.fetchSavedInvoice(filename);
+        const archived = NS.parseArchivedInvoice(await response.text());
+        NS.collectFormData();
+        const keys = ['invoiceData', 'ramID', 'seller', 'typeCode', 'todayText'];
+        NS.state.archiveDraft = Object.fromEntries(keys.map(key => [key, NS.state[key]]));
+        Object.assign(NS.state, archived);
+        NS.showInvoiceForm();
+    };
+
+    NS.leaveArchive = function (useTemplate) {
+        const archived = NS.state.invoiceData;
+        const draft = NS.state.archiveDraft;
+        if (!draft) return;
+        Object.assign(NS.state, draft);
+        NS.state.archiveDraft = null;
+        if (useTemplate) {
+            NS.state.invoiceData.buyer = {...archived.buyer};
+            NS.state.invoiceData.items[0].description = archived.items[0].description;
+            NS.state.invoiceData.items[0].quantity = archived.items[0].quantity;
+        }
+        NS.showInvoiceForm();
+    };
+
+    NS.archiveTemplateDropdown = function () {
+        const wrapper = NS.make('div', {class: 'myx-saved-invoices'});
+        const menu = NS.make('div', {class: 'myx-saved-menu', id: 'myx-template-menu'});
+        menu.hidden = true;
+        const button = NS.button('als Vorlage verwenden...', function () {
+            menu.hidden = !menu.hidden;
+            button.setAttribute('aria-expanded', String(!menu.hidden));
+        });
+        button.setAttribute('aria-expanded', 'false');
+        button.setAttribute('aria-controls', 'myx-template-menu');
+        menu.appendChild(NS.button('für neue Rechnung', () => NS.leaveArchive(true)));
+        const cancel = NS.button('für Storno-Rechnung', function () {});
+        cancel.disabled = true;
+        menu.appendChild(cancel);
+        wrapper.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                menu.hidden = true;
+                button.setAttribute('aria-expanded', 'false');
+                button.focus();
+            }
+        });
+        wrapper.appendChild(button);
+        wrapper.appendChild(menu);
+        return wrapper;
+    };
+
+    NS.parseArchivedInvoice = function (xml) {
+        const doc = new DOMParser().parseFromString(xml, 'application/xml');
+        const root = doc.documentElement;
+        if (doc.querySelector('parsererror') || root.localName !== 'CrossIndustryInvoice') {
+            throw new Error('Archivdatei enthält keine lesbare XML-Rechnung.');
+        }
+        // Resolve direct children by local name so XML namespace prefixes may vary.
+        const node = (parent, path) => path.split('/').reduce((current, name) =>
+            current && Array.from(current.children).find(child => child.localName === name), parent);
+        const value = (parent, path) => node(parent, path)?.textContent || '';
+        const documentNode = node(root, 'ExchangedDocument');
+        const transaction = node(root, 'SupplyChainTradeTransaction');
+        const agreement = node(transaction, 'ApplicableHeaderTradeAgreement');
+        const buyer = node(agreement, 'BuyerTradeParty');
+        const seller = node(agreement, 'SellerTradeParty');
+        const item = node(transaction, 'IncludedSupplyChainTradeLineItem');
+        const settlement = node(transaction, 'ApplicableHeaderTradeSettlement');
+        if (!item || !value(documentNode, 'ID')) throw new Error('Archiv-Rechnungsdaten sind unvollständig.');
+        const address = (party, field) => value(party, 'PostalTradeAddress/' + field);
+        const date = value(documentNode, 'IssueDateTime/DateTimeString');
+        return {
+            ramID: value(documentNode, 'ID'),
+            typeCode: value(documentNode, 'TypeCode'),
+            todayText: date.replace(/^(\d{4})(\d{2})(\d{2})$/, '$3.$2.$1'),
+            seller: {
+                name: value(seller, 'Name'), address: address(seller, 'LineOne'),
+                address2: address(seller, 'LineTwo'), address3: address(seller, 'LineThree'),
+                postcode: address(seller, 'PostcodeCode'), city: address(seller, 'CityName'),
+                country: address(seller, 'CountryID'),
+                iban: value(settlement, 'SpecifiedTradeSettlementPaymentMeans/PayeePartyCreditorFinancialAccount/IBANID'),
+            },
+            invoiceData: {
+                buyer: {
+                    name: value(buyer, 'Name'), street: address(buyer, 'LineOne'),
+                    postcode: address(buyer, 'PostcodeCode'), city: address(buyer, 'CityName'),
+                    country: address(buyer, 'CountryID'), reference: value(agreement, 'BuyerReference'),
+                },
+                items: [{
+                    name: value(item, 'SpecifiedTradeProduct/Name'),
+                    description: value(item, 'SpecifiedTradeProduct/Description'),
+                    quantity: NS.parseAmount(value(item, 'SpecifiedLineTradeDelivery/BilledQuantity')),
+                    unitPrice: NS.parseAmount(value(item, 'SpecifiedLineTradeAgreement/NetPriceProductTradePrice/ChargeAmount')),
+                }],
+                vatRate: NS.parseAmount(value(item, 'SpecifiedLineTradeSettlement/ApplicableTradeTax/RateApplicablePercent')),
+                expenses: [],
+            },
+        };
     };
 
     NS.postenHeaderRow = function () {
@@ -314,7 +427,7 @@
             return;
         }
 
-        const data = NS.collectFormData();
+        const data = NS.state.archiveDraft ? NS.state.invoiceData : NS.collectFormData();
 
         document.querySelectorAll('.myx-item-row').forEach(function (row, index) {
             const item = data.items[index] || {}

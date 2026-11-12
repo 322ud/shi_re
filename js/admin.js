@@ -66,6 +66,8 @@
             }
         });
         const pdfOutput = document.getElementById('myx-pdf-status');
+        const xmlOutput = document.getElementById('myx-xml-status');
+        let pdfStatus = JSON.parse(pdfOutput.dataset.status);
         function showCheck(key, check) {
             const row = root.querySelector('[data-check="' + key + '"]');
             if (!row) return;
@@ -77,14 +79,22 @@
             row.querySelector('[data-detail]').textContent = check.detail || '';
         }
         function showValidatorStatus(status) {
+            const ready = Boolean(status.installed && status.enabled && !status.check_error);
+            xmlOutput.dataset.ready = String(ready);
+            xmlOutput.textContent = ready ? 'XML-Rechnung wird erzeugt und validiert.' : 'XML-Rechnung wird erzeugt, aber nicht validiert.';
             showCheck('validator', {ok: Boolean(status.installed && status.enabled && !status.check_error),
                 version: status.installed, detail: status.check_error || (!status.enabled ? 'INValidator fehlt oder ist deaktiviert.'
                     : status.update_available ? 'Update auf ' + status.latest + ' verfügbar.' : '')});
+            if (pdfStatus) showPdfStatus(pdfStatus);
         }
         function showPdfStatus(status) {
+            pdfStatus = status;
             Object.entries(status.checks || {}).forEach(([key, check]) => showCheck(key, check));
-            pdfOutput.textContent = status.enabled ? 'PDF-Modul ist aktiv.'
-                : 'PDF-Modul ist deaktiviert. ' + (status.errors || []).join(' ');
+            const xmlReady = xmlOutput.dataset.ready === 'true';
+            pdfOutput.textContent = status.enabled && xmlReady
+                ? 'PDF-Rechnung wird erzeugt und mit MustangCLI geprüft. ' + (status.checks?.verapdf?.ok
+                    ? 'Zusätzlich wird PDF/A-3b mit veraPDF geprüft.' : 'PDF/A-3b wird nicht mit veraPDF geprüft.')
+                : 'PDF-Rechnung wird nicht erzeugt und nicht geprüft. ' + (status.errors || []).join(' ') + (!xmlReady ? 'XML-Validierung ist nicht verfügbar.' : '');
         }
         bind('myx-check-system', async () => {
             const results = await Promise.allSettled([
@@ -155,7 +165,7 @@
                 this.reset();
                 showPdfStatus(data.status);
             } catch (error) {
-                pdfOutput.textContent = 'PDF-Modul ist deaktiviert. ' + error.message;
+                pdfOutput.textContent = 'PDF-Rechnung wird nicht erzeugt und nicht geprüft. ' + error.message;
             } finally { button.disabled = false; }
         });
     }
