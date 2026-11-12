@@ -4,6 +4,7 @@ namespace OCA\ShiRE\Controller;
 
 use OCA\ShiRE\Config\AppFiles;
 use OCA\ShiRE\Service\DomService;
+use OCA\ShiRE\Service\ValidationProofService;
 use OCA\ShiRE\Service\DraftService;
 use OCA\ShiRE\Service\IncRamID;
 use OCA\ShiRE\Service\InvoiceXmlService;
@@ -26,6 +27,7 @@ class EN16931Controller extends Controller {
         private DraftXmlService $draftXmlService,
         private InvoiceXmlService $invoiceXmlService,
         private IConfig $config,
+        private ValidationProofService $proof,
     ) {
         parent::__construct($appName, $request);
     }
@@ -140,37 +142,40 @@ class EN16931Controller extends Controller {
     )]
     public function createXmlInvoice(): JSONResponse {
         try {
-            $windowId = $this->windowIdFromRequest();
-            $invoiceData = $this->request->getParam('invoiceData', []);
+            return $this->proof->locked(function () {
+                $windowId = $this->windowIdFromRequest();
+                $invoiceData = $this->request->getParam('invoiceData', []);
 
-            if (!is_array($invoiceData)) {
-                throw new \InvalidArgumentException(
-                    'invoiceData muss ein Objekt sein.'
+                if (!is_array($invoiceData)) {
+                    throw new \InvalidArgumentException(
+                        'invoiceData muss ein Objekt sein.'
+                    );
+                }
+
+                $draft = $this->draftService->requireActive($windowId);
+                $this->proof->clear();
+                $dom = $this->draftXmlService->load();
+
+                $this->invoiceXmlService->apply(
+                    $dom,
+                    $invoiceData,
+                    $draft['ramID'],
+                    new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin')),
                 );
-            }
 
-            $draft = $this->draftService->requireActive($windowId);
-            $dom = $this->draftXmlService->load();
+                $this->domService->saveDom($dom, AppFiles::XmlWorkFile);
 
-            $this->invoiceXmlService->apply(
-                $dom,
-                $invoiceData,
-                $draft['ramID'],
-                new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin')),
-            );
+                $this->draftXmlService->delete();
+                // Keep ownership until the user accepts or discards the reviewed XML.
 
-            $this->domService->saveDom($dom, AppFiles::XmlWorkFile);
-
-            $this->draftXmlService->delete();
-            // Keep ownership until the user accepts or discards the reviewed XML.
-
-            return new JSONResponse([
-                'success' => true,
-                'draft' => $this->publicDraftData($draft),
-                'xmlInvoiceFile' => AppFiles::XmlWorkFile,
-                'xmlHash' => hash('sha256', $dom->saveXML()),
-                'ramID' => IncRamID::get($dom),
-            ]);
+                return new JSONResponse([
+                    'success' => true,
+                    'draft' => $this->publicDraftData($draft),
+                    'xmlInvoiceFile' => AppFiles::XmlWorkFile,
+                    'xmlHash' => hash('sha256', $dom->saveXML()),
+                    'ramID' => IncRamID::get($dom),
+                ]);
+            });
         } catch (\Throwable $e) {
             return $this->errorResponse($e);
         }

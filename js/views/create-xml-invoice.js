@@ -28,6 +28,7 @@
     };
 
     NS.showXmlValidation = async function () {
+        NS.state.validationToken = null;
         NS.releasePdfDownload();
         const input = NS.inputArea();
         NS.clear(input);
@@ -40,6 +41,7 @@
         let data;
         try {
             data = await NS.post('/en16931/validateXmlInvoice');
+            NS.state.validationToken = NS.state.invoiceInterrupted ? null : (data.validationToken || null);
         } catch (error) {
             NS.log('KoSIT-Prüfung fehlgeschlagen: ' + error.message);
             data = {valid: false, xmlHash: NS.state.xmlHash, html: '<p>Die Prüfung konnte nicht abgeschlossen werden.</p>'};
@@ -66,7 +68,8 @@
             let finished = false;
             try {
                 const accepted = choice === 'pdf' || choice.startsWith('accept-');
-                const result = await NS.post('/en16931/review', {xmlHash: data.xmlHash, accept: accepted});
+                const result = await NS.post('/en16931/review', {xmlHash: data.xmlHash, accept: accepted,
+                    validationToken: NS.state.validationToken, pdf: choice === 'pdf'});
                 finished = true;
                 if (accepted) NS.log('XML-Rechnung archiviert');
                 NS.stopHeartbeat();
@@ -74,6 +77,7 @@
                 if (choice === 'pdf') {
                     await NS.showAcceptedPdf(result.filename, data.xmlHash);
                 } else {
+                    NS.state.validationToken = null;
                     if (accepted) await NS.downloadSavedInvoice(result.filename);
                     if (choice.endsWith('-new')) await NS.startInvoice();
                     else NS.closeApp();
@@ -124,7 +128,8 @@
             const response = await fetch(NS.route('/en16931/downloadPdfInvoice'), {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', requesttoken: OC.requestToken},
-                body: JSON.stringify({filename, xmlHash, templateVersion: status.templateVersion}),
+                body: JSON.stringify({filename, xmlHash, templateVersion: status.templateVersion,
+                    windowId: NS.state.windowId, validationToken: NS.state.validationToken}),
             });
             const type = (response.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
             if (!response.ok || response.redirected || type !== 'application/pdf') {
@@ -145,6 +150,8 @@
         } catch (error) {
             NS.showFinishedInvoice();
             NS.log('XML ist archiviert. PDF: ' + error.message);
+        } finally {
+            NS.state.validationToken = null;
         }
     };
 
@@ -158,6 +165,10 @@
             NS.state.pdfDownloadUrl = null;
         }
     };
-    window.addEventListener('pagehide', NS.releasePdfDownload);
+    window.addEventListener('pagehide', function () {
+        NS.state.invoiceInterrupted = true;
+        NS.state.validationToken = null;
+        NS.releasePdfDownload();
+    });
 
 })();

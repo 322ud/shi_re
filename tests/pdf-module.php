@@ -23,6 +23,7 @@ namespace OCA\ShiRE\Service {
     }
 }
 namespace {
+    require __DIR__ . '/proof-fixtures.php';
     require __DIR__ . '/../lib/AppInfo/Application.php';
     use OCA\ShiRE\Service\{PdfWorkspace, PdfProcessRunner, OdtInvoiceRenderer, TemplateConsistencyService,
         InvoiceTemplateService, PdfDependencyService, PdfInvoiceService, KositValidatorService};
@@ -54,6 +55,8 @@ namespace {
     $consistency = new TemplateConsistencyService($renderer);
     $bundle = ['odt' => file_get_contents(__DIR__ . '/../config/X-Rechnung.odt'),
         'mapping' => file_get_contents(__DIR__ . '/../config/mapping.tsv'), 'xml' => file_get_contents(__DIR__ . '/../config/en16931.xml')];
+    // Explicit invoice fixture: bundled configuration is an editable blank template.
+    $bundle['xml'] = str_replace(['26 000', 'DEXX XXXX XXXX XXXX XX'], ['26 200', 'DE62390500001077247615'], $bundle['xml']);
     $original = hash('sha256', $bundle['odt']);
     $consistency->check($bundle);
     $map = $renderer->mapping($bundle['mapping']);
@@ -64,7 +67,7 @@ namespace {
     $unsupportedMessage = 'TypeCode 381 wird (noch) nicht unterstützt. PDF kann nicht erstellt werden.';
     rejects(fn () => $renderer->values($map, $unsupportedXml), $unsupportedMessage);
     check($values['{{Currency}}'] === '€' && $values['{{TaxRate}}'] === '19', 'Currency and VAT');
-    check($values['{{UnitPrice}}'] === '181,50' && $values['{{IssueDate}}'] === '22.05.2026', 'Amounts and dates');
+    check($values['{{UnitPrice}}'] === '100,00' && $values['{{IssueDate}}'] === '01.01.2026', 'Amounts and dates');
     check($values['{{IBAN}}'] === "DE62\u{00A0}3905\u{00A0}0000\u{00A0}1077\u{00A0}2476\u{00A0}15", 'IBAN grouping');
     $values['{{ProductDescription}}'] = "A & B <C>\nZweite  Zeile\tEnde";
     $rendered = $renderer->render($bundle['odt'], $values);
@@ -147,7 +150,7 @@ namespace {
     check($templates->customStatus()['detail'] === 'nicht geprüft' && !$templates->customStatus()['ok'], 'Unverified saved set is red');
     $templates->upload([]);
     check($templates->customStatus()['ok'], 'Rechecking marks set checked');
-    check($templates->error() === '' && $saved['xml'] === $bundle['xml'], 'Valid complete bundle and recovery');
+    check($templates->error() === '' && $saved['xml'] === file_get_contents(__DIR__ . '/../config/en16931.xml'), 'Valid complete bundle and recovery');
     $templates->setCustomTemplates(false);
     check($templates->current()['version'] === $defaultVersion, 'Disabling restores bundled templates');
     $templates->setCustomTemplates(true);
@@ -266,24 +269,39 @@ namespace {
     $validator = new KositValidatorService();
     $locking = new class implements \OCP\Lock\ILockingProvider {
         public bool $locked = false;
+        public array $locks = [];
         public bool $blocked = false;
         public function acquireLock($path, $type): void {
-            if ($this->blocked || $this->locked) throw new RuntimeException('locked');
-            $this->locked = true;
+            if ($this->blocked || isset($this->locks[$path])) throw new RuntimeException('locked');
+            $this->locks[$path] = true; $this->locked = true;
         }
-        public function releaseLock($path, $type): void { $this->locked = false; }
+        public function releaseLock($path, $type): void { unset($this->locks[$path]); $this->locked = (bool)$this->locks; }
     };
-    $controller = new \OCA\ShiRE\Controller\PdfInvoiceController('shi_re', $request, $storage, $validator, $fakeDependencies, $templates, $pdf, $logger, $locking);
+    $users = proofUsers();
+    $proof = new \OCA\ShiRE\Service\ValidationProofService($storage, $users, $locking);
+    $authorizePdf = function (string $xml) use ($proof, $request, $validator): void {
+        $token = $proof->remember($xml, 'window', $validator->versions());
+        $record = $proof->requireProof($xml, $token, 'window', 'review');
+        $proof->allowPdf($record, '26 200.xml');
+        $request->params['validationToken'] = $token;
+        $request->params['windowId'] = 'window';
+    };
+    $controller = new \OCA\ShiRE\Controller\PdfInvoiceController('shi_re', $request, $storage, $proof, $fakeDependencies, $templates, $pdf, $logger, $locking);
     $storage->files['en16931.xml'] = $bundle['xml'];
     check($controller->download()->status === 400 && $validator->calls === 0, 'Temporary XML cannot generate PDF');
     $storage->files['26 200.xml'] = $bundle['xml'];
     $storage->files['en16931.xml'] = '<unrelated-temporary-xml/>';
     $request->params = ['filename' => '26 200.xml', 'xmlHash' => hash('sha256', $bundle['xml']), 'templateVersion' => $saved['version']];
+    check($controller->download()->status === 409, 'Archive alone does not authorize PDF');
+    $authorizePdf($bundle['xml']);
     check($controller->download() instanceof \OCP\AppFramework\Http\DataDownloadResponse, 'Validated PDF response');
     check(str_contains($fakeRunner->metadata, '<property name="inv_validator:kositValidatorVersion">1.6.0</property>')
         && str_contains($fakeRunner->metadata, '<property name="inv_validator:xrechnungSzenarioVersion">2026-01-31</property>'), 'Controller forwards local validator versions to PDF metadata');
     check($storage->files['26 200.pdf'] === '%PDF-1.7 final', 'Generated PDF persisted');
     check($storage->files['26 200.xml'] === $bundle['xml'], 'Exact validated XML archived beside PDF');
+    check($validator->calls === 0, 'PDF uses remembered validation without calling INValidator');
+    check($controller->download()->status === 409, 'PDF proof consumed exactly once');
+    $authorizePdf($bundle['xml']);
     $storage->files['26 200.pdf'] = '%PDF original archived content';
     $duplicate = $controller->download();
     check($duplicate->status === 409 && str_contains($duplicate->data['error'], 'nicht überschrieben'), 'Duplicate invoice rejected explicitly');
@@ -309,6 +327,7 @@ namespace {
     $request->params['filename'] = '26 200.xml';
     $storage->files['26 200.xml'] = $unsupportedXml;
     $request->params['xmlHash'] = hash('sha256', $unsupportedXml);
+    $authorizePdf($unsupportedXml);
     $unsupportedResponse = $controller->download();
     check($unsupportedResponse->status === 422 && $unsupportedResponse->data['error'] === $unsupportedMessage,
         'Unsupported TypeCode message returned to browser');
@@ -316,13 +335,13 @@ namespace {
     $storage->files['26 200.xml'] = $bundle['xml'];
     $request->params['xmlHash'] = hash('sha256', $bundle['xml']);
     $validator->valid = false;
-    check($controller->download()->status === 422, 'Invalid XML blocked');
+    check($controller->download()->status === 409, 'Missing proof blocked');
     $storage->files['26 200.xml'] = '<changed/>';
     check($controller->download()->status === 409, 'Concurrent XML change blocked');
     // Review acceptance/discard uses the real draft lifecycle and exact XML bytes.
     $storage->files = [];
-    $drafts = new \OCA\ShiRE\Service\DraftService($storage);
-    $review = new \OCA\ShiRE\Service\InvoiceReviewService($storage, $drafts, $validator, $locking);
+    $drafts = new \OCA\ShiRE\Service\DraftService($storage, $proof);
+    $review = new \OCA\ShiRE\Service\InvoiceReviewService($storage, $drafts, $proof);
     $drafts->create('window', '26 200');
     $storage->files['en16931.xml'] = $bundle['xml'];
     $storage->files['draft.xml'] = 'temporary';
@@ -330,20 +349,37 @@ namespace {
     rejects(fn () => $review->finish('other-window', $hash, true));
     rejects(fn () => $review->finish('window', 'stale', true), 'geändert');
     $validator->valid = false;
-    rejects(fn () => $review->finish('window', $hash, true), 'valide');
+    rejects(fn () => $review->finish('window', $hash, true), 'Validierungsnachweis');
     check(!isset($storage->files['26 200.xml']), 'Rejected XML never archived');
     check($review->finish('window', $hash, false) === null, 'Invalid XML may be discarded');
     check($storage->files === [], 'Discard removes all temporary invoice data without archiving');
     $validator->valid = true;
     $drafts->create('window', '26 200');
     $storage->files['en16931.xml'] = $bundle['xml'];
-    check($review->finish('window', $hash, true) === '26 200.xml', 'Explicit acceptance archives XML');
+    $token = $proof->remember($bundle['xml'], 'window', $validator->versions());
+    $users->uid = 'bob';
+    rejects(fn () => $review->finish('window', $hash, true, $token), 'Validierungsnachweis');
+    $users->uid = 'alice';
+    rejects(fn () => $review->finish('window', $hash, true, 'wrong'), 'Validierungsnachweis');
+    check($review->finish('window', $hash, true, $token) === '26 200.xml', 'Explicit acceptance archives XML');
     check($storage->files === ['26 200.xml' => $bundle['xml']], 'Only exact accepted XML remains');
     $drafts->create('window', '26 200');
     $storage->files['en16931.xml'] = $bundle['xml'];
-    rejects(fn () => $review->finish('window', $hash, true), 'überschrieben');
+    $token = $proof->remember($bundle['xml'], 'window', $validator->versions());
+    rejects(fn () => $review->finish('window', $hash, true, $token), 'überschrieben');
     check($storage->files['26 200.xml'] === $bundle['xml'], 'Accepted XML never overwritten');
     $review->finish('window', $hash, false);
+    $drafts->create('window', '26 201');
+    $nextXml = str_replace('26 200', '26 201', $bundle['xml']);
+    $storage->files['en16931.xml'] = $nextXml;
+    $token = $proof->remember($nextXml, 'window', $validator->versions());
+    $review->finish('window', hash('sha256', $nextXml), true, $token, true);
+    $proof->requireProof($nextXml, $token, 'window', 'pdf', '26 201.xml');
+    rejects(fn () => $proof->requireProof($nextXml . ' ', $token, 'window', 'pdf', '26 201.xml'));
+    $drafts->create('window', '26 202');
+    rejects(fn () => $proof->requireProof($nextXml, $token, 'window', 'pdf', '26 201.xml'));
+    $drafts->cancel('window');
+    unset($storage->files['26 201.xml']);
     $domService = new \OCA\ShiRE\Service\DomService('shi_re', $logger, $storage, $apps, $templates);
     check($domService->nextInvoiceNumber() === '26 201', 'Number advances from archive after temporary XML deletion');
     $storage->files['26 202.pdf'] = '%PDF archived';
@@ -351,7 +387,7 @@ namespace {
     $storage->files['en16931.xml'] = str_replace('26 200', '26 250', $bundle['xml']);
     check($domService->nextInvoiceNumber() === '26 203', 'Unaccepted work XML does not advance archived number');
     unset($storage->files['26 200.xml'], $storage->files['26 202.pdf']);
-    check($domService->nextInvoiceNumber() === '26 201', 'Without archives, template number advances and work XML is ignored');
+    check($domService->nextInvoiceNumber() === '26 001', 'Without archives, template number advances and work XML is ignored');
     foreach (['upload', 'status'] as $method) {
         $reflection = new ReflectionMethod(\OCA\ShiRE\Controller\PdfAdminController::class, $method);
         check(count($reflection->getAttributes('OCP\\AppFramework\\Http\\Attribute\\NoAdminRequired')) === 0, 'Admin-only upload/status');

@@ -10,6 +10,7 @@
 
     NS.state = {
         windowId: getWindowId(),
+        validationToken: null,
         ramID: null,
         seller: null,
         typeCode: null,
@@ -34,6 +35,7 @@
         sessionStorage.removeItem('shi_re.windowId');
 
         NS.state.windowId = getWindowId();
+        NS.state.validationToken = null;
         NS.state.ramID = null;
         NS.state.seller = null;
         NS.state.typeCode = null;

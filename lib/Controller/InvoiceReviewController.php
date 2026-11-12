@@ -24,7 +24,8 @@ class InvoiceReviewController extends Controller {
             if (!is_bool($accept) || !is_string($hash) || !is_string($windowId)) {
                 throw new \InvalidArgumentException('Ungültige Entscheidung.');
             }
-            $filename = $this->review->finish($windowId, $hash, $accept);
+            $filename = $this->review->finish($windowId, $hash, $accept,
+                (string)$this->request->getParam('validationToken'), $this->request->getParam('pdf') === true);
             return new JSONResponse(['success' => true, 'filename' => $filename]);
         } catch (\Throwable $e) {
             return new JSONResponse(['success' => false, 'error' => $e->getMessage()],

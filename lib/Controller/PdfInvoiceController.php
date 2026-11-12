@@ -5,7 +5,7 @@ namespace OCA\ShiRE\Controller;
 
 use OCA\ShiRE\Config\AppFiles;
 use OCA\ShiRE\Service\InvoiceTemplateService;
-use OCA\ShiRE\Service\KositValidatorService;
+use OCA\ShiRE\Service\ValidationProofService;
 use OCA\ShiRE\Service\PdfDependencyService;
 use OCA\ShiRE\Service\PdfInvoiceService;
 use OCP\AppFramework\Controller;
@@ -20,7 +20,7 @@ use Psr\Log\LoggerInterface;
 
 class PdfInvoiceController extends Controller {
     public function __construct(string $appName, IRequest $request,
-        private IAppData $appData, private KositValidatorService $validator,
+        private IAppData $appData, private ValidationProofService $proof,
         private PdfDependencyService $dependencies, private InvoiceTemplateService $templates,
         private PdfInvoiceService $pdf, private LoggerInterface $logger,
         private ILockingProvider $locking,
@@ -41,6 +41,14 @@ class PdfInvoiceController extends Controller {
     #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/en16931/downloadPdfInvoice')]
     public function download(): DataDownloadResponse|JSONResponse {
         try {
+            return $this->proof->locked(fn () => $this->generateDownload());
+        } catch (\Throwable $e) {
+            return new JSONResponse(['success' => false, 'error' => 'PDF-Vorgang ist derzeit gesperrt.'], 500);
+        }
+    }
+
+    private function generateDownload(): DataDownloadResponse|JSONResponse {
+        try {
             $filename = $this->request->getParam('filename');
             if (!is_string($filename) || !preg_match('/^\d{2} \d{3}\.xml$/D', $filename)) {
                 return new JSONResponse(['success' => false, 'error' => 'Eine angenommene Archiv-XML ist erforderlich.'], 400);
@@ -52,11 +60,11 @@ class PdfInvoiceController extends Controller {
                 || !is_string($version) || !hash_equals($this->templates->current()['version'], $version)) {
                 return new JSONResponse(['success' => false, 'error' => 'XML oder Vorlage hat sich geändert. Bitte erneut validieren.'], 409);
             }
-            // Niemals allein dem vom Browser gelieferten Hash/Validierungsstatus vertrauen.
-            $validatorVersions = $this->validator->versions();
-            if ($this->validator->validateXml($xml)['valid'] !== true) {
-                return new JSONResponse(['success' => false, 'error' => 'Die XML-Datei ist nicht valide.'], 422);
-            }
+            $proof = $this->proof->requireProof($xml, (string)$this->request->getParam('validationToken'),
+                (string)$this->request->getParam('windowId'), 'pdf', $filename);
+            // Einmalige Verwendung, auch ein fehlgeschlagener PDF-Versuch beendet den Vorgang.
+            $this->proof->clear();
+            $validatorVersions = $proof['versions'];
             $result = $this->pdf->generate($xml, $version, $validatorVersions);
             // Prüfung und Neuanlage gemeinsam sperren: Auch parallele Requests
             // dürfen eine bereits archivierte Rechnung niemals ersetzen.

@@ -11,6 +11,7 @@ final class DraftService {
 
     public function __construct(
         private IAppData $appData,
+        private ValidationProofService $proof,
     ) {
     }
 
@@ -37,6 +38,7 @@ final class DraftService {
                 $this->deleteUnlocked();
             }
 
+            $this->proof->clear();
             $now = time();
             $draft = [
                 'ramID' => $ramID,
@@ -99,6 +101,7 @@ final class DraftService {
         $this->withLock(function () use ($windowId) {
             $this->requireActiveUnlocked($windowId);
             $this->deleteUnlocked();
+            $this->proof->clear();
             return null;
         });
     }
@@ -120,6 +123,7 @@ final class DraftService {
             $folder = $this->appData->getFolder('/');
             // Fehler hier weitergeben, statt einen erfolgreichen Reset vorzutäuschen.
             $folder->getFile(AppFiles::DraftFile)->delete();
+            $this->proof->clear();
         });
     }
 
@@ -189,6 +193,7 @@ final class DraftService {
 
         if (!is_array($data)) {
             $this->deleteUnlocked();
+            $this->proof->clear();
             return null;
         }
 
@@ -233,6 +238,10 @@ final class DraftService {
      * File-Handle und wird beim Schließen automatisch freigegeben.
      */
     private function withLock(callable $callback): mixed {
+        return $this->proof->locked(fn () => $this->withDraftLock($callback));
+    }
+
+    private function withDraftLock(callable $callback): mixed {
         $lockPath = sys_get_temp_dir() . '/shi_re_' . AppFiles::DraftLockFile;
         $handle = fopen($lockPath, 'c');
 

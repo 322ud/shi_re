@@ -4,17 +4,14 @@ namespace OCA\ShiRE\Service;
 
 use OCA\ShiRE\Config\AppFiles;
 use OCP\Files\IAppData;
-use OCP\Lock\ILockingProvider;
 
 /** Explicit acceptance is the only operation that archives an invoice XML. */
 class InvoiceReviewService {
     public function __construct(private IAppData $appData, private DraftService $drafts,
-        private KositValidatorService $validator, private ILockingProvider $locking) {}
+        private ValidationProofService $proof) {}
 
-    public function finish(string $windowId, string $hash, bool $accept): ?string {
-        $lock = 'shi_re/review';
-        $this->locking->acquireLock($lock, ILockingProvider::LOCK_EXCLUSIVE);
-        try {
+    public function finish(string $windowId, string $hash, bool $accept, string $token = '', bool $pdf = false): ?string {
+        return $this->proof->locked(function () use ($windowId, $hash, $accept, $token, $pdf) {
             $draft = $this->drafts->requireActive($windowId);
             $folder = $this->appData->getFolder('/');
             $file = $folder->getFile(AppFiles::XmlWorkFile);
@@ -24,9 +21,7 @@ class InvoiceReviewService {
             }
             $filename = null;
             if ($accept) {
-                if (!$this->validator->validateXml($xml)['valid']) {
-                    throw new \RuntimeException('Nur valide XML kann angenommen werden.', 422);
-                }
+                $proof = $this->proof->requireProof($xml, $token, $windowId, 'review');
                 $dom = OdtInvoiceRenderer::xml($xml);
                 $id = IncRamID::get($dom);
                 if ($id !== $draft['ramID'] || !preg_match('/^\d{2} \d{3}$/D', $id)) {
@@ -42,9 +37,9 @@ class InvoiceReviewService {
             $file->delete();
             if ($folder->fileExists(AppFiles::DraftXmlFile)) $folder->getFile(AppFiles::DraftXmlFile)->delete();
             $this->drafts->complete($windowId);
+            if ($accept && $pdf) $this->proof->allowPdf($proof, $filename);
+            else $this->proof->clear();
             return $filename;
-        } finally {
-            $this->locking->releaseLock($lock, ILockingProvider::LOCK_EXCLUSIVE);
-        }
+        });
     }
 }
