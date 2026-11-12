@@ -53,10 +53,11 @@ class PdfInvoiceController extends Controller {
                 return new JSONResponse(['success' => false, 'error' => 'XML oder Vorlage hat sich geändert. Bitte erneut validieren.'], 409);
             }
             // Niemals allein dem vom Browser gelieferten Hash/Validierungsstatus vertrauen.
+            $validatorVersions = $this->validator->versions();
             if ($this->validator->validateXml($xml)['valid'] !== true) {
                 return new JSONResponse(['success' => false, 'error' => 'Die XML-Datei ist nicht valide.'], 422);
             }
-            $result = $this->pdf->generate($xml, $version);
+            $result = $this->pdf->generate($xml, $version, $validatorVersions);
             // Prüfung und Neuanlage gemeinsam sperren: Auch parallele Requests
             // dürfen eine bereits archivierte Rechnung niemals ersetzen.
             $lock = 'shi_re/pdf/' . hash('sha256', $result['filename']);

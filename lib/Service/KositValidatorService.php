@@ -12,6 +12,25 @@ class KositValidatorService {
     public function __construct(private IAppManager $appManager) {
     }
 
+    /** Local installed versions, never latest releases or the invoice's guideline version. */
+    public function versions(): array {
+        $versions = [
+            'INValidatorVersion' => $this->appManager->getAppInstalledVersions()['inv_validator'] ?? 'unbekannt',
+            'kositValidatorVersion' => 'unbekannt',
+            'xrechnungSzenarioVersion' => 'unbekannt',
+        ];
+        if (!$this->appManager->isEnabledForUser('inv_validator')) return $versions;
+        $this->appManager->loadApp('inv_validator');
+        // Older INValidator releases may not yet expose the administration API.
+        if (!method_exists(\OCA\INValidator\Service\ValidatorAdminService::class, 'getStatus')) return $versions;
+        $app = new App('inv_validator');
+        $status = $app->getContainer()->get(\OCA\INValidator\Service\ValidatorAdminService::class)->getStatus(false);
+        $versions['kositValidatorVersion'] = $status['validator']['installedVersion'] ?? 'unbekannt';
+        // installedVersion is the scenario release date; installedXRechnungVersion is only the standard version.
+        $versions['xrechnungSzenarioVersion'] = $status['configuration']['installedVersion'] ?? 'unbekannt';
+        return $versions;
+    }
+
     public function validateXml(string $xml): array {
         if (!$this->appManager->isEnabledForUser('inv_validator')) {
             throw new \RuntimeException('Die App inv_validator ist nicht verfügbar. Bitte die Administration zur Einrichtung öffnen.');

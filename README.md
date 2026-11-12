@@ -12,7 +12,7 @@ Bei „eigene Vorlagen: nein“ verwendet ShiRE die mitgelieferten Standardvorla
 
 ## PDF-Modul einrichten
 
-Auf dem Nextcloud-Server werden LibreOffice Writer, Java, die Mustang-CLI sowie PHP DOM, ZIP, mbstring und `proc_open` benötigt. Getestet wurde Mustang-CLI **2.26.0**. Die JAR muss aus einem vertrauenswürdigen Release installiert und für den Webserver lesbar sein; die App installiert keine ausführbaren Programme automatisch.
+Auf dem Nextcloud-Server werden LibreOffice Writer, Java ab Version 11, die Mustang-CLI sowie PHP DOM, ZIP, mbstring und `proc_open` benötigt. Getestet wurde Mustang-CLI **2.26.0**. Die JAR muss aus einem vertrauenswürdigen Release installiert und für den Webserver lesbar sein; die App installiert keine ausführbaren Programme automatisch. Der mitgelieferte Metadaten-Helfer verwendet PDFBox 3 aus dieser JAR. Die Systemprüfung prüft auch seine Verfügbarkeit. Auf dem Server ist kein Java-Compiler erforderlich.
 
 In Nextclouds `config.php` konfigurieren (absolute Pfade):
 
@@ -78,7 +78,13 @@ Nur die drei Annahmeoptionen archivieren die erneut validierten XML-Bytes dauerh
 
 Die PDF-Route akzeptiert ausschließlich eine Archiv-XML. Sie prüft deren Hash und die aktuelle Vorlagenversion und validiert genau diese Bytes erneut, bevor sie die ODT rendert.
 
-LibreOffice exportiert mit `SelectPdfVersion=3` (PDF/A-3b). Mustang kombiniert PDF und XML im Factur-X-Format, Version 1, mit Profil EN16931 oder XRECHNUNG entsprechend der XML-Guideline. Andere Guidelines und mehrere Rechnungspositionen werden abgewiesen. Danach extrahiert Mustang den XML-Anhang; sein SHA-256-Hash muss mit der validierten XML übereinstimmen. Außerdem muss Mustangs Validierung des fertigen PDFs erfolgreich sein. Falls konfiguriert, muss auch veraPDF die PDF/A-3b-Konformität bestätigen. Ohne veraPDF gibt es keinen zusätzlichen unabhängigen PDF/A-Konformitätsnachweis.
+LibreOffice exportiert mit `SelectPdfVersion=3` (PDF/A-3b). Mustang kombiniert PDF und XML im Factur-X-Format, Version 1, mit Profil EN16931 oder XRECHNUNG entsprechend der XML-Guideline. Andere Guidelines und mehrere Rechnungspositionen werden abgewiesen. Anschließend ergänzt der Java-Helfer die Metadaten. Erst danach extrahiert Mustang den XML-Anhang; sein SHA-256-Hash muss mit der validierten XML übereinstimmen. Außerdem muss Mustangs Validierung des fertigen PDFs erfolgreich sein. Falls konfiguriert, muss auch veraPDF die PDF/A-3b-Konformität bestätigen. Ohne veraPDF gibt es keinen zusätzlichen unabhängigen PDF/A-Konformitätsnachweis.
+
+Die Standardfelder stehen synchron im PDF-Info-Dictionary und in XMP: Titel (`dc:title`) ist „Rechnung“, abgeleitet aus dem XML-TypeCode 380; Creator (`xmp:CreatorTool`) ist App-Name und Version aus `appinfo/info.xml`; Producer (`pdf:Producer`) ist `MustangCLI <JAR-Version>`. Die JAR-Version stammt aus den JAR-Metadaten, nicht aus Formatversionen im Hilfetext oder aus dem Dateinamen.
+
+Zusätzliche XMP-Felder sind `shi_re:libreOfficeVersion`, `shi_re:INValidatorVersion`, `inv_validator:kositValidatorVersion` und `inv_validator:xrechnungSzenarioVersion`. Bei Verwendung von veraPDF kommt `shi_re:veraPDFVersion` hinzu. INValidator liefert die installierten Versionen über seine lokale Status-API ohne Update-Abfrage; die Szenarioversion ist die konkrete Releasekennung, nicht die XRechnung-Standardversion der XML. Nicht ermittelbare Versionen werden als `unbekannt` ausgewiesen. Die Versionsangaben sind kein eigenständiger Validierungsnachweis.
+
+Die Namespace-URIs sind `https://github.com/322ud/shi_re/ns/metadata/1.0/` und `https://github.com/322ud/inv_validator/ns/metadata/1.0/`. Sie sind stabile Bezeichner und werden nicht abgerufen. Beide Namensräume erhalten eingebettete PDF/A-Erweiterungsschemas mit Text-Eigenschaften. Bestehende Factur-X-Metadaten und deren Schema bleiben erhalten. Nach der abschließenden Validierung wird die PDF nicht mehr verändert.
 
 Erst dann liefert die authentifizierte, CSRF-geschützte POST-Route `/en16931/downloadPdfInvoice` das PDF mit `Cache-Control: no-store`. Die geprüfte PDF wird dauerhaft im AppData-Hauptverzeichnis neben der zuvor angenommenen XML als `<Rechnungsnummer>.pdf` gespeichert (mit bereinigten Dateinamenzeichen); eine bestehende Datei gleichen Namens wird niemals ersetzt. Ein erneuter Speicherversuch wird mit HTTP 409 abgelehnt; die vorhandene PDF bleibt unverändert. Prüfung und Neuanlage verwenden gemeinsam eine exklusive Nextcloud-Sperre. Der Browser öffnet die Antwort als Blob zur Ansicht. Im Eingabeformular bietet „Archiv“ neben „Rechnung erstellen“ die gespeicherten PDFs und XML-Dateien zum Download an, nach letztem Speicherzeitpunkt absteigend sortiert. Liste und Download verwenden authentifizierte, CSRF-geschützte POST-Routen (`/pdf/invoices`, `/pdf/saved`). Die Ablage ist wie die Arbeits-XML appweit gemeinsam. Es gibt keinen öffentlichen Download-Link. Beim Wechsel zur nächsten Rechnung oder Verlassen der Seite wird die Blob-URL freigegeben.
 
@@ -89,9 +95,14 @@ for test in tests/*.php; do php "$test" || exit; done
 for test in tests/*.js; do node "$test" || exit; done
 php tests/pdf-module.php --libreoffice
 php tests/pdf-module.php --libreoffice --mustang=/absolute/path/to/Mustang-CLI-2.26.0.jar
+php tests/pdf-module.php --mustang=/absolute/path/to/Mustang-CLI-2.26.0.jar --verapdf=/absolute/path/to/verapdf
 ```
 
 Die ersten beiden Befehle benötigen keinen Nextcloud-Server oder installierte PDF-Werkzeuge. Der NcActions-Browsertest benötigt zusätzlich `npm ci` und Chromium (Standard `/usr/bin/chromium`, alternativ `CHROMIUM_PATH`). Der Navigationstest erwartet die Validator-App im Nachbarverzeichnis `../inv_validator`. Die Integrationstests verwenden die echte ODT-Vorlage, erzeugen private temporäre Verzeichnisse und löschen alle Rechnungs- und Profildateien wieder.
+
+Der Mustang-Integrationstest prüft mit `/usr/bin/pdfinfo` (Poppler) auch die Standard- und XMP-Metadaten sowie die Erweiterungsschemas. Mit `--verapdf` wird zusätzlich die fertige PDF/A-3b-Datei unabhängig validiert.
+
+Der Java-Quellcode und die für Java 11 kompilierte Klasse liegen in `tools/pdf-metadata/` und werden beide ausgeliefert. Nach Änderungen am Java-Helfer die Klasse mit einem JDK neu bauen: `sh tools/build-pdf-metadata.sh /absolute/path/to/Mustang-CLI-2.26.0.jar`. Es werden dabei keine Abhängigkeiten heruntergeladen.
 
 Während der KoSIT-Prüfung und PDF-Erzeugung wird der Nextcloud-Ladeindikator mit Statustext angezeigt. Die Entscheidungsmenüs sind während der Annahme bzw. des Verwerfens gesperrt; während der PDF-Erzeugung zeigt die Folgeseite den Ladeindikator. Historische PDFs ohne archivierte XML bleiben einzeln abrufbar.
 

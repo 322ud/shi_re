@@ -73,9 +73,15 @@ class PdfDependencyService {
                     foreach (['combine', 'extract', 'validate', 'no-additional-attachments'] as $feature) {
                         if (!str_contains($result, $feature)) throw new \RuntimeException('MustangCLI unterstützt nicht alle benötigten Parameter: ' . $feature);
                     }
+                    $this->runner->run([$tools['java'], '-Djava.awt.headless=true', '-cp',
+                        (new PdfMetadataService())->classPath($path), 'ShiRePdfMetadata', '--check'], $dir, 10);
                 }
-                preg_match('/\b\d+\.\d+(?:\.[\w.-]+)*/', $result, $match);
-                $versions[$key] = $match[0] ?? mb_substr(strtok($result, "\n") ?: '', 0, 120);
+                if ($key === 'mustang') {
+                    $versions[$key] = $this->mustangVersion($path);
+                } else {
+                    preg_match('/\b\d+\.\d+(?:\.[\w.-]+)*/', $result, $match);
+                    $versions[$key] = $match[0] ?? mb_substr(strtok($result, "\n") ?: '', 0, 120);
+                }
                 $checks[$key] = ['ok' => true, 'version' => $versions[$key], 'detail' => $path];
             } catch (\Throwable $e) {
                 $errors[] = $e->getMessage();
@@ -95,5 +101,30 @@ class PdfDependencyService {
             'customTemplatesStatus' => $checks['templates']['detail'],
             'templateVersion' => $bundle['version'] ?? null,
             'pdfaVerification' => $tools['verapdf'] !== ''];
+    }
+
+    private function mustangVersion(string $path): string {
+        // CLI help also contains invoice format versions; these are not release versions.
+        if (!class_exists(\ZipArchive::class)) return 'unbekannt';
+        $jar = new \ZipArchive();
+        if ($jar->open($path) !== true) return 'unbekannt';
+        try {
+            $properties = $jar->getFromName('META-INF/maven/org.mustangproject/Mustang-CLI/pom.properties');
+            if ($properties !== false && preg_match('/^version\s*[=:]\s*(\d+\.\d+(?:\.[\w.-]+)*)\s*$/m', $properties, $match)) {
+                return $match[1];
+            }
+            $manifest = $jar->getFromName('META-INF/MANIFEST.MF');
+            if ($manifest !== false) {
+                // Unfold continuation lines and inspect only the main manifest section.
+                $manifest = preg_replace('/\r?\n /', '', $manifest);
+                $main = preg_split('/\r?\n\r?\n/', $manifest, 2)[0];
+                if (preg_match('/^Implementation-Version:\s*(\d+\.\d+(?:\.[\w.-]+)*)\s*$/m', $main, $match)) {
+                    return $match[1];
+                }
+            }
+            return 'unbekannt';
+        } finally {
+            $jar->close();
+        }
     }
 }

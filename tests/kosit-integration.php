@@ -20,6 +20,18 @@ namespace OCP\AppFramework {
         public function getContainer(): object { return self::$container; }
     }
 }
+namespace OCA\INValidator\Service {
+    class ValidatorAdminService {
+        public static array $status = [
+            'validator' => ['installedVersion' => '1.6.0', 'latestVersion' => '9.9.9'],
+            'configuration' => ['installedVersion' => '2026-01-31', 'installedXRechnungVersion' => '3.0.2', 'latestVersion' => '2099-01-01'],
+        ];
+        public function getStatus(bool $checkUpdates = true): array {
+            \check(!$checkUpdates, 'Version lookup must not query remote updates');
+            return self::$status;
+        }
+    }
+}
 namespace {
     require __DIR__ . '/../lib/Service/KositDependencyService.php';
     require __DIR__ . '/../lib/Service/KositReleaseArchive.php';
@@ -235,6 +247,7 @@ namespace {
 
     \OCP\AppFramework\App::$container = new class {
         public function get(string $name): object {
+            if ($name === 'OCA\\INValidator\\Service\\ValidatorAdminService') return new \OCA\INValidator\Service\ValidatorAdminService();
             check($name === 'OCA\\INValidator\\Service\\KoSITValidatorService', 'Separate validator service');
             return new class {
                 public function validateXml(string $xml): object {
@@ -250,6 +263,10 @@ namespace {
     $result = (new KositValidatorService($apps))->validateXml('<invoice/>');
     check(\OCP\AppFramework\App::$id === 'inv_validator', 'Correct app config scope');
     check($result === ['valid' => false, 'html' => '<p>Invalid invoice</p>'], 'Validation result forwarded');
+    $versions = (new KositValidatorService($apps))->versions();
+    check($versions === ['INValidatorVersion' => '0.5.1', 'kositValidatorVersion' => '1.6.0', 'xrechnungSzenarioVersion' => '2026-01-31'], 'Installed versions and scenario release, not latest or standard version');
+    \OCA\INValidator\Service\ValidatorAdminService::$status = ['validator' => ['installedVersion' => null], 'configuration' => ['installedVersion' => null]];
+    check((new KositValidatorService($apps))->versions()['kositValidatorVersion'] === 'unbekannt', 'Unknown installed versions are explicit');
     $apps->enabled = false;
     rejects(fn () => (new KositValidatorService($apps))->validateXml('<invoice/>'));
     echo "KoSIT adapter, archive, installation, updates, migration failures, digest and redirect tests passed.\n";

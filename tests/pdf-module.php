@@ -1,5 +1,5 @@
 <?php
-/** php tests/pdf-module.php [--libreoffice] [--mustang=/absolute/path/to/Mustang-CLI.jar] */
+/** php tests/pdf-module.php [--libreoffice] [--mustang=/absolute/path/to/Mustang-CLI.jar] [--verapdf=/absolute/path/to/verapdf] */
 declare(strict_types=1);
 namespace OCP { interface IConfig {} interface ITempManager {} interface IRequest {} }
 namespace OCP\App { interface IAppManager {} }
@@ -18,6 +18,7 @@ namespace OCA\ShiRE\Service {
     class KositValidatorService {
         public bool $valid = true;
         public int $calls = 0;
+        public function versions(): array { return ['INValidatorVersion' => '0.5.1', 'kositValidatorVersion' => '1.6.0', 'xrechnungSzenarioVersion' => '2026-01-31']; }
         public function validateXml(string $xml): array { $this->calls++; return ['valid' => $this->valid]; }
     }
 }
@@ -26,7 +27,7 @@ namespace {
     use OCA\ShiRE\Service\{PdfWorkspace, PdfProcessRunner, OdtInvoiceRenderer, TemplateConsistencyService,
         InvoiceTemplateService, PdfDependencyService, PdfInvoiceService, KositValidatorService};
     foreach (['PdfWorkspace', 'PdfProcessRunner', 'OdtInvoiceRenderer', 'TemplateConsistencyService',
-        'InvoiceTemplateService', 'PdfDependencyService', 'PdfInvoiceService'] as $class) {
+        'InvoiceTemplateService', 'PdfMetadataService', 'PdfDependencyService', 'PdfInvoiceService'] as $class) {
         require __DIR__ . '/../lib/Service/' . $class . '.php';
     }
     require __DIR__ . '/../lib/Config/AppFiles.php';
@@ -152,6 +153,16 @@ namespace {
     $templates->setCustomTemplates(true);
     check($templates->current()['version'] === $saved['version'], 'Re-enabling restores saved templates');
     $runner = new PdfProcessRunner();
+    $metadata = new \OCA\ShiRE\Service\PdfMetadataService();
+    $properties = OdtInvoiceRenderer::xml($metadata->properties('Rechnung & Prüfung',
+        ['mustang' => '2.26.0', 'libreoffice' => '24.2.1', 'verapdf' => '1.28.2'],
+        ['INValidatorVersion' => '0.5.1', 'kositValidatorVersion' => '1.6.0', 'xrechnungSzenarioVersion' => '2026-01-31'], false));
+    $xp = new DOMXPath($properties);
+    check($xp->evaluate('string(/metadata/property[@name="title"])') === 'Rechnung & Prüfung', 'Metadata values XML escaped');
+    check($xp->evaluate('string(/metadata/property[@name="producer"])') === 'MustangCLI 2.26.0', 'Producer uses CLI release');
+    check($xp->evaluate('count(/metadata/property[@name="shi_re:veraPDFVersion"])') === 0.0, 'Unused veraPDF omitted');
+    check($xp->evaluate('string(/metadata/property[@name="inv_validator:xrechnungSzenarioVersion"])') === '2026-01-31', 'Scenario release preserved');
+    check(str_contains($metadata->properties('Rechnung', [], [], true), 'unbekannt'), 'Missing versions explicit');
     $dependencies = new PdfDependencyService($config, $runner, $workspace, $templates, $consistency);
     check(!$dependencies->status()['enabled'], 'Missing Mustang disables module');
     $config->system['shi_re_libreoffice'] = PHP_BINARY;
@@ -163,6 +174,34 @@ namespace {
     check($probe['checks']['libreoffice']['ok'] && $probe['checks']['libreoffice']['version'] === '24.2.1', 'Independent LibreOffice check and version');
     check(!$probe['checks']['mustang']['ok'] && !$probe['enabled'], 'Missing Mustang has its own failure');
     check(!$probe['checks']['verapdf']['ok'] && str_contains($probe['checks']['verapdf']['detail'], 'Optional'), 'Missing optional veraPDF is explicit');
+    $dir = $workspace->create();
+    try {
+        $config->system['shi_re_mustang_jar'] = $dir . '/Mustang-CLI-0.0.0.jar';
+        $mustangRunner = new class extends PdfProcessRunner {
+            public function run(array $command, string $cwd, int $timeout = 60): string {
+                return 'Factur-X 1.0 combine extract validate no-additional-attachments';
+            }
+        };
+        $mustangDependencies = new PdfDependencyService($config, $mustangRunner, $workspace, $templates, $consistency);
+        $jar = new ZipArchive();
+        $jar->open($config->system['shi_re_mustang_jar'], ZipArchive::CREATE);
+        $jar->addFromString('META-INF/maven/org.mustangproject/Mustang-CLI/pom.properties', "version=2.26.0\n");
+        $jar->addFromString('META-INF/MANIFEST.MF', "Manifest-Version: 1.0\r\nImplementation-Version: 2.25.0\r\n\r\n");
+        $jar->close();
+        $probe = $mustangDependencies->status();
+        check($probe['checks']['mustang']['ok'] && $probe['checks']['mustang']['version'] === '2.26.0', 'Mustang release from own Maven metadata, not help or filename');
+        $jar->open($config->system['shi_re_mustang_jar']);
+        $jar->deleteName('META-INF/maven/org.mustangproject/Mustang-CLI/pom.properties');
+        $jar->close();
+        check($mustangDependencies->status()['versions']['mustang'] === '2.25.0', 'Mustang manifest fallback');
+        $jar->open($config->system['shi_re_mustang_jar']);
+        $jar->addFromString('META-INF/MANIFEST.MF', "Manifest-Version: 1.0\r\n\r\nName: dependency\r\nImplementation-Version: 9.9.9\r\n");
+        $jar->close();
+        check($mustangDependencies->status()['versions']['mustang'] === 'unbekannt', 'Missing release metadata must not report format or dependency versions');
+    } finally {
+        unset($config->system['shi_re_mustang_jar']);
+        $workspace->remove($dir);
+    }
     unset($config->system['shi_re_libreoffice'], $config->system['shi_re_java']);
     $dir = $workspace->create();
     try {
@@ -178,13 +217,19 @@ namespace {
         public function tools(): array { return ['libreoffice' => 'lo', 'java' => 'java', 'mustang' => 'mustang.jar', 'verapdf' => '']; }
     };
     $fakeRunner = new class extends PdfProcessRunner {
-        public bool $wrongXml = false, $fail = false;
+        public bool $wrongXml = false, $fail = false, $failMetadata = false;
         public array $commands = [];
+        public string $metadata = '';
         public function run(array $command, string $cwd, int $timeout = 60): string {
             $this->commands[] = $command;
             if ($this->fail) throw new RuntimeException('simulated failure');
             if ($command[0] === 'lo') file_put_contents($cwd . '/invoice.pdf', '%PDF-1.7 test');
-            if (in_array('combine', $command, true)) file_put_contents($cwd . '/final.pdf', '%PDF-1.7 final');
+            if (in_array('combine', $command, true)) file_put_contents($cwd . '/combined.pdf', '%PDF-1.7 combined');
+            if (in_array('ShiRePdfMetadata', $command, true)) {
+                if ($this->failMetadata) throw new RuntimeException('metadata failure');
+                $this->metadata = file_get_contents($cwd . '/metadata.xml');
+                file_put_contents($cwd . '/final.pdf', '%PDF-1.7 final');
+            }
             if (in_array('extract', $command, true)) file_put_contents($cwd . '/extracted.xml', $this->wrongXml ? '<wrong/>' : file_get_contents($cwd . '/invoice.xml'));
             return '';
         }
@@ -193,6 +238,14 @@ namespace {
     rejects(fn () => $pdf->generate($unsupportedXml, $saved['version']), $unsupportedMessage);
     check($fakeRunner->commands === [], 'Unsupported document type rejected before PDF tools run');
     $result = $pdf->generate($bundle['xml'], $saved['version']);
+    check(in_array('combine', $fakeRunner->commands[1], true)
+        && in_array('ShiRePdfMetadata', $fakeRunner->commands[2], true)
+        && in_array('extract', $fakeRunner->commands[3], true)
+        && in_array('validate', $fakeRunner->commands[4], true), 'Metadata written before final extraction and validation');
+    check(str_contains($fakeRunner->metadata, '<property name="title">Rechnung</property>'), 'Title derived from TypeCode');
+    $fakeRunner->failMetadata = true;
+    rejects(fn () => $pdf->generate($bundle['xml'], $saved['version']), 'metadata failure');
+    $fakeRunner->failMetadata = false;
     check($result['filename'] === '26 200.pdf', 'Invoice ID filename');
     check(PdfInvoiceService::filename('../../a/b') === '_.._a_b.pdf', 'Filename sanitization');
     $fakeRunner->wrongXml = true;
@@ -227,6 +280,8 @@ namespace {
     $storage->files['en16931.xml'] = '<unrelated-temporary-xml/>';
     $request->params = ['filename' => '26 200.xml', 'xmlHash' => hash('sha256', $bundle['xml']), 'templateVersion' => $saved['version']];
     check($controller->download() instanceof \OCP\AppFramework\Http\DataDownloadResponse, 'Validated PDF response');
+    check(str_contains($fakeRunner->metadata, '<property name="inv_validator:kositValidatorVersion">1.6.0</property>')
+        && str_contains($fakeRunner->metadata, '<property name="inv_validator:xrechnungSzenarioVersion">2026-01-31</property>'), 'Controller forwards local validator versions to PDF metadata');
     check($storage->files['26 200.pdf'] === '%PDF-1.7 final', 'Generated PDF persisted');
     check($storage->files['26 200.xml'] === $bundle['xml'], 'Exact validated XML archived beside PDF');
     $storage->files['26 200.pdf'] = '%PDF original archived content';
@@ -316,12 +371,59 @@ namespace {
         } finally { $workspace->remove($dir); }
     }
     foreach ($argv as $arg) {
+        if (str_starts_with($arg, '--verapdf=')) $config->system['shi_re_verapdf'] = substr($arg, 10);
+    }
+    foreach ($argv as $arg) {
         if (!str_starts_with($arg, '--mustang=')) continue;
         $config->system['shi_re_mustang_jar'] = substr($arg, 10);
         check($dependencies->status()['enabled'], implode(' ', $dependencies->status()['errors']));
         $realPdf = new PdfInvoiceService($dependencies, $templates, $renderer, $runner, $workspace);
-        $result = $realPdf->generate($bundle['xml'], $saved['version']);
+        $result = $realPdf->generate($bundle['xml'], $saved['version'], $validator->versions());
         check(str_starts_with($result['content'], '%PDF-'), 'Real Mustang PDF, extraction and validation');
+        $dir = $workspace->create();
+        try {
+            file_put_contents($dir . '/final.pdf', $result['content']);
+            $info = $runner->run(['/usr/bin/pdfinfo', $dir . '/final.pdf'], $dir);
+            check(preg_match('/^Title:\s+Rechnung$/m', $info) === 1, 'PDF Title');
+            $appInfo = OdtInvoiceRenderer::xml(file_get_contents(__DIR__ . '/../appinfo/info.xml'));
+            $creator = 'ShiRE ' . (new DOMXPath($appInfo))->evaluate('string(/info/version)');
+            check(str_contains($info, $creator), 'PDF Creator uses shipped app version');
+            $mustangVersion = $dependencies->status()['versions']['mustang'];
+            check(str_contains($info, 'MustangCLI ' . $mustangVersion), 'PDF Producer');
+            $xmp = OdtInvoiceRenderer::xml($runner->run(['/usr/bin/pdfinfo', '-meta', $dir . '/final.pdf'], $dir));
+            $xp = new DOMXPath($xmp);
+            foreach (['dc' => 'http://purl.org/dc/elements/1.1/', 'xmp' => 'http://ns.adobe.com/xap/1.0/',
+                'pdf' => 'http://ns.adobe.com/pdf/1.3/', 'rdf' => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+                'shi_re' => 'https://github.com/322ud/shi_re/ns/metadata/1.0/',
+                'inv_validator' => 'https://github.com/322ud/inv_validator/ns/metadata/1.0/',
+                'schema' => 'http://www.aiim.org/pdfa/ns/schema#',
+                'property' => 'http://www.aiim.org/pdfa/ns/property#'] as $prefix => $uri) $xp->registerNamespace($prefix, $uri);
+            check($xp->evaluate('string(//dc:title/rdf:Alt/rdf:li[@xml:lang="x-default"])') === 'Rechnung', 'XMP title');
+            check($xp->evaluate('string(//xmp:CreatorTool)') === $creator, 'XMP Creator matches Info');
+            check($xp->evaluate('string(//pdf:Producer)') === 'MustangCLI ' . $mustangVersion, 'XMP Producer matches Info');
+            check($xp->evaluate('string(//shi_re:INValidatorVersion)') === '0.5.1', 'INValidator version embedded');
+            check($xp->evaluate('string(//inv_validator:kositValidatorVersion)') === '1.6.0', 'KoSIT version embedded');
+            check($xp->evaluate('string(//inv_validator:xrechnungSzenarioVersion)') === '2026-01-31', 'Scenario release embedded');
+            check($xp->evaluate('count(//schema:namespaceURI[text()="https://github.com/322ud/shi_re/ns/metadata/1.0/"])') === 1.0, 'ShiRE extension declared once');
+            check($xp->evaluate('count(//schema:namespaceURI[text()="https://github.com/322ud/inv_validator/ns/metadata/1.0/"])') === 1.0, 'Validator extension declared once');
+            check($xp->evaluate('count(//property:name[text()="DocumentFileName"])') === 1.0, 'Factur-X extension retained');
+            $hasVeraPdf = isset($config->system['shi_re_verapdf']);
+            check(($xp->evaluate('count(//shi_re:veraPDFVersion)') === 1.0) === $hasVeraPdf, 'veraPDF version only when used');
+            // Rewriting must replace old values/schema declarations, including attribute-form XMP from LibreOffice.
+            $title = 'Rechnung Ä & <2026>';
+            file_put_contents($dir . '/metadata.xml', $metadata->properties($title, $dependencies->status()['versions'], $validator->versions(), false));
+            $metadataCommand = ['/usr/bin/java', '-cp', $metadata->classPath($config->system['shi_re_mustang_jar']), 'ShiRePdfMetadata',
+                $dir . '/final.pdf', $dir . '/rewritten.pdf', $dir . '/metadata.xml'];
+            $runner->run($metadataCommand, $dir);
+            $rewrittenXmp = OdtInvoiceRenderer::xml($runner->run(['/usr/bin/pdfinfo', '-meta', $dir . '/rewritten.pdf'], $dir));
+            check($rewrittenXmp->getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', 'title')->length === 1, 'One title after rewrite');
+            check($rewrittenXmp->getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', 'title')->item(0)->textContent === $title, 'Unicode and XML characters survive PDF metadata round trip');
+            check($rewrittenXmp->getElementsByTagNameNS('http://www.aiim.org/pdfa/ns/schema#', 'namespaceURI')->length
+                === $xmp->getElementsByTagNameNS('http://www.aiim.org/pdfa/ns/schema#', 'namespaceURI')->length, 'Rewriting does not duplicate schemas');
+            check($rewrittenXmp->getElementsByTagNameNS('https://github.com/322ud/shi_re/ns/metadata/1.0/', 'veraPDFVersion')->length === 0, 'Stale optional version removed');
+            file_put_contents($dir . '/metadata.xml', '<!DOCTYPE metadata [<!ENTITY test SYSTEM "file:///etc/passwd">]><metadata>&test;</metadata>');
+            rejects(fn () => $runner->run($metadataCommand, $dir), 'DOCTYPE');
+        } finally { $workspace->remove($dir); }
         echo "Real Mustang combine/extract/validate passed.\n";
     }
     foreach ($temp->paths as $path) check(!file_exists($path), 'Temporary directory removed: ' . $path);

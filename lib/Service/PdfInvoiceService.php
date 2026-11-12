@@ -13,7 +13,7 @@ class PdfInvoiceService {
     ) {}
 
     /** Aufrufer muss exakt diese XML-Bytes zuvor erfolgreich validiert haben. */
-    public function generate(string $xml, string $templateVersion): array {
+    public function generate(string $xml, string $templateVersion, array $validatorVersions = []): array {
         $status = $this->dependencies->status();
         if (!$status['enabled']) throw new \RuntimeException(implode("\n", $status['errors']), 503);
         $bundle = $this->templates->current();
@@ -35,9 +35,16 @@ class PdfInvoiceService {
             $this->pdf($dir . '/invoice.pdf'); // LibreOffice meldet manche Exportfehler mit Exitcode 0.
             $base = [$tools['java'], '-jar', $tools['mustang'], '--disable-file-logging'];
             $this->runner->run(array_merge($base, ['--action', 'combine', '--source', $dir . '/invoice.pdf',
-                '--source-xml', $dir . '/invoice.xml', '--out', $dir . '/final.pdf',
+                '--source-xml', $dir . '/invoice.xml', '--out', $dir . '/combined.pdf',
                 '--format', 'fx', '--version', '1', '--profile', $this->profile($xml),
                 '--no-additional-attachments']), $dir);
+            $this->pdf($dir . '/combined.pdf');
+            $metadata = new PdfMetadataService();
+            $this->write($dir . '/metadata.xml', $metadata->properties($values['{{DocumentType}}'], $status['versions'] ?? [],
+                $validatorVersions, $tools['verapdf'] !== ''));
+            $this->runner->run([$tools['java'], '-Djava.awt.headless=true', '-cp',
+                $metadata->classPath($tools['mustang']), 'ShiRePdfMetadata',
+                $dir . '/combined.pdf', $dir . '/final.pdf', $dir . '/metadata.xml'], $dir);
             $pdf = $this->pdf($dir . '/final.pdf');
             $this->runner->run(array_merge($base, ['--action', 'extract', '--source', $dir . '/final.pdf',
                 '--out', $dir . '/extracted.xml']), $dir);
