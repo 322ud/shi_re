@@ -580,10 +580,10 @@ button:hover {
     margin-top: 20px;
 }
 
-/* Emphasize the invoice-specific fields without changing archived displays. */
-#myx-invoice-form input[name="buyer.reference"]:not([readonly]),
-#myx-invoice-form textarea[name="item.description"]:not([readonly]),
-#myx-invoice-form input[name="item.quantity"]:not([readonly]) {
+/* Highlight empty invoice fields; populated and archived fields stay neutral. */
+#myx-invoice-form input[name="buyer.reference"]:not([readonly]):placeholder-shown,
+#myx-invoice-form textarea[name="item.description"]:not([readonly]):placeholder-shown,
+#myx-invoice-form input[name="item.quantity"]:not([readonly]):placeholder-shown {
     background-color: #fce4ec;
     color: #222;
 }

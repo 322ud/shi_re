@@ -26,8 +26,16 @@ const fs = require('node:fs');
         const lines = await page.locator('.myx-seller div').allTextContents();
         assert.equal(lines[lines.indexOf('IBAN: DE123') + 1], 'USt-ID: DE987654321');
         const fields = ['buyer.reference', 'item.description', 'item.quantity'];
+        const background = field => field.evaluate(el => getComputedStyle(el).backgroundColor);
+        assert.notEqual(await background(page.locator('[name="item.quantity"]')), 'rgb(252, 228, 236)', 'Prefilled hours stay neutral');
         for (const name of fields) {
-            assert.equal(await page.locator(`[name="${name}"]`).evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(252, 228, 236)');
+            const field = page.locator(`[name="${name}"]`);
+            await field.fill('');
+            assert.equal(await background(field), 'rgb(252, 228, 236)', 'Empty field is pink');
+            await field.fill(name === 'item.quantity' ? '2' : 'Eingabe');
+            assert.notEqual(await background(field), 'rgb(252, 228, 236)', 'Filled field stays neutral');
+            await field.fill('');
+            assert.equal(await background(field), 'rgb(252, 228, 236)', 'Clearing restores pink');
         }
         await page.locator('[name="buyer.reference"]').focus();
         for (const name of fields.slice(1)) {

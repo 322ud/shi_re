@@ -419,7 +419,16 @@ namespace {
     check($domService->nextInvoiceNumber() === '26 203', 'Unaccepted work XML does not advance archived number');
     unset($storage->files['26 200.xml'], $storage->files['26 202.pdf']);
     check($domService->nextInvoiceNumber() === '26 001', 'Without archives, template number advances and work XML is ignored');
-    foreach (['upload', 'status'] as $method) {
+    $adminRequest = new class implements \OCP\IRequest {
+        public function getParam($key) { return $key === 'action' ? 'discard_templates' : null; }
+    };
+    $admin = new class('shi_re', $adminRequest, $templates, $fakeDependencies) extends \OCA\ShiRE\Controller\PdfAdminController {
+        public function discard(): \OCP\AppFramework\Http\JSONResponse {
+            return new \OCP\AppFramework\Http\JSONResponse(['success' => true, 'discardCalled' => true]);
+        }
+    };
+    check($admin->saveSettings()->data['discardCalled'] === true, 'Established settings route dispatches explicit discard action');
+    foreach (['upload', 'status', 'saveSettings', 'discard'] as $method) {
         $reflection = new ReflectionMethod(\OCA\ShiRE\Controller\PdfAdminController::class, $method);
         check(count($reflection->getAttributes('OCP\\AppFramework\\Http\\Attribute\\NoAdminRequired')) === 0, 'Admin-only upload/status');
         check(count($reflection->getAttributes('OCP\\AppFramework\\Http\\Attribute\\NoCSRFRequired')) === 0, 'Upload requires CSRF');

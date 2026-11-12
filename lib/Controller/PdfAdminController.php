@@ -24,6 +24,11 @@ class PdfAdminController extends Controller {
 
     #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/admin/pdf/settings')]
     public function saveSettings(): JSONResponse {
+        // Use the established settings route even when Nextcloud still caches
+        // the route list from before the discard action was introduced.
+        if ($this->request->getParam('action') === 'discard_templates') {
+            return $this->discard();
+        }
         $enabled = $this->request->getParam('custom_templates');
         if (!is_bool($enabled)) return new JSONResponse(['success' => false, 'error' => 'Ungültige Vorlageneinstellung.'], 400);
         $this->templates->setCustomTemplates($enabled);

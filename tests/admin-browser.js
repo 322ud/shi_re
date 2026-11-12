@@ -97,7 +97,16 @@ const path = require('node:path');
             window.fetch = async () => ({ok: false, json: async () => ({success: false, error: 'Speichern fehlgeschlagen'})});
         });
         await page.evaluate(() => {
-            window.fetch = async url => {
+            window.fetch = async () => ({ok: false, status: 404,
+                json: async () => { throw new SyntaxError('Unexpected token <'); }});
+        });
+        await page.locator('#myx-discard-templates').click();
+        await page.waitForFunction(() => !document.getElementById('myx-discard-templates').disabled);
+        assert.match(await page.locator('#myx-admin-result').textContent(), /HTTP 404, \/admin\/pdf\/settings/);
+        assert.equal(await page.locator('#myx-custom-templates').isChecked(), true, 'Failed discard preserves UI state');
+        await page.evaluate(() => {
+            window.fetch = async (url, options) => {
+                window.discardBody = JSON.parse(options.body);
                 window.discardUrl = url;
                 return {ok: true, json: async () => ({success: true, status: {enabled: true,
                     checks: {templates: {ok: false, version: '', detail: 'inaktiv'}}}})};
@@ -105,7 +114,8 @@ const path = require('node:path');
         });
         await page.locator('#myx-discard-templates').click();
         await page.waitForFunction(() => !document.getElementById('myx-discard-templates').disabled);
-        assert.equal(await page.evaluate(() => window.discardUrl), '/apps/shi_re/admin/pdf/templates/discard');
+        assert.equal(await page.evaluate(() => window.discardUrl), '/apps/shi_re/admin/pdf/settings');
+        assert.deepEqual(await page.evaluate(() => window.discardBody), {action: 'discard_templates'});
         assert.equal(await page.locator('#myx-custom-templates').isChecked(), false);
         assert.equal(await page.locator('#myx-pdf-templates').isVisible(), false);
         assert.equal(await page.locator('[data-check=templates] [data-detail]').textContent(), 'inaktiv');

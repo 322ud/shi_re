@@ -10,7 +10,16 @@
                 headers: {'Content-Type': 'application/json', requesttoken: OC.requestToken},
                 body: JSON.stringify(body),
             });
-            const data = await response.json();
+            let data;
+            try {
+                data = await response.json();
+            } catch (error) {
+                throw new Error('Der Server hat keine gültige JSON-Antwort geliefert (HTTP ' + response.status
+                    + ', ' + path + '). Bitte das Nextcloud-Serverprotokoll prüfen.');
+            }
+            if (response.redirected || !data || typeof data !== 'object' || Array.isArray(data)) {
+                throw new Error('Unerwartete Serverantwort (HTTP ' + response.status + ', ' + path + ').');
+            }
             if (!response.ok || !data.success) throw new Error(data.error || 'Anfrage fehlgeschlagen.');
             return data;
         }
@@ -50,7 +59,7 @@
             showPdfStatus(data.status);
         });
         bind('myx-discard-templates', async () => {
-            const data = await post('/admin/pdf/templates/discard');
+            const data = await post('/admin/pdf/settings', {action: 'discard_templates'});
             document.getElementById('myx-custom-templates').checked = false;
             document.getElementById('myx-pdf-templates').reset();
             document.getElementById('myx-pdf-templates').hidden = true;
