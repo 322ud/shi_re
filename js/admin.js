@@ -101,7 +101,8 @@
                         const file = templates.files?.[key];
                         const entry = document.createElement('li');
                         entry.textContent = label + ': ' + (file?.name || 'Dateiname nicht erfasst')
-                            + ' — Upload-Datum: ' + (file?.date || 'nicht erfasst');
+                            + (file?.source === 'default' ? ' — mitgelieferte Standardvorlage'
+                                : ' — Upload-Datum: ' + (file?.date || 'nicht erfasst'));
                         list.appendChild(entry);
                     });
                 }

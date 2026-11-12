@@ -27,7 +27,7 @@ const path = require('node:path');
             window.fetch = async (url, options) => {
                 calls.push({url, body: JSON.parse(options.body)});
                 return {ok: !window.fail, json: async () => ({success: !window.fail, error: 'Speichern fehlgeschlagen',
-                    status: url === '/apps/shi_re/validator/status' ? {installed: '1.2', enabled: true} : {enabled: true, checks: {templates: {ok: true, version: 'def456', detail: 'geprüft', files: {xml: {name: 'meine-rechnung.xml', date: '13.11.2026 10:30 UTC'}}}, libreoffice: {ok: true, version: '24.2', detail: '/usr/bin/libreoffice'}}}})};
+                    status: url === '/apps/shi_re/validator/status' ? {installed: '1.2', enabled: true} : {enabled: true, checks: {templates: {ok: true, version: 'def456', detail: 'geprüft', files: {mapping: {name: 'mapping.tsv', source: 'default'}, xml: {name: 'meine-rechnung.xml', date: '13.11.2026 10:30 UTC'}}}, libreoffice: {ok: true, version: '24.2', detail: '/usr/bin/libreoffice'}}}})};
             };
         });
         await page.addScriptTag({path: path.resolve('js/admin.js')});
@@ -65,6 +65,7 @@ const path = require('node:path');
         assert.equal(await page.locator('#myx-pdf-upload').textContent(), 'neue Vorlagen prüfen');
         assert.match(await page.locator('#myx-saved-templates').textContent(), /Hinterlegter eigener Vorlagensatz: geprüft/);
         assert.match(await page.locator('#myx-template-files').textContent(), /meine-rechnung.xml — Upload-Datum: 13.11.2026 10:30 UTC/);
+        assert.match(await page.locator('#myx-template-files').textContent(), /Mapping: mapping.tsv — mitgelieferte Standardvorlage/);
         assert.equal(await page.locator('#myx-pdf-xml').isVisible(), false);
         assert.equal(await page.locator('#myx-pdf-upload').isVisible(), false);
         await page.locator('#myx-replace-templates summary').click();

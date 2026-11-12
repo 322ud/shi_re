@@ -29,7 +29,11 @@ $status = $_['status'];
         <ul id="myx-template-files">
         <?php if (!empty($savedTemplates['version'])): ?>
             <?php foreach (['odt' => 'ODT', 'xml' => 'XML', 'mapping' => 'Mapping'] as $key => $label): ?>
-            <li><?php p($label . ': ' . ($savedTemplates['files'][$key]['name'] ?? 'Dateiname nicht erfasst') . ' — Upload-Datum: ' . ($savedTemplates['files'][$key]['date'] ?? 'nicht erfasst')); ?></li>
+            <li><?php
+                $file = $savedTemplates['files'][$key] ?? [];
+                p($label . ': ' . ($file['name'] ?? 'Dateiname nicht erfasst')
+                    . (($file['source'] ?? '') === 'default' ? ' — mitgelieferte Standardvorlage' : ' — Upload-Datum: ' . ($file['date'] ?? 'nicht erfasst')));
+            ?></li>
             <?php endforeach; ?>
         <?php endif; ?>
         </ul>

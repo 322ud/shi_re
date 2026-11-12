@@ -59,6 +59,16 @@ class InvoiceTemplateService {
             if (!hash_equals($version, hash('sha256', $json))) throw new \RuntimeException('Beschädigte Vorlagen');
             $bundle = json_decode($json, true, 16, JSON_THROW_ON_ERROR);
             $result['files'] = $bundle['files'] ?? [];
+            // Older bundles have no upload metadata. Only identify a default
+            // when its contents match; missing metadata alone is not evidence.
+            foreach (self::FILES as $key => $name) {
+                if (isset($result['files'][$key])) continue;
+                $default = @file_get_contents($this->apps->getAppPath(Application::APP_ID) . '/config/' . $name);
+                $content = $key === 'odt' ? base64_decode($bundle[$key] ?? '', true) : ($bundle[$key] ?? null);
+                if ($default !== false && $content === $default) {
+                    $result['files'][$key] = ['name' => $name, 'source' => 'default'];
+                }
+            }
         } catch (\OCP\Files\NotFoundException) {
             return $result;
         } catch (\Throwable) {
