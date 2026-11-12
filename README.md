@@ -2,7 +2,7 @@
 
 Nextcloud-App zur Erstellung und Validierung einer EN16931-CII-Rechnung mit einer Rechnungsposition. Nach erfolgreicher KoSIT-Validierung und ausdrücklicher XML-Annahme erzeugt das PDF-Modul auf Wunsch eine PDF/A-3b-Rechnung aus einer ODT-Vorlage und bettet dieselbe XML mit Mustangproject ein.
 
-Die Dokumentation ist auf den Rechnungsseiten über das Info-Symbol rechts oben (Mouseover „Readme“) in einem überlagernden Fenster erreichbar. Die App bleibt dabei geöffnet; Schließen, Escape oder ein Klick auf den Hintergrund schließen die README. In der Administration wird diese README im schreibgeschützten Markdown-Viewer der Nextcloud-App Text eingebettet angezeigt, wie bei INValidator.
+Die Dokumentation ist auf den Rechnungsseiten über das Info-Symbol rechts oben (Mouseover „Readme“) in einem überlagernden Fenster erreichbar.
 
 ## Einstellungen
 
@@ -24,7 +24,7 @@ In Nextclouds `config.php` konfigurieren (absolute Pfade):
 'shi_re_verapdf' => '/opt/verapdf/verapdf',
 ```
 
-Die Einträge `shi_re_libreoffice` und `shi_re_java` sind nur bei abweichenden Programmpfaden nötig. Ohne Konfiguration gelten die oben gezeigten Standardpfade. Für Mustang gibt es keinen Standardpfad. In **Administration → ShiRE → System** zeigt „Systemprüfung wiederholen“ fehlende Abhängigkeiten und Vorlagenfehler. Dieselbe Prüfung erfolgt beim App-Start und vor jeder PDF-Erzeugung. Ein deaktiviertes PDF-Modul verhindert weder die XML-Erstellung noch deren Download.
+Die Einträge `shi_re_libreoffice` und `shi_re_java` sind nur bei abweichenden Programmpfaden nötig. Ohne Konfiguration gelten die oben gezeigten Standardpfade. Für Mustang gibt es keinen Standardpfad. In **Administration → ShiRE → System** zeigt „Systemprüfung wiederholen“ fehlende Abhängigkeiten und Vorlagenfehler. Dieselbe Prüfung erfolgt beim App-Start und vor jeder PDF-Erzeugung. Bei deaktiviertem PDF-Modul wir nur eine XML-Rechnung erstellt und zum Download bereitgestellt.
 
 Der Webserver-Benutzer benötigt ein beschreibbares Nextcloud-Tempverzeichnis und Zugriff auf die Programme und die verwendeten Schriften. HTTP-/Proxy-Zeitlimits müssen die Konvertierung und die Validierung zulassen. Jeder externe Aufruf hat ein Zeitlimit von 60 Sekunden (Verfügbarkeitsprüfungen 10–15 Sekunden). LibreOffice verwendet ein eigenes Profil pro Vorgang. Dateien liegen in privaten, von Nextcloud verwalteten temporären Verzeichnissen; sie werden bei Erfolg und Fehler sofort gelöscht. Bei einem harten Prozessabbruch greift Nextclouds Tempbereinigung.
 
@@ -52,7 +52,7 @@ TSV ohne Kopfzeile, UTF-8, zwei oder drei Spalten:
 {{ID}}	/rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID	26 200
 ```
 
-Die Trennzeichen sind echte Tabulatoren. Spalte 3 enthält nur Beispiele und dient niemals als Ersatz für fehlende Rechnungsdaten. CSV-konforme Anführungszeichen innerhalb einer TSV-Zelle werden unterstützt. Die Namespace-Präfixe `rsm`, `ram`, `qdt` und `udt` sind fest den CII-Namespaces zugeordnet. `{{ID}}` ist erforderlich.
+Die Trennzeichen sind echte Tabulatoren. Spalte 3 kann Beispiele enthalten, dient aber niemals als Ersatz für fehlende Rechnungsdaten. CSV-konforme Anführungszeichen innerhalb einer TSV-Zelle werden unterstützt. Die Namespace-Präfixe `rsm`, `ram`, `qdt` und `udt` sind fest den CII-Namespaces zugeordnet. `{{ID}}` ist erforderlich.
 
 Platzhalter werden in `content.xml` und `styles.xml` ersetzt, einschließlich Kopf-/Fußzeilen und über mehrere Formatierungs-Textknoten verteilter Platzhalter innerhalb eines Absatzes. Absatzübergreifende Platzhalter werden nicht unterstützt. ODT-Makros, externe eingebundene Ressourcen, verschlüsselte und signierte Vorlagen werden zurückgewiesen. Normale Text-Hyperlinks sind erlaubt. ODT maximal 10 MiB, XML maximal 2 MiB, Mapping maximal 256 KiB; entpackter ODT-Inhalt maximal 50 MiB.
 
@@ -66,15 +66,15 @@ Für die Darstellung gelten:
 - XML-Datumsfelder im Format `102`: `YYYYMMDD` → `DD.MM.YYYY`.
 - Namen, Kennungen, Adressen und Freitexte bleiben inhaltlich erhalten; XML-Sonderzeichen werden sicher eingesetzt. Zeilenumbrüche und Tabulatoren werden in ODF-Elemente umgewandelt.
 
-Ein neuer Rechnungsentwurf lädt die aktive XML-Vorlage. Bereits angelegte Entwürfe behalten ihre gespeicherte Entwurfs-XML. PDF-Erzeugung verwendet den bei ihrer Anforderung aktuellen vollständigen Vorlagensatz; eine Änderung während einer Anforderung wird anhand der Vorlagenversion erkannt.
+Ein neuer Rechnungsentwurf lädt die aktive XML-Vorlage. PDF-Erzeugung verwendet den bei ihrer Anforderung aktuellen vollständigen Vorlagensatz; eine Änderung während einer Anforderung wird anhand der Vorlagenversion erkannt.
 
-Die nächste Rechnungsnummer wird aus der höchsten Nummer der aktiven XML-Vorlage (`ExchangedDocument/ram:ID`) und der archivierten Dateinamen im Format `JJ NNN.xml` bzw. `JJ NNN.pdf` im AppData-Hauptverzeichnis berechnet. Die Arbeitsdatei `en16931.xml` wird dabei nicht berücksichtigt. Die Vorlagennummer gilt als vorherige Nummer: Ohne Archiv ergibt beispielsweise `26 200` im Jahr 2026 die erste Rechnungsnummer `26 201`. Liegt das Jahr der höchsten Nummer vor dem aktuellen Serverjahr, beginnt die Nummerierung bei `JJ 000` des aktuellen Jahres. Auch bei vorhandenem Archiv bleibt die Vorlagennummer als Untergrenze berücksichtigt.
+Die nächste Rechnungsnummer wird aus der höchsten Nummer der aktiven XML-Vorlage (`ExchangedDocument/ram:ID`) und der archivierten Dateinamen im Format `JJ NNN.xml` bzw. `JJ NNN.pdf` im AppData-Hauptverzeichnis berechnet. Die Vorlagennummer gilt als vorherige Nummer: Ohne Archiv ergibt beispielsweise `26 200` im Jahr 2026 die erste Rechnungsnummer `26 201`. Liegt das Jahr der höchsten Nummer vor dem aktuellen Serverjahr, beginnt die Nummerierung bei `JJ 000` des aktuellen Jahres. Auch bei vorhandenem Archiv bleibt die Vorlagennummer als Untergrenze berücksichtigt.
 
 ## PDF-Erzeugung und Download
 
-Nach der KoSIT-Prüfung erscheinen echte Nextcloud-Komponenten (`NcActions`, `NcActionButton`, `NcButton`): links bei valider XML „XML annehmen“, daneben „abbrechen“, rechts „Bericht als PDF speichern“. Der Bericht-Button öffnet den Browser-Druckdialog; dort „Als PDF speichern“ auswählen. Das Entscheidungsmenü bleibt geöffnet.
+Nach der KoSIT-Prüfung erscheinen: links bei valider XML „XML annehmen“, daneben „abbrechen“, rechts „Bericht als PDF speichern“. Der Bericht-Button öffnet den Browser-Druckdialog; dort „Als PDF speichern“ auswählen.
 
-Nur die drei Annahmeoptionen archivieren die bereits validierten XML-Bytes dauerhaft als `<Rechnungsnummer>.xml`. „speichern und …“ lädt diese Datei herunter und schließt die App (Rückkehr zur Nextcloud-Startseite) oder beginnt eine neue Rechnung. „in PDF einbinden“ verlässt das Menü und erzeugt aus dieser Archivdatei die PDF. Ein PDF-Fehler lässt die bereits angenommene XML unverändert im Archiv. Abbrechen verwirft die Rechnung ohne Archivierung. Nach erfolgreicher Entscheidung werden Arbeits-XML und Entwurfsdaten entfernt; der Entwurf bleibt bis dahin gesperrt und per Heartbeat aktiv.
+Nur bei Annahme wird die validierte XML-Datei dauerhaft als `<Rechnungsnummer>.xml` archiviert. „speichern und …“ lädt diese Datei herunter und schließt die App oder beginnt eine neue Rechnung. „in PDF einbinden“ verlässt das Menü und erzeugt aus dieser Archivdatei die PDF-Rechnung. Ein PDF-Fehler lässt die bereits angenommene XML unverändert im Archiv. Abbrechen verwirft die Rechnung ohne Archivierung. Nach Annahme oder Abbruch werden Arbeits-XML und Entwurfsdaten entfernt; der Entwurf bleibt bis dahin gesperrt und per Heartbeat aktiv.
 
 Nach erfolgreicher KoSIT-Prüfung speichert die App den SHA-256-Hash der XML, den Benutzer, die Fensterkennung und die verwendeten Validator-Versionen in `validation-proof.json` im AppData-Hauptverzeichnis. Eine zufällige Vorgangskennung bleibt ausschließlich im Browser-Arbeitsspeicher; auf dem Server wird nur ihr Hash abgelegt. XML-Annahme und direkter Arbeits-XML-Download verlangen diesen Nachweis und identische XML-Bytes, ohne INValidator erneut aufzurufen.
 
