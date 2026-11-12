@@ -39,6 +39,7 @@ class PdfAdminController extends Controller {
                 throw new \InvalidArgumentException('Upload-Daten fehlen. Größenlimits des Webservers und von PHP prüfen.');
             }
             $files = [];
+            $filenames = [];
             foreach (['odt' => OdtInvoiceRenderer::MAX_ODT, 'xml' => 2097152, 'mapping' => 262144] as $key => $limit) {
                 $file = $this->request->getUploadedFile($key);
                 if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
@@ -49,9 +50,10 @@ class PdfAdminController extends Controller {
                 $content = file_get_contents($file['tmp_name']);
                 if ($content === false) throw new \InvalidArgumentException("Upload $key nicht lesbar.");
                 $files[$key] = $content;
+                $filenames[$key] = (string) ($file['name'] ?? '');
             }
             // Auch ohne neue Dateien: aktiven Satz erneut prüfen und Upload-Sperre aufheben.
-            $this->templates->upload($files);
+            $this->templates->upload($files, $filenames);
             return $this->status();
         } catch (\Throwable $e) {
             $this->templates->disable($e->getMessage());

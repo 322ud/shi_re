@@ -50,21 +50,22 @@ class InvoiceTemplateService {
     public function customStatus(): array {
         $version = $this->config->getAppValue(Application::APP_ID, 'pdf_template_version', '');
         $result = ['ok' => false, 'version' => $version === '' ? '' : substr($version, 0, 12), 'detail' => 'nicht vorhanden'];
-        if ($this->config->getAppValue(Application::APP_ID, 'pdf_template_error', '') !== '') {
-            $result['detail'] = 'prüfung fehlgeschlagen';
-            return $result;
-        }
+        $failed = $this->config->getAppValue(Application::APP_ID, 'pdf_template_error', '') !== '';
+        if ($failed) $result['detail'] = 'prüfung fehlgeschlagen';
         if ($version === '') return $result;
         try {
             if (!preg_match('/^[a-f0-9]{64}$/D', $version)) throw new \RuntimeException('Ungültige Version');
             $json = $this->appData->getFolder('pdf-templates')->getFile($version . '.json')->getContent();
             if (!hash_equals($version, hash('sha256', $json))) throw new \RuntimeException('Beschädigte Vorlagen');
+            $bundle = json_decode($json, true, 16, JSON_THROW_ON_ERROR);
+            $result['files'] = $bundle['files'] ?? [];
         } catch (\OCP\Files\NotFoundException) {
             return $result;
         } catch (\Throwable) {
             $result['detail'] = 'prüfung fehlgeschlagen';
             return $result;
         }
+        if ($failed) return $result;
         $result['ok'] = $this->config->getAppValue(Application::APP_ID, 'pdf_template_checked_version', '') === $version;
         $result['detail'] = $result['ok'] ? 'geprüft' : 'nicht geprüft';
         return $result;
@@ -85,14 +86,22 @@ class InvoiceTemplateService {
     }
 
     /** Fehlgeschlagene Uploads deaktivieren PDF, die letzte gültige XML-Vorlage bleibt lesbar. */
-    public function upload(array $replacements): array {
+    public function upload(array $replacements, array $filenames = []): array {
         try {
             $bundle = $this->current();
             foreach (self::FILES as $key => $_) {
-                if (isset($replacements[$key])) $bundle[$key] = $replacements[$key];
+                if (isset($replacements[$key])) {
+                    $bundle[$key] = $replacements[$key];
+                    $bundle['files'][$key] = [
+                        'name' => basename(str_replace('\\', '/', $filenames[$key] ?? $_)),
+                        'date' => gmdate('d.m.Y H:i') . ' UTC',
+                    ];
+                }
             }
             $this->consistency->check($bundle);
-            $json = json_encode(['xml' => $bundle['xml'], 'odt' => base64_encode($bundle['odt']), 'mapping' => $bundle['mapping']], JSON_THROW_ON_ERROR);
+            $stored = ['xml' => $bundle['xml'], 'odt' => base64_encode($bundle['odt']), 'mapping' => $bundle['mapping']];
+            if (isset($bundle['files'])) $stored['files'] = $bundle['files'];
+            $json = json_encode($stored, JSON_THROW_ON_ERROR);
             $version = hash('sha256', $json);
             try {
                 $folder = $this->appData->getFolder('pdf-templates');

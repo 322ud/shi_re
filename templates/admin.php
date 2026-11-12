@@ -23,11 +23,18 @@ $status = $_['status'];
         <p id="myx-saved-templates" role="status" aria-live="polite"><?php
             $savedTemplates = $_['pdfStatus']['checks']['templates'];
             p(!empty($savedTemplates['version'])
-                ? 'Hinterlegter eigener Vorlagensatz (ODT, XML und Mapping), Version ' . $savedTemplates['version'] . ': ' . $savedTemplates['detail'] . '.'
+                ? 'Hinterlegter eigener Vorlagensatz: ' . $savedTemplates['detail'] . '.'
                 : 'Kein eigener Vorlagensatz hinterlegt. Es werden die mitgelieferten Standardvorlagen verwendet.');
         ?></p>
-        <p>Die Dateiauswahl dient nur zum Ersetzen der hinterlegten Vorlagen. „Keine ausgewählt“ bedeutet, dass keine neue Datei zum Hochladen ausgewählt ist.</p>
-        <h4>Vorlagen ersetzen (optional)</h4>
+        <ul id="myx-template-files">
+        <?php if (!empty($savedTemplates['version'])): ?>
+            <?php foreach (['odt' => 'ODT', 'xml' => 'XML', 'mapping' => 'Mapping'] as $key => $label): ?>
+            <li><?php p($label . ': ' . ($savedTemplates['files'][$key]['name'] ?? 'Dateiname nicht erfasst') . ' — Upload-Datum: ' . ($savedTemplates['files'][$key]['date'] ?? 'nicht erfasst')); ?></li>
+            <?php endforeach; ?>
+        <?php endif; ?>
+        </ul>
+        <details id="myx-replace-templates">
+        <summary>Vorlagen ersetzen</summary>
         <p><label for="myx-pdf-odt">ODT-Vorlage (max. 10 MiB)</label>
             <input id="myx-pdf-odt" name="odt" type="file" accept=".odt"></p>
         <p><label for="myx-pdf-xml">XML-Vorlage (max. 2 MiB)</label>
@@ -37,7 +44,8 @@ $status = $_['status'];
         <p>Nicht ausgewählte Dateien bleiben erhalten. Der gesamte Vorlagensatz wird auf vollständige
             Zuordnung zwischen ODT, Mapping und XML geprüft. Fehler deaktivieren das PDF-Modul.
             Ein erneutes Prüfen ohne Dateiauswahl aktiviert den letzten gültigen Satz wieder.</p>
-        <button id="myx-pdf-upload" type="submit">Vorlagen prüfen</button>
+        <button id="myx-pdf-upload" type="submit">neue Vorlagen prüfen</button>
+        </details>
     </form>
     </section>
     <section aria-labelledby="shire-system-title">
@@ -62,7 +70,7 @@ $status = $_['status'];
                 <tr data-check="<?php p($key); ?>">
                     <td><span class="shire-state shire-state--<?php p($check['ok'] ? 'available' : 'missing'); ?>" role="img" aria-label="<?php p($check['ok'] ? 'Bereit' : 'Nicht bereit'); ?>"><?php p($check['ok'] ? '✓' : '✕'); ?></span></td>
                     <th scope="row"><?php p($label); ?></th>
-                    <td data-version><?php p($check['version'] ?: '—'); ?></td>
+                    <td data-version><?php p($key === 'templates' ? '—' : ($check['version'] ?: '—')); ?></td>
                     <td data-detail><?php p($check['detail']); ?></td>
                     <td class="shire-system-actions">
                         <?php if ($key === 'validator'): ?><button id="myx-check-validator" type="button">Release prüfen / installieren</button><?php endif; ?>

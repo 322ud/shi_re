@@ -145,6 +145,15 @@ namespace {
     check($templates->error() !== '', 'Re-enabling preserves custom validation error');
     check($templates->customStatus()['detail'] === 'prüfung fehlgeschlagen', 'Custom failure is explicit');
     $saved = $templates->upload([]);
+    check($templates->customStatus()['files'] === [], 'Legacy templates have no invented metadata');
+    $saved = $templates->upload(['xml' => $saved['xml']], ['xml' => 'eigene-rechnung.xml']);
+    $metadata = $templates->customStatus()['files'];
+    check($metadata['xml']['name'] === 'eigene-rechnung.xml' && $metadata['xml']['date'] !== '', 'Upload stores original filename and date');
+    $templates->upload([]);
+    check($templates->customStatus()['files'] === $metadata, 'Rechecking preserves file metadata');
+    rejects(fn () => $templates->upload(['mapping' => '{{broken}}']), 'Mapping');
+    check($templates->customStatus()['files'] === $metadata, 'Failed upload retains saved metadata');
+    $templates->upload([]);
     check($templates->customStatus()['ok'], 'Successful upload marks saved version checked');
     unset($config->app['pdf_template_checked_version']);
     check($templates->customStatus()['detail'] === 'nicht geprüft' && !$templates->customStatus()['ok'], 'Unverified saved set is red');

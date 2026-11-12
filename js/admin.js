@@ -75,7 +75,7 @@
             state.textContent = check.ok ? '✓' : '✕';
             state.className = 'shire-state shire-state--' + (check.ok ? 'available' : 'missing');
             state.setAttribute('aria-label', check.ok ? 'Bereit' : 'Nicht bereit');
-            row.querySelector('[data-version]').textContent = check.version || '—';
+            row.querySelector('[data-version]').textContent = key === 'templates' ? '—' : (check.version || '—');
             row.querySelector('[data-detail]').textContent = check.detail || '';
         }
         function showValidatorStatus(status) {
@@ -92,8 +92,19 @@
             const templates = status.checks?.templates;
             if (templates) {
                 document.getElementById('myx-saved-templates').textContent = templates.version
-                    ? 'Hinterlegter eigener Vorlagensatz (ODT, XML und Mapping), Version ' + templates.version + ': ' + templates.detail + '.'
+                    ? 'Hinterlegter eigener Vorlagensatz: ' + templates.detail + '.'
                     : 'Kein eigener Vorlagensatz hinterlegt. Es werden die mitgelieferten Standardvorlagen verwendet.';
+                const list = document.getElementById('myx-template-files');
+                list.replaceChildren();
+                if (templates.version) {
+                    Object.entries({odt: 'ODT', xml: 'XML', mapping: 'Mapping'}).forEach(([key, label]) => {
+                        const file = templates.files?.[key];
+                        const entry = document.createElement('li');
+                        entry.textContent = label + ': ' + (file?.name || 'Dateiname nicht erfasst')
+                            + ' — Upload-Datum: ' + (file?.date || 'nicht erfasst');
+                        list.appendChild(entry);
+                    });
+                }
             }
             Object.entries(status.checks || {}).forEach(([key, check]) => showCheck(key, check));
             const xmlReady = xmlOutput.dataset.ready === 'true';
