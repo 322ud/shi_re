@@ -41,12 +41,11 @@ class PdfDependencyService {
         try {
             $bundle = $this->templates->current();
             $this->consistency->check($bundle);
-            if ($this->templates->error() !== '') $errors[] = $this->templates->error();
         } catch (\Throwable $e) { $errors[] = $e->getMessage(); }
         $checks = ['templates' => $this->templates->customStatus()];
         if ($this->templates->usesCustomTemplates() && $errors) {
             $checks['templates']['ok'] = false;
-            $checks['templates']['detail'] = 'prüfung fehlgeschlagen';
+            $checks['templates']['detail'] = 'inaktiv';
         }
         $tools = [
             'libreoffice' => $this->config->getSystemValueString('shi_re_libreoffice', '/usr/bin/libreoffice'),

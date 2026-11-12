@@ -50,6 +50,7 @@
         [seller.name, seller.address, seller.address2, seller.address3,
             [seller.postcode, seller.city].filter(Boolean).join(' ') + (seller.country ? '/' + seller.country : ''),
             seller.iban ? 'IBAN: ' + seller.iban : '',
+            seller.vatId ? 'USt-ID: ' + seller.vatId : '',
         ].filter(Boolean).forEach(function (line) {
             issuer.appendChild(NS.make('div', {}, line));
         });
@@ -89,6 +90,22 @@
         form.appendChild(actions);
 
         input.appendChild(form);
+        if (!archived) {
+            const order = [form.querySelector('[name="buyer.reference"]'),
+                form.querySelector('[name="item.description"]'),
+                form.querySelector('[name="item.quantity"]'),
+                form.querySelector('.myx-primary')];
+            form.addEventListener('keydown', event => {
+                if (event.key !== 'Tab' || event.ctrlKey || event.altKey || event.metaKey) return;
+                const index = order.indexOf(event.target);
+                if (index < 0) return;
+                const next = order[index + (event.shiftKey ? -1 : 1)];
+                if (next && !next.disabled) {
+                    event.preventDefault();
+                    next.focus();
+                }
+            });
+        }
 
         NS.applyInputPlaceholders(form);
         const description = form.querySelector('textarea[name="item.description"]');
@@ -257,6 +274,9 @@
                 address2: address(seller, 'LineTwo'), address3: address(seller, 'LineThree'),
                 postcode: address(seller, 'PostcodeCode'), city: address(seller, 'CityName'),
                 country: address(seller, 'CountryID'),
+                vatId: Array.from(seller?.children || [])
+                    .filter(child => child.localName === 'SpecifiedTaxRegistration')
+                    .map(child => node(child, 'ID')).find(id => id?.getAttribute('schemeID') === 'VA')?.textContent || '',
                 iban: value(settlement, 'SpecifiedTradeSettlementPaymentMeans/PayeePartyCreditorFinancialAccount/IBANID'),
             },
             invoiceData: {

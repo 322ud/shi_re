@@ -23,7 +23,7 @@ class InvoiceTemplateService {
     public function current(): array {
         if ($this->snapshot !== null) return $this->snapshot;
         $version = $this->config->getAppValue(Application::APP_ID, 'pdf_template_version', '');
-        if (!$this->usesCustomTemplates()) $version = '';
+        if (!$this->usesCustomTemplates() || $this->error() !== '') $version = '';
         if ($version === '') {
             $base = $this->apps->getAppPath(Application::APP_ID) . '/config/';
             $bundle = [];
@@ -33,25 +33,37 @@ class InvoiceTemplateService {
                 $bundle[$key] = $content;
             }
         } else {
-            if (!preg_match('/^[a-f0-9]{64}$/D', $version)) throw new \RuntimeException('Ungültige Vorlagenversion.');
-            $json = $this->appData->getFolder('pdf-templates')->getFile($version . '.json')->getContent();
-            if (!hash_equals($version, hash('sha256', $json))) throw new \RuntimeException('Vorlagensatz ist beschädigt.');
-            $bundle = json_decode($json, true, 16, JSON_THROW_ON_ERROR);
-            $bundle['odt'] = base64_decode($bundle['odt'], true);
-            foreach (self::FILES as $key => $_) {
-                if (!isset($bundle[$key]) || !is_string($bundle[$key])) throw new \RuntimeException('Unvollständiger Vorlagensatz.');
+            try {
+                $bundle = $this->loadStored($version);
+                $this->consistency->check($bundle);
+            } catch (\Throwable $e) {
+                $this->disable($e->getMessage());
+                return $this->current();
             }
         }
         $bundle['version'] = $version ?: hash('sha256', $bundle['odt'] . $bundle['xml'] . $bundle['mapping']);
         return $this->snapshot = $bundle;
     }
 
+    /** Read stored contents even when the set is inactive, for later corrections. */
+    private function loadStored(string $version): array {
+        if (!preg_match('/^[a-f0-9]{64}$/D', $version)) throw new \RuntimeException('Ungültige Vorlagenversion.');
+        $json = $this->appData->getFolder('pdf-templates')->getFile($version . '.json')->getContent();
+        if (!hash_equals($version, hash('sha256', $json))) throw new \RuntimeException('Vorlagensatz ist beschädigt.');
+        $bundle = json_decode($json, true, 16, JSON_THROW_ON_ERROR);
+        $bundle['odt'] = base64_decode($bundle['odt'], true);
+        foreach (self::FILES as $key => $_) {
+            if (!isset($bundle[$key]) || !is_string($bundle[$key])) throw new \RuntimeException('Unvollständiger Vorlagensatz.');
+        }
+        return $bundle;
+    }
+
     /** Status of the saved custom set, independent of the currently selected defaults. */
     public function customStatus(): array {
         $version = $this->config->getAppValue(Application::APP_ID, 'pdf_template_version', '');
-        $result = ['ok' => false, 'version' => $version === '' ? '' : substr($version, 0, 12), 'detail' => 'nicht vorhanden'];
+        $result = ['ok' => false, 'version' => $version === '' ? '' : substr($version, 0, 12), 'detail' => 'inaktiv'];
         $failed = $this->config->getAppValue(Application::APP_ID, 'pdf_template_error', '') !== '';
-        if ($failed) $result['detail'] = 'prüfung fehlgeschlagen';
+        if ($failed) $result['detail'] = 'inaktiv';
         if ($version === '') return $result;
         try {
             if (!preg_match('/^[a-f0-9]{64}$/D', $version)) throw new \RuntimeException('Ungültige Version');
@@ -72,10 +84,10 @@ class InvoiceTemplateService {
         } catch (\OCP\Files\NotFoundException) {
             return $result;
         } catch (\Throwable) {
-            $result['detail'] = 'prüfung fehlgeschlagen';
+            $result['detail'] = 'inaktiv';
             return $result;
         }
-        if ($failed) return $result;
+        if ($failed || !$this->usesCustomTemplates()) return $result;
         $result['ok'] = $this->config->getAppValue(Application::APP_ID, 'pdf_template_checked_version', '') === $version;
         $result['detail'] = $result['ok'] ? 'geprüft' : 'nicht geprüft';
         return $result;
@@ -95,10 +107,12 @@ class InvoiceTemplateService {
         return $this->config->getAppValue(Application::APP_ID, 'pdf_template_error', '');
     }
 
-    /** Fehlgeschlagene Uploads deaktivieren PDF, die letzte gültige XML-Vorlage bleibt lesbar. */
+    /** Fehlgeschlagene Uploads schalten XML und PDF auf Standardvorlagen zurück. */
     public function upload(array $replacements, array $filenames = []): array {
+        if (!$replacements) throw new \InvalidArgumentException('Bitte mindestens eine neue Vorlage auswählen.');
         try {
-            $bundle = $this->current();
+            $savedVersion = $this->config->getAppValue(Application::APP_ID, 'pdf_template_version', '');
+            $bundle = $savedVersion === '' ? $this->current() : $this->loadStored($savedVersion);
             foreach (self::FILES as $key => $_) {
                 if (isset($replacements[$key])) {
                     $bundle[$key] = $replacements[$key];
@@ -108,7 +122,6 @@ class InvoiceTemplateService {
                     ];
                 }
             }
-            $this->consistency->check($bundle);
             $stored = ['xml' => $bundle['xml'], 'odt' => base64_encode($bundle['odt']), 'mapping' => $bundle['mapping']];
             if (isset($bundle['files'])) $stored['files'] = $bundle['files'];
             $json = json_encode($stored, JSON_THROW_ON_ERROR);
@@ -119,7 +132,11 @@ class InvoiceTemplateService {
                 $folder = $this->appData->newFolder('pdf-templates');
             }
             if (!$folder->fileExists($version . '.json')) $folder->newFile($version . '.json', $json);
+            // Persist the candidate before validation, but never expose it as active.
+            $this->disable('Vorlagensatz noch nicht erfolgreich geprüft.');
+            $this->config->setAppValue(Application::APP_ID, 'pdf_template_checked_version', '');
             $this->config->setAppValue(Application::APP_ID, 'pdf_template_version', $version);
+            $this->consistency->check($bundle);
             $this->config->setAppValue(Application::APP_ID, 'pdf_template_checked_version', $version);
             $this->config->setAppValue(Application::APP_ID, 'pdf_template_error', '');
             $this->snapshot = null;
@@ -130,7 +147,15 @@ class InvoiceTemplateService {
         }
     }
 
+    public function discard(): void {
+        $this->config->setAppValue(Application::APP_ID, 'pdf_template_version', '');
+        $this->config->setAppValue(Application::APP_ID, 'pdf_template_checked_version', '');
+        $this->config->setAppValue(Application::APP_ID, 'pdf_template_error', '');
+        $this->setCustomTemplates(false);
+    }
+
     public function disable(string $reason): void {
+        $this->snapshot = null;
         $this->config->setAppValue(Application::APP_ID, 'pdf_template_error', mb_substr($reason, 0, 4000));
     }
 }

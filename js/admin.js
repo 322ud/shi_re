@@ -49,6 +49,14 @@
             document.getElementById('myx-pdf-templates').hidden = !document.getElementById('myx-custom-templates').checked;
             showPdfStatus(data.status);
         });
+        bind('myx-discard-templates', async () => {
+            const data = await post('/admin/pdf/templates/discard');
+            document.getElementById('myx-custom-templates').checked = false;
+            document.getElementById('myx-pdf-templates').reset();
+            document.getElementById('myx-pdf-templates').hidden = true;
+            showPdfStatus(data.status);
+            output.textContent = 'Eigene Vorlagen verworfen. Standardvorlagen werden verwendet.';
+        });
         bind('myx-check-validator', async () => {
             const {status} = await post('/validator/status');
             showValidatorStatus(status);
@@ -91,9 +99,6 @@
             pdfStatus = status;
             const templates = status.checks?.templates;
             if (templates) {
-                document.getElementById('myx-saved-templates').textContent = templates.version
-                    ? 'Hinterlegter eigener Vorlagensatz: ' + templates.detail + '.'
-                    : 'Kein eigener Vorlagensatz hinterlegt. Es werden die mitgelieferten Standardvorlagen verwendet.';
                 const list = document.getElementById('myx-template-files');
                 list.replaceChildren();
                 if (templates.version) {
@@ -177,13 +182,13 @@
                 });
                 const data = await response.json();
                 if (!response.ok || !data.success) {
-                    showCheck('templates', {ok: false, detail: 'prüfung fehlgeschlagen'});
+                    if (data.status) showPdfStatus(data.status);
                     throw new Error(data.error || 'Upload fehlgeschlagen.');
                 }
                 this.reset();
                 showPdfStatus(data.status);
             } catch (error) {
-                pdfOutput.textContent = 'PDF-Rechnung wird nicht erzeugt und nicht geprüft. ' + error.message;
+                output.textContent = error.message;
             } finally { button.disabled = false; }
         });
     }

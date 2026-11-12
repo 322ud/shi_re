@@ -20,12 +20,7 @@ $status = $_['status'];
         <p id="myx-admin-result" role="status" aria-live="polite"></p>
     <form id="myx-pdf-templates"<?php if (!$_['customTemplates']) { print_unescaped(' hidden'); } ?>>
         <input type="hidden" name="templatesCheck" value="yes">
-        <p id="myx-saved-templates" role="status" aria-live="polite"><?php
-            $savedTemplates = $_['pdfStatus']['checks']['templates'];
-            p(!empty($savedTemplates['version'])
-                ? 'Hinterlegter eigener Vorlagensatz: ' . $savedTemplates['detail'] . '.'
-                : 'Kein eigener Vorlagensatz hinterlegt. Es werden die mitgelieferten Standardvorlagen verwendet.');
-        ?></p>
+        <?php $savedTemplates = $_['pdfStatus']['checks']['templates']; ?>
         <ul id="myx-template-files">
         <?php if (!empty($savedTemplates['version'])): ?>
             <?php foreach (['odt' => 'ODT', 'xml' => 'XML', 'mapping' => 'Mapping'] as $key => $label): ?>
@@ -46,8 +41,8 @@ $status = $_['status'];
         <p><label for="myx-pdf-mapping">Mapping-Tabelle (max. 256 KiB)</label>
             <input id="myx-pdf-mapping" name="mapping" type="file" accept=".tsv,.txt"></p>
         <p>Nicht ausgewählte Dateien bleiben erhalten. Der gesamte Vorlagensatz wird auf vollständige
-            Zuordnung zwischen ODT, Mapping und XML geprüft. Fehler deaktivieren das PDF-Modul.
-            Ein erneutes Prüfen ohne Dateiauswahl aktiviert den letzten gültigen Satz wieder.</p>
+            Zuordnung zwischen ODT, Mapping und XML geprüft. Bei inkonsistenten Vorlagen werden für XML- und PDF-Rechnungen die Standardvorlagen verwendet; eigene Vorlagen sind dann inaktiv.</p>
+        <button id="myx-discard-templates" type="button">eigene Vorlagen verwerfen</button>
         <button id="myx-pdf-upload" type="submit">neue Vorlagen prüfen</button>
         </details>
     </form>

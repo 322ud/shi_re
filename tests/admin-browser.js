@@ -59,11 +59,9 @@ const path = require('node:path');
         assert.equal(await page.locator('#myx-hide-validator').isChecked(), true);
         assert.equal(await page.locator('#myx-pdf-templates').isVisible(), false);
         assert.equal(await page.locator('.shire-readme-link').count(), 0);
-        assert.match(await page.locator('#myx-saved-templates').textContent(), /Hinterlegter eigener Vorlagensatz: geprüft/);
         await page.locator('#myx-custom-templates').check();
         await page.waitForFunction(() => !document.getElementById('myx-pdf-templates').hidden);
         assert.equal(await page.locator('#myx-pdf-upload').textContent(), 'neue Vorlagen prüfen');
-        assert.match(await page.locator('#myx-saved-templates').textContent(), /Hinterlegter eigener Vorlagensatz: geprüft/);
         assert.match(await page.locator('#myx-template-files').textContent(), /meine-rechnung.xml — Upload-Datum: 13.11.2026 10:30 UTC/);
         assert.match(await page.locator('#myx-template-files').textContent(), /Mapping: mapping.tsv — mitgelieferte Standardvorlage/);
         assert.equal(await page.locator('#myx-pdf-xml').isVisible(), false);
@@ -95,6 +93,23 @@ const path = require('node:path');
         await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
         assert.equal(await page.locator('#myx-xml-status').textContent(), 'XML-Rechnung wird erzeugt, aber nicht validiert.');
         assert.match(await page.locator('#myx-pdf-status').textContent(), /PDF-Rechnung wird nicht erzeugt und nicht geprüft/);
+        await page.evaluate(() => {
+            window.fetch = async () => ({ok: false, json: async () => ({success: false, error: 'Speichern fehlgeschlagen'})});
+        });
+        await page.evaluate(() => {
+            window.fetch = async url => {
+                window.discardUrl = url;
+                return {ok: true, json: async () => ({success: true, status: {enabled: true,
+                    checks: {templates: {ok: false, version: '', detail: 'inaktiv'}}}})};
+            };
+        });
+        await page.locator('#myx-discard-templates').click();
+        await page.waitForFunction(() => !document.getElementById('myx-discard-templates').disabled);
+        assert.equal(await page.evaluate(() => window.discardUrl), '/apps/shi_re/admin/pdf/templates/discard');
+        assert.equal(await page.locator('#myx-custom-templates').isChecked(), false);
+        assert.equal(await page.locator('#myx-pdf-templates').isVisible(), false);
+        assert.equal(await page.locator('[data-check=templates] [data-detail]').textContent(), 'inaktiv');
+        assert.equal(await page.locator('#myx-saved-templates').count(), 0);
         await page.evaluate(() => {
             window.fetch = async () => ({ok: false, json: async () => ({success: false, error: 'Speichern fehlgeschlagen'})});
         });

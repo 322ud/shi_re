@@ -221,6 +221,7 @@ class EN16931Controller extends Controller {
                 'postcode' => $this->getValue($xpath, '//ram:SellerTradeParty/ram:PostalTradeAddress/ram:PostcodeCode') ?? '',
                 'city' => $this->getValue($xpath, '//ram:SellerTradeParty/ram:PostalTradeAddress/ram:CityName') ?? '',
                 'country' => $this->getValue($xpath, '//ram:SellerTradeParty/ram:PostalTradeAddress/ram:CountryID') ?? '',
+                'vatId' => $this->getValue($xpath, '//ram:SellerTradeParty/ram:SpecifiedTaxRegistration/ram:ID[@schemeID="VA"]') ?? '',
                 'iban' => $this->getValue($xpath, '//ram:ApplicableHeaderTradeSettlement/ram:SpecifiedTradeSettlementPaymentMeans/ram:PayeePartyCreditorFinancialAccount/ram:IBANID') ?? '',
             ],
             'buyer' => [

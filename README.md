@@ -44,7 +44,7 @@ Die Prüfung verlangt:
 2. Jeder Mapping-Platzhalter kommt im ODT vor (mehrfaches Vorkommen ist erlaubt).
 3. Jeder XPath findet genau ein XML-Blattelement. Die Vorlage enthält genau eine Rechnungsposition.
 
-Ein fehlgeschlagener Upload deaktiviert das PDF-Modul und zeigt den Grund. Der letzte gültige Satz bleibt gespeichert und für die XML-Erstellung verfügbar. Ein korrigierter Upload oder „Vorlagen prüfen“ ohne Dateiauswahl hebt die Sperre nach erfolgreicher Prüfung auf.
+Bei inkonsistenten eigenen Vorlagen verwenden XML- und PDF-Erzeugung wieder die Standardvorlagen. Die Systemprüfung markiert eigene Vorlagen mit einem roten Kreuz und „inaktiv“. Auch ein inkonsistenter Upload bleibt mit Dateinamen und Upload-Datum gespeichert, wird aber nicht für Rechnungen verwendet. Weitere Uploads ersetzen nur die ausgewählten Dateien dieses gespeicherten Satzes. Erst wenn der gesamte Satz erfolgreich geprüft wurde, wird er wieder aktiv. „eigene Vorlagen verwerfen“ entfernt die Auswahl des gespeicherten Satzes und schaltet auf Standardvorlagen zurück. Prüfen ohne Dateiauswahl reaktiviert keinen alten Satz.
 
 TSV ohne Kopfzeile, UTF-8, zwei oder drei Spalten:
 

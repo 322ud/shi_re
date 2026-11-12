@@ -30,6 +30,12 @@ class PdfAdminController extends Controller {
         return $this->status();
     }
 
+    #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/admin/pdf/templates/discard')]
+    public function discard(): JSONResponse {
+        $this->templates->discard();
+        return $this->status();
+    }
+
     #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/admin/pdf/templates')]
     public function upload(): JSONResponse {
         if (!$this->templates->usesCustomTemplates()) return new JSONResponse(['success' => false, 'error' => 'Eigene Vorlagen sind deaktiviert.'], 400);
@@ -52,12 +58,12 @@ class PdfAdminController extends Controller {
                 $files[$key] = $content;
                 $filenames[$key] = (string) ($file['name'] ?? '');
             }
-            // Auch ohne neue Dateien: aktiven Satz erneut prüfen und Upload-Sperre aufheben.
+            if (!$files) return new JSONResponse(['success' => false, 'error' => 'Bitte mindestens eine neue Vorlage auswählen.'], 400);
             $this->templates->upload($files, $filenames);
             return $this->status();
         } catch (\Throwable $e) {
             $this->templates->disable($e->getMessage());
-            return new JSONResponse(['success' => false, 'error' => $e->getMessage(), 'status' => ['enabled' => false]], 400);
+            return new JSONResponse(['success' => false, 'error' => $e->getMessage(), 'status' => $this->dependencies->status()], 400);
         }
     }
 }

@@ -579,3 +579,11 @@ button:hover {
     gap: 12px;
     margin-top: 20px;
 }
+
+/* Emphasize the invoice-specific fields without changing archived displays. */
+#myx-invoice-form input[name="buyer.reference"]:not([readonly]),
+#myx-invoice-form textarea[name="item.description"]:not([readonly]),
+#myx-invoice-form input[name="item.quantity"]:not([readonly]) {
+    background-color: #fce4ec;
+    color: #222;
+}

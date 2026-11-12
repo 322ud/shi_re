@@ -15,6 +15,8 @@ function check(bool $condition, string $message): void {
 function template(): DOMDocument {
     $dom = new DOMDocument();
     $dom->load(__DIR__ . '/../config/en16931.xml');
+    // Keep calculation expectations independent of the deployed default rate.
+    $dom->getElementsByTagNameNS('urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100', 'ChargeAmount')->item(0)->textContent = '181.50';
     return $dom;
 }
 $data = [
