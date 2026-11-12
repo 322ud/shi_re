@@ -11,14 +11,14 @@
   </rsm:ExchangedDocumentContext>
 
   <rsm:ExchangedDocument>
-    <ram:ID>26 200</ram:ID>
+    <ram:ID>26 000</ram:ID>
     <ram:TypeCode>380</ram:TypeCode>
     <ram:IssueDateTime>
-      <udt:DateTimeString format="102">20260522</udt:DateTimeString>
+      <udt:DateTimeString format="102">20260101</udt:DateTimeString>
     </ram:IssueDateTime>
 
     <ram:IncludedNote>
-      <ram:Content>Ich hafte nur bei Vorsatz oder grober Fahrlässigkeit, gleich aus welchem Grunde. Die Haftung je Auftrag ist auf 50.000 € beschränkt.</ram:Content>
+      <ram:Content>Dies ist eine Musterrechnung für Entwicklungsleistungen.</ram:Content>
       <ram:SubjectCode>AAK</ram:SubjectCode>
     </ram:IncludedNote>
   </rsm:ExchangedDocument>
@@ -30,13 +30,13 @@
       </ram:AssociatedDocumentLineDocument>
 
       <ram:SpecifiedTradeProduct>
-        <ram:Name>Kollegenarbeit</ram:Name>
-        <ram:Description>Description</ram:Description>
+        <ram:Name>Entwicklung</ram:Name>
+        <ram:Description>Entwicklungsleistungen gemäß Musterauftrag</ram:Description>
       </ram:SpecifiedTradeProduct>
 
       <ram:SpecifiedLineTradeAgreement>
         <ram:NetPriceProductTradePrice>
-          <ram:ChargeAmount>181.50</ram:ChargeAmount>
+          <ram:ChargeAmount>100.00</ram:ChargeAmount>
           <ram:BasisQuantity unitCode="HUR">1.0000</ram:BasisQuantity>
         </ram:NetPriceProductTradePrice>
       </ram:SpecifiedLineTradeAgreement>
@@ -52,45 +52,45 @@
           <ram:RateApplicablePercent>19.00</ram:RateApplicablePercent>
         </ram:ApplicableTradeTax>
         <ram:SpecifiedTradeSettlementLineMonetarySummation>
-          <ram:LineTotalAmount>181.50</ram:LineTotalAmount>
+          <ram:LineTotalAmount>100.00</ram:LineTotalAmount>
         </ram:SpecifiedTradeSettlementLineMonetarySummation>
       </ram:SpecifiedLineTradeSettlement>
     </ram:IncludedSupplyChainTradeLineItem>
 
     <ram:ApplicableHeaderTradeAgreement>
-      <ram:BuyerReference>4711 DE</ram:BuyerReference>
+      <ram:BuyerReference>MUSTER-REFERENZ</ram:BuyerReference>
 
       <ram:SellerTradeParty>
-        <ram:Name>Patentanwalt Dipl.-Ing. Frank Busse</ram:Name>
+        <ram:Name>Musterfirma</ram:Name>
         <ram:DefinedTradeContact>
-          <ram:PersonName>Frank Busse</ram:PersonName>
+          <ram:PersonName>Max Mustermann</ram:PersonName>
           <ram:TelephoneUniversalCommunication>
-            <ram:CompleteNumber>+49 241 94573329</ram:CompleteNumber>
+            <ram:CompleteNumber>+49 30 00000000</ram:CompleteNumber>
           </ram:TelephoneUniversalCommunication>
           <ram:EmailURIUniversalCommunication>
-            <ram:URIID>anwalt@bussepatent.de</ram:URIID>
+            <ram:URIID>kontakt@example.com</ram:URIID>
           </ram:EmailURIUniversalCommunication>
         </ram:DefinedTradeContact>
         <ram:PostalTradeAddress>
-          <ram:PostcodeCode>52072</ram:PostcodeCode>
-          <ram:LineOne>Adele-Weidtman-Straße 35</ram:LineOne>
-          <ram:CityName>Aachen</ram:CityName>
+          <ram:PostcodeCode>12345</ram:PostcodeCode>
+          <ram:LineOne>Musterstraße 1</ram:LineOne>
+          <ram:CityName>Musterstadt</ram:CityName>
           <ram:CountryID>DE</ram:CountryID>
         </ram:PostalTradeAddress>
         <ram:SpecifiedTaxRegistration>
-          <ram:ID schemeID="FC">201/5060/6126</ram:ID>
+          <ram:ID schemeID="FC">000/0000/0000</ram:ID>
         </ram:SpecifiedTaxRegistration>
         <ram:SpecifiedTaxRegistration>
-          <ram:ID schemeID="VA">DE434953829</ram:ID>
+          <ram:ID schemeID="VA">DEXXXXXXX</ram:ID>
         </ram:SpecifiedTaxRegistration>
       </ram:SellerTradeParty>
 
       <ram:BuyerTradeParty>
-        <ram:Name>Bauer PSU PartG mbB Patent- und Rechtsanwaltskanzlei</ram:Name>
+        <ram:Name>Musterkunde GmbH</ram:Name>
         <ram:PostalTradeAddress>
-          <ram:PostcodeCode>52070</ram:PostcodeCode>
-          <ram:LineOne>Grüner Weg 1</ram:LineOne>
-          <ram:CityName>Aachen</ram:CityName>
+          <ram:PostcodeCode>12345</ram:PostcodeCode>
+          <ram:LineOne>Musterstraße 2</ram:LineOne>
+          <ram:CityName>Musterstadt</ram:CityName>
           <ram:CountryID>DE</ram:CountryID>
         </ram:PostalTradeAddress>
       </ram:BuyerTradeParty>
@@ -99,7 +99,7 @@
     <ram:ApplicableHeaderTradeDelivery>
       <ram:ActualDeliverySupplyChainEvent>
         <ram:OccurrenceDateTime>
-          <udt:DateTimeString format="102">20260522</udt:DateTimeString>
+          <udt:DateTimeString format="102">20260101</udt:DateTimeString>
         </ram:OccurrenceDateTime>
       </ram:ActualDeliverySupplyChainEvent>
     </ram:ApplicableHeaderTradeDelivery>
@@ -111,15 +111,15 @@
         <ram:TypeCode>58</ram:TypeCode>
         <ram:Information>SEPA credit transfer</ram:Information>
         <ram:PayeePartyCreditorFinancialAccount>
-          <ram:IBANID>DE62390500001077247615</ram:IBANID>
-          <ram:AccountName>Frank Busse</ram:AccountName>
+          <ram:IBANID>DEXX XXXX XXXX XXXX XX</ram:IBANID>
+          <ram:AccountName>Max Mustermann</ram:AccountName>
         </ram:PayeePartyCreditorFinancialAccount>
       </ram:SpecifiedTradeSettlementPaymentMeans>
 
       <ram:ApplicableTradeTax>
-        <ram:CalculatedAmount>34.49</ram:CalculatedAmount>
+        <ram:CalculatedAmount>19.00</ram:CalculatedAmount>
         <ram:TypeCode>VAT</ram:TypeCode>
-        <ram:BasisAmount>181.50</ram:BasisAmount>
+        <ram:BasisAmount>100.00</ram:BasisAmount>
         <ram:CategoryCode>S</ram:CategoryCode>
         <ram:RateApplicablePercent>19.00</ram:RateApplicablePercent>
       </ram:ApplicableTradeTax>
@@ -127,19 +127,19 @@
       <ram:SpecifiedTradePaymentTerms>
         <ram:Description>zahlbar sofort ohne Abzug</ram:Description>
         <ram:DueDateDateTime>
-          <udt:DateTimeString format="102">20260522</udt:DateTimeString>
+          <udt:DateTimeString format="102">20260101</udt:DateTimeString>
         </ram:DueDateDateTime>
       </ram:SpecifiedTradePaymentTerms>
 
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
-        <ram:LineTotalAmount>181.50</ram:LineTotalAmount>
+        <ram:LineTotalAmount>100.00</ram:LineTotalAmount>
         <ram:ChargeTotalAmount>0.00</ram:ChargeTotalAmount>
         <ram:AllowanceTotalAmount>0.00</ram:AllowanceTotalAmount>
-        <ram:TaxBasisTotalAmount>181.50</ram:TaxBasisTotalAmount>
-        <ram:TaxTotalAmount currencyID="EUR">34.49</ram:TaxTotalAmount>
-        <ram:GrandTotalAmount>215.99</ram:GrandTotalAmount>
+        <ram:TaxBasisTotalAmount>100.00</ram:TaxBasisTotalAmount>
+        <ram:TaxTotalAmount currencyID="EUR">19.00</ram:TaxTotalAmount>
+        <ram:GrandTotalAmount>119.00</ram:GrandTotalAmount>
         <ram:TotalPrepaidAmount>0.00</ram:TotalPrepaidAmount>
-        <ram:DuePayableAmount>215.99</ram:DuePayableAmount>
+        <ram:DuePayableAmount>119.00</ram:DuePayableAmount>
       </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
     </ram:ApplicableHeaderTradeSettlement>
   </rsm:SupplyChainTradeTransaction>
