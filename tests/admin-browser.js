@@ -10,6 +10,7 @@ const path = require('node:path');
         $_ = ['status' => ['auto_update' => false, 'hide_navigation' => true, 'installed' => '1.0', 'enabled' => true, 'navigation_supported' => true],
             'allowDraftDeletion' => false, 'customTemplates' => false,
             'pdfStatus' => ['enabled' => true, 'errors' => [], 'versions' => [], 'checks' => array_fill_keys(['libreoffice', 'mustang', 'verapdf', 'templates'], ['ok' => false, 'version' => '', 'detail' => 'Nicht eingerichtet'])]];
+        $_['pdfStatus']['checks']['templates'] = ['ok' => true, 'version' => 'abc123', 'detail' => 'geprüft'];
         require 'templates/admin.php';
     `], {encoding: 'utf8'});
     const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true});
@@ -26,7 +27,7 @@ const path = require('node:path');
             window.fetch = async (url, options) => {
                 calls.push({url, body: JSON.parse(options.body)});
                 return {ok: !window.fail, json: async () => ({success: !window.fail, error: 'Speichern fehlgeschlagen',
-                    status: url === '/apps/shi_re/validator/status' ? {installed: '1.2', enabled: true} : {enabled: true, checks: {libreoffice: {ok: true, version: '24.2', detail: '/usr/bin/libreoffice'}}}})};
+                    status: url === '/apps/shi_re/validator/status' ? {installed: '1.2', enabled: true} : {enabled: true, checks: {templates: {ok: true, version: 'def456', detail: 'geprüft'}, libreoffice: {ok: true, version: '24.2', detail: '/usr/bin/libreoffice'}}}})};
             };
         });
         await page.addScriptTag({path: path.resolve('js/admin.js')});
@@ -58,9 +59,12 @@ const path = require('node:path');
         assert.equal(await page.locator('#myx-hide-validator').isChecked(), true);
         assert.equal(await page.locator('#myx-pdf-templates').isVisible(), false);
         assert.equal(await page.locator('.shire-readme-link').count(), 0);
+        assert.match(await page.locator('#myx-saved-templates').textContent(), /Version abc123: geprüft/);
         await page.locator('#myx-custom-templates').check();
         await page.waitForFunction(() => !document.getElementById('myx-pdf-templates').hidden);
         assert.equal(await page.locator('#myx-pdf-upload').textContent(), 'Vorlagen prüfen');
+        assert.match(await page.locator('#myx-saved-templates').textContent(), /Version def456: geprüft/);
+        assert.equal(await page.locator('#myx-pdf-xml').inputValue(), '', 'Stored templates do not populate upload inputs');
         await page.locator('#myx-auto-update').check();
         await page.waitForFunction(() => !document.getElementById('myx-auto-update').disabled);
         assert.ok((await page.evaluate(() => calls)).some(call => call.body.auto_update === true));

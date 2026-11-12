@@ -89,6 +89,12 @@
         }
         function showPdfStatus(status) {
             pdfStatus = status;
+            const templates = status.checks?.templates;
+            if (templates) {
+                document.getElementById('myx-saved-templates').textContent = templates.version
+                    ? 'Hinterlegter eigener Vorlagensatz (ODT, XML und Mapping), Version ' + templates.version + ': ' + templates.detail + '.'
+                    : 'Kein eigener Vorlagensatz hinterlegt. Es werden die mitgelieferten Standardvorlagen verwendet.';
+            }
             Object.entries(status.checks || {}).forEach(([key, check]) => showCheck(key, check));
             const xmlReady = xmlOutput.dataset.ready === 'true';
             pdfOutput.textContent = status.enabled && xmlReady

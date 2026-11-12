@@ -20,6 +20,14 @@ $status = $_['status'];
         <p id="myx-admin-result" role="status" aria-live="polite"></p>
     <form id="myx-pdf-templates"<?php if (!$_['customTemplates']) { print_unescaped(' hidden'); } ?>>
         <input type="hidden" name="templatesCheck" value="yes">
+        <p id="myx-saved-templates" role="status" aria-live="polite"><?php
+            $savedTemplates = $_['pdfStatus']['checks']['templates'];
+            p(!empty($savedTemplates['version'])
+                ? 'Hinterlegter eigener Vorlagensatz (ODT, XML und Mapping), Version ' . $savedTemplates['version'] . ': ' . $savedTemplates['detail'] . '.'
+                : 'Kein eigener Vorlagensatz hinterlegt. Es werden die mitgelieferten Standardvorlagen verwendet.');
+        ?></p>
+        <p>Die Dateiauswahl dient nur zum Ersetzen der hinterlegten Vorlagen. „Keine ausgewählt“ bedeutet, dass keine neue Datei zum Hochladen ausgewählt ist.</p>
+        <h4>Vorlagen ersetzen (optional)</h4>
         <p><label for="myx-pdf-odt">ODT-Vorlage (max. 10 MiB)</label>
             <input id="myx-pdf-odt" name="odt" type="file" accept=".odt"></p>
         <p><label for="myx-pdf-xml">XML-Vorlage (max. 2 MiB)</label>
