@@ -422,7 +422,7 @@ namespace {
     $adminRequest = new class implements \OCP\IRequest {
         public function getParam($key) { return $key === 'action' ? 'discard_templates' : null; }
     };
-    $admin = new class('shi_re', $adminRequest, $templates, $fakeDependencies) extends \OCA\ShiRE\Controller\PdfAdminController {
+    $admin = new class('shi_re', $adminRequest, $templates, $fakeDependencies, $storage, $proof) extends \OCA\ShiRE\Controller\PdfAdminController {
         public function discard(): \OCP\AppFramework\Http\JSONResponse {
             return new \OCP\AppFramework\Http\JSONResponse(['success' => true, 'discardCalled' => true]);
         }

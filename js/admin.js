@@ -41,7 +41,7 @@
             clearArchive.disabled = true;
             result.textContent = 'Archiv wird geleert …';
             try {
-                await post('/admin/archive/clear', {confirmation});
+                await post('/admin/pdf/settings', {action: 'clear_archive', confirmation});
                 result.textContent = 'Archiv geleert.';
             } catch (error) {
                 result.textContent = error.message;

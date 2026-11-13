@@ -10,12 +10,36 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\Route;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
+use OCP\Files\IAppData;
+use OCA\ShiRE\Service\ValidationProofService;
 
 /** Administratorzugriff und CSRF-Schutz bleiben für alle Methoden aktiv. */
 class PdfAdminController extends Controller {
     public function __construct(string $appName, IRequest $request,
         private InvoiceTemplateService $templates, private PdfDependencyService $dependencies,
+        private IAppData $appData, private ValidationProofService $proof,
     ) { parent::__construct($appName, $request); }
+
+    #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/admin/archive/clear')]
+    public function clearArchive(): JSONResponse {
+        if ($this->request->getParam('confirmation') !== 'ja') {
+            return new JSONResponse(['success' => false, 'error' => 'Bestätigung mit "ja" erforderlich.'], 400);
+        }
+        try {
+            return $this->proof->locked(function () {
+                foreach ($this->appData->getFolder('/')->getDirectoryListing() as $file) {
+                    if (str_ends_with($file->getName(), '.pdf')
+                        || preg_match('/^\d{2} \d{3}\.xml$/D', $file->getName()) === 1) {
+                        $file->delete();
+                    }
+                }
+                return new JSONResponse(['success' => true]);
+            });
+        } catch (\Throwable $e) {
+            return new JSONResponse(['success' => false,
+                'error' => 'Archiv konnte nicht vollständig geleert werden. Bitte erneut versuchen.'], 500);
+        }
+    }
 
     #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/admin/pdf/status')]
     public function status(): JSONResponse {
@@ -26,6 +50,9 @@ class PdfAdminController extends Controller {
     public function saveSettings(): JSONResponse {
         // Use the established settings route even when Nextcloud still caches
         // the route list from before the discard action was introduced.
+        if ($this->request->getParam('action') === 'clear_archive') {
+            return $this->clearArchive();
+        }
         if ($this->request->getParam('action') === 'discard_templates') {
             return $this->discard();
         }

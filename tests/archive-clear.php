@@ -9,12 +9,13 @@ namespace OCP\AppFramework {
 namespace OCP\AppFramework\Http {
     class JSONResponse { public function __construct(public array $data, public int $status = 200) {} }
 }
+namespace OCA\ShiRE\Service { class InvoiceTemplateService {} class PdfDependencyService {} }
 namespace {
     require __DIR__ . '/proof-fixtures.php';
-    require __DIR__ . '/../lib/Controller/ArchiveAdminController.php';
+    require __DIR__ . '/../lib/Controller/PdfAdminController.php';
     $request = new class implements \OCP\IRequest {
         public mixed $confirmation = null;
-        public function getParam($key) { return $this->confirmation; }
+        public function getParam($key) { return $key === 'action' ? 'clear_archive' : $this->confirmation; }
     };
     $storage = new class implements \OCP\Files\IAppData {
         public array $names = ['26 121.xml', '26 121.pdf', 'draft.xml', 'draft.json', 'en16931.xml', 'legacy.pdf', 'validation-proof.json'];
@@ -33,16 +34,25 @@ namespace {
         public function releaseLock($key, $type) { $this->locked = false; }
     };
     $proof = new \OCA\ShiRE\Service\ValidationProofService($storage, proofUsers(), $locking);
-    $controller = new \OCA\ShiRE\Controller\ArchiveAdminController('shi_re', $request, $storage, $proof);
+    $controller = new \OCA\ShiRE\Controller\PdfAdminController('shi_re', $request,
+        new \OCA\ShiRE\Service\InvoiceTemplateService(), new \OCA\ShiRE\Service\PdfDependencyService(), $storage, $proof);
+    foreach (['saveSettings', 'clearArchive'] as $method) {
+        $reflection = new \ReflectionMethod($controller, $method);
+        foreach (['NoAdminRequired', 'NoCSRFRequired'] as $attribute) {
+            if ($reflection->getAttributes('OCP\\AppFramework\\Http\\Attribute\\' . $attribute)) {
+                throw new \RuntimeException('Admin or CSRF protection disabled');
+            }
+        }
+    }
     foreach ([null, 'nein', 'JA', true] as $answer) {
         $request->confirmation = $answer;
-        if ($controller->clear()->status !== 400 || count($storage->names) !== 7) throw new \RuntimeException('Confirmation bypass');
+        if ($controller->saveSettings()->status !== 400 || count($storage->names) !== 7) throw new \RuntimeException('Confirmation bypass');
     }
     $request->confirmation = 'ja';
-    if (!$controller->clear()->data['success'] || $locking->locked
+    if (!$controller->saveSettings()->data['success'] || $locking->locked
         || $storage->names !== ['draft.xml', 'draft.json', 'en16931.xml', 'validation-proof.json']) {
         throw new \RuntimeException('Archive deletion or preservation failed');
     }
-    if (!$controller->clear()->data['success']) throw new \RuntimeException('Empty archive failed');
+    if (!$controller->saveSettings()->data['success']) throw new \RuntimeException('Empty archive failed');
     echo "Archive deletion passed: confirmation, preservation, repeated deletion, lock release.\n";
 }

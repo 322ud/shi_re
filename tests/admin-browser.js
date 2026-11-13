@@ -62,7 +62,7 @@ const path = require('node:path');
             assert.equal(await page.evaluate(() => calls.length), before + (answer === 'ja' ? 1 : 0));
         }
         assert.deepEqual(await page.evaluate(() => calls.at(-1)), {
-            url: '/apps/shi_re/admin/archive/clear', body: {confirmation: 'ja'},
+            url: '/apps/shi_re/admin/pdf/settings', body: {action: 'clear_archive', confirmation: 'ja'},
         });
         assert.equal(await page.locator('[role=switch]').count(), 4);
         assert.equal(await page.locator('#myx-hide-validator').isChecked(), true);
