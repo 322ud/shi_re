@@ -100,8 +100,13 @@ final class DraftService {
 
         $this->withLock(function () use ($windowId) {
             $this->requireActiveUnlocked($windowId);
-            $this->deleteUnlocked();
+            $folder = $this->appData->getFolder('/');
+            foreach ([AppFiles::DraftXmlFile, AppFiles::XmlWorkFile] as $name) {
+                if ($folder->fileExists($name)) $folder->getFile($name)->delete();
+            }
             $this->proof->clear();
+            // Keep ownership until cleanup succeeds; report storage errors to the caller.
+            $folder->getFile(AppFiles::DraftFile)->delete();
             return null;
         });
     }

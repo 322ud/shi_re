@@ -99,7 +99,16 @@
             createButton.disabled = !supportedType;
             actions.appendChild(createButton);
             actions.appendChild(NS.savedInvoiceDropdown());
-            actions.appendChild(NS.button('ShiRE schließen', () => NS.closeApp()));
+            const closeButton = NS.button('ShiRE schließen', async () => {
+                closeButton.disabled = true;
+                try {
+                    await NS.post('/en16931/cancel');
+                    NS.closeApp();
+                } finally {
+                    closeButton.disabled = false;
+                }
+            });
+            actions.appendChild(closeButton);
         }
 
         form.appendChild(actions);

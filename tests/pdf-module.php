@@ -409,7 +409,14 @@ namespace {
     rejects(fn () => $proof->requireProof($nextXml . ' ', $token, 'window', 'pdf', '26 201.xml'));
     $drafts->create('window', '26 202');
     rejects(fn () => $proof->requireProof($nextXml, $token, 'window', 'pdf', '26 201.xml'));
+    $storage->files['draft.xml'] = '<draft/>';
+    $beforeForeignCancel = $storage->files;
+    rejects(fn () => $drafts->cancel('other-window'));
+    check($storage->files === $beforeForeignCancel, 'Other window cannot discard the active draft');
     $drafts->cancel('window');
+    check(!array_key_exists('draft.xml', $storage->files)
+        && !array_key_exists('draft.json', $storage->files)
+        && !array_key_exists('en16931.xml', $storage->files), 'Cancel removes draft XML, JSON and work XML');
     unset($storage->files['26 201.xml']);
     $domService = new \OCA\ShiRE\Service\DomService('shi_re', $logger, $storage, $apps, $templates);
     check($domService->nextInvoiceNumber() === '26 201', 'Number advances from archive after temporary XML deletion');
