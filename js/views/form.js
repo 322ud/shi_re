@@ -77,6 +77,20 @@
 
         const actions = NS.make('div', { class: 'myx-actions' });
         if (archived) {
+            const invoiceNumber = NS.state.ramID;
+            const downloadButton = NS.button('download', async function () {
+                downloadButton.disabled = true;
+                try {
+                    const data = await NS.post('/pdf/invoices');
+                    const pdf = invoiceNumber + '.pdf';
+                    const filename = data.invoices.some(invoice => invoice.filename === pdf)
+                        ? pdf : invoiceNumber + '.xml';
+                    await NS.downloadSavedInvoice(filename);
+                } finally {
+                    downloadButton.disabled = false;
+                }
+            });
+            actions.appendChild(downloadButton);
             actions.appendChild(NS.archiveTemplateDropdown());
             actions.appendChild(NS.button('zurück', () => NS.leaveArchive(false)));
             form.querySelectorAll('input, textarea').forEach(field => { field.readOnly = true; });

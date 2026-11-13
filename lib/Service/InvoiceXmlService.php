@@ -6,7 +6,7 @@ namespace OCA\ShiRE\Service;
 
 /** Befüllt die vorhandene CII-Vorlage für genau einen Stundenposten. */
 final class InvoiceXmlService {
-    public function apply(\DOMDocument $dom, array $data, string $number, \DateTimeImmutable $date): void {
+    public function apply(\DOMDocument $dom, array $data, string $number, \DateTimeImmutable $date, string $userName = ''): void {
         $items = $data['items'] ?? null;
         if (!is_array($items) || !array_is_list($items) || count($items) !== 1 || !is_array($items[0])) {
             throw new \InvalidArgumentException('Genau ein Rechnungsposten ist erforderlich.');
@@ -79,6 +79,12 @@ final class InvoiceXmlService {
         $money = static fn (int $value): string => intdiv($value, 100) . '.' . str_pad((string)($value % 100), 2, '0', STR_PAD_LEFT);
 
         IncRamID::set($dom, $number);
+        // Ältere eigene Vorlagen ohne ABN-Notiz bleiben verwendbar.
+        preg_match_all('/(?:^|[\s\p{Z}\p{Pd}]+)(\p{L}|\p{N})/u', trim($userName), $initials);
+        $userId = mb_strtolower(implode('', $initials[1]), 'UTF-8');
+        foreach ($xpath->query('/rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:IncludedNote[ram:SubjectCode="ABN"]/ram:Content') as $content) {
+            $content->textContent = $userId;
+        }
         foreach ([
             '/rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:IssueDateTime/udt:DateTimeString',
             $transaction . '/ram:ApplicableHeaderTradeDelivery/ram:ActualDeliverySupplyChainEvent/ram:OccurrenceDateTime/udt:DateTimeString',

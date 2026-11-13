@@ -60,7 +60,7 @@ namespace {
     $original = hash('sha256', $bundle['odt']);
     $consistency->check($bundle);
     $map = $renderer->mapping($bundle['mapping']);
-    check(count($map) === 32 && count($renderer->placeholders($bundle['odt'])) === 32, 'Real template: 32 placeholders');
+    check(count($map) === 33 && count($renderer->placeholders($bundle['odt'])) === 33, 'Real template: 33 placeholders');
     $values = $renderer->values($map, $bundle['xml']);
     check($values['{{DocumentType}}'] === 'Rechnung', 'Document type 380 mapped to Rechnung');
     $unsupportedXml = str_replace('<ram:TypeCode>380</ram:TypeCode>', '<ram:TypeCode>381</ram:TypeCode>', $bundle['xml']);

@@ -68,6 +68,8 @@ Für die Darstellung gelten:
 
 Ein neuer Rechnungsentwurf lädt die aktive XML-Vorlage. PDF-Erzeugung verwendet den bei ihrer Anforderung aktuellen vollständigen Vorlagensatz; eine Änderung während einer Anforderung wird anhand der Vorlagenversion erkannt.
 
+Bei der XML-Erstellung wird `{{UserID}}` (Notiz mit SubjectCode `ABN`) mit den kleingeschriebenen Initialen des angemeldeten Nextcloud-Nutzers befüllt: „Frank Busse“ wird zu `fb`. Grundlage ist der Anzeigename, bei leerem Anzeigenamen der Benutzername. Leerzeichen und Bindestriche trennen Namensbestandteile. Eigene Vorlagen ohne diese Notiz bleiben verwendbar.
+
 Die nächste Rechnungsnummer wird aus der höchsten Nummer der aktiven XML-Vorlage (`ExchangedDocument/ram:ID`) und der archivierten Dateinamen im Format `JJ NNN.xml` bzw. `JJ NNN.pdf` im AppData-Hauptverzeichnis berechnet. Die Vorlagennummer gilt als vorherige Nummer: Ohne Archiv ergibt beispielsweise `26 200` im Jahr 2026 die erste Rechnungsnummer `26 201`. Liegt das Jahr der höchsten Nummer vor dem aktuellen Serverjahr, beginnt die Nummerierung bei `JJ 000` des aktuellen Jahres. Auch bei vorhandenem Archiv bleibt die Vorlagennummer als Untergrenze berücksichtigt.
 
 ## PDF-Erzeugung und Download

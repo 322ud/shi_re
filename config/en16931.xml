@@ -18,9 +18,15 @@
     </ram:IssueDateTime>
 
     <ram:IncludedNote>
-      <ram:Content>Dies ist eine Musterrechnung für Entwicklungsleistungen.</ram:Content>
-      <ram:SubjectCode>AAK</ram:SubjectCode>
+      <ram:Content></ram:Content>
+      <ram:SubjectCode>AAJ</ram:SubjectCode>
     </ram:IncludedNote>
+
+    <ram:IncludedNote>
+      <ram:Content></ram:Content>
+      <ram:SubjectCode>ABN</ram:SubjectCode>
+    </ram:IncludedNote>
+
   </rsm:ExchangedDocument>
 
   <rsm:SupplyChainTradeTransaction>

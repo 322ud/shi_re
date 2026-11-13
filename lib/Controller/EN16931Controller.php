@@ -28,6 +28,7 @@ class EN16931Controller extends Controller {
         private InvoiceXmlService $invoiceXmlService,
         private IConfig $config,
         private ValidationProofService $proof,
+        private \OCP\IUserSession $users,
     ) {
         parent::__construct($appName, $request);
     }
@@ -155,12 +156,17 @@ class EN16931Controller extends Controller {
                 $draft = $this->draftService->requireActive($windowId);
                 $this->proof->clear();
                 $dom = $this->draftXmlService->load();
+                $user = $this->users->getUser();
+                if ($user === null) {
+                    throw new \RuntimeException('Kein Nextcloud-Nutzer angemeldet.', 401);
+                }
 
                 $this->invoiceXmlService->apply(
                     $dom,
                     $invoiceData,
                     $draft['ramID'],
                     new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin')),
+                    trim($user->getDisplayName()) ?: $user->getUID(),
                 );
 
                 $this->domService->saveDom($dom, AppFiles::XmlWorkFile);

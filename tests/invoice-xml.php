@@ -26,6 +26,14 @@ $data = [
 ];
 $service = new InvoiceXmlService();
 $date = new DateTimeImmutable('2026-11-03');
+foreach (['Frank Busse' => 'fb', '  Änne   Öztürk  ' => 'äö', 'Anne-Marie Müller' => 'amm', 'frank' => 'f'] as $name => $expected) {
+    $userDom = template();
+    $service->apply($userDom, $data, '26 201', $date, $name);
+    $userXPath = new DOMXPath($userDom);
+    $userXPath->registerNamespace('ram', 'urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100');
+    check($userXPath->evaluate('string(//ram:IncludedNote[ram:SubjectCode="ABN"]/ram:Content)') === $expected, 'User initials: ' . $name);
+    check($userXPath->evaluate('string(//ram:IncludedNote[ram:SubjectCode="AAJ"]/ram:Content)') === '', 'Liability note unchanged');
+}
 $dom = template();
 $service->apply($dom, $data, '26 201', $date);
 $serialized = $dom->saveXML();
