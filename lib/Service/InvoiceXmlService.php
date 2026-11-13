@@ -113,7 +113,6 @@ final class InvoiceXmlService {
             $set($settlement . '/ram:ApplicableTradeTax/ram:' . $tag, $value);
         }
         $set($settlement . '/ram:InvoiceCurrencyCode', 'EUR');
-        $set($settlement . '/ram:SpecifiedTradePaymentTerms/ram:Description', 'Zahlbar sofort ohne Abzug.');
         $summary = $settlement . '/ram:SpecifiedTradeSettlementHeaderMonetarySummation';
         foreach (['LineTotalAmount' => $net, 'ChargeTotalAmount' => 0, 'AllowanceTotalAmount' => 0, 'TaxBasisTotalAmount' => $net, 'TaxTotalAmount' => $tax, 'GrandTotalAmount' => $gross, 'TotalPrepaidAmount' => 0, 'DuePayableAmount' => $gross] as $tag => $value) {
             $set($summary . '/ram:' . $tag, $money($value));
