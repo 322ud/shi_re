@@ -33,6 +33,22 @@
                 finally { button.disabled = false; }
             });
         }
+        const clearArchive = document.getElementById('myx-clear-archive');
+        clearArchive.addEventListener('click', async () => {
+            const confirmation = window.prompt('Wirklich? bestätige mit "ja"!');
+            if (confirmation !== 'ja') return;
+            const result = document.getElementById('myx-clear-archive-result');
+            clearArchive.disabled = true;
+            result.textContent = 'Archiv wird geleert …';
+            try {
+                await post('/admin/archive/clear', {confirmation});
+                result.textContent = 'Archiv geleert.';
+            } catch (error) {
+                result.textContent = error.message;
+            } finally {
+                clearArchive.disabled = false;
+            }
+        });
         function bindSwitch(id, path, key, onSaved = () => {}) {
             const input = document.getElementById(id);
             input.addEventListener('change', async () => {

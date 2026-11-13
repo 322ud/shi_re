@@ -49,8 +49,8 @@
         issuer.appendChild(NS.make('h2', {}, 'Rechnungssteller'));
         [seller.name, seller.address, seller.address2, seller.address3,
             [seller.postcode, seller.city].filter(Boolean).join(' ') + (seller.country ? '/' + seller.country : ''),
-            seller.iban ? 'IBAN: ' + seller.iban : '',
-            seller.vatId ? 'USt-ID: ' + seller.vatId : '',
+            [seller.iban ? 'IBAN: ' + seller.iban : '',
+                seller.vatId ? 'USt-ID: ' + seller.vatId : ''].filter(Boolean).join(', '),
         ].filter(Boolean).forEach(function (line) {
             issuer.appendChild(NS.make('div', {}, line));
         });
@@ -67,7 +67,6 @@
 
         const table = NS.make('div', { class: 'myx-posten-table' });
 
-        table.appendChild(NS.postenHeaderRow());
 
         table.appendChild(NS.itemRow(NS.state.invoiceData.items[0] || {}));
         table.appendChild(NS.vatRow());
@@ -100,6 +99,7 @@
             createButton.disabled = !supportedType;
             actions.appendChild(createButton);
             actions.appendChild(NS.savedInvoiceDropdown());
+            actions.appendChild(NS.button('ShiRE schließen', () => NS.closeApp()));
         }
 
         form.appendChild(actions);
@@ -325,9 +325,7 @@
         const row = NS.make('div', { class: 'myx-row myx-vat-table-row' });
 
         const text = NS.make('div', { class: 'myx-vat-text' },
-            'zuzüglich der gesetzlichen Mehrwertsteuer von ' +
-            NS.formatAmount(NS.state.invoiceData.vatRate) +
-            ' % in Höhe von'
+            'MwSt (' + Number(NS.state.invoiceData.vatRate).toLocaleString('de-DE') + ' %)'
         );
 
         row.appendChild(text);
@@ -339,7 +337,7 @@
     NS.grandTotalRow = function () {
         const row = NS.make('div', { class: 'myx-row myx-grand-total-row' });
 
-        row.appendChild(NS.make('div', { class: 'myx-grand-total-spacer' }, ''));
+        row.appendChild(NS.make('div', { class: 'myx-grand-total-spacer' }, 'Summe'));
         row.appendChild(NS.readonlyAmount('Summe', 'myx-grand-total'));
 
         return row;

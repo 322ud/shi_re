@@ -10,6 +10,8 @@ Die Schalter in der Administration speichern Änderungen sofort. Standardwerte: 
 
 Bei „eigene Vorlagen: nein“ verwendet ShiRE die mitgelieferten Standardvorlagen. Gespeicherte eigene Vorlagen bleiben erhalten und werden beim Einschalten wieder verwendet. Nur bei aktivierter Option erscheinen Dateiauswahl und „Vorlagen prüfen“.
 
+Unter der README kann die Administration mit „Archiv leeren“ alle archivierten XML-Rechnungen und PDFs appweit löschen. Die Eingabe `ja` bestätigt das Löschen. Entwürfe und Vorlagen bleiben erhalten. Ohne Archiv richtet sich die nächste Rechnungsnummer wieder nach der aktiven Vorlage; ein bestehender Entwurf behält seine Nummer.
+
 ## PDF-Modul einrichten
 
 Auf dem Nextcloud-Server werden LibreOffice Writer, Java ab Version 11, die Mustang-CLI sowie PHP DOM, ZIP, mbstring und `proc_open` benötigt. Getestet wurde Mustang-CLI **2.26.0**. Die JAR muss aus einem vertrauenswürdigen Release installiert und für den Webserver lesbar sein; die App installiert keine ausführbaren Programme automatisch. Der mitgelieferte Metadaten-Helfer verwendet PDFBox 3 aus dieser JAR. Die Systemprüfung prüft auch seine Verfügbarkeit. Auf dem Server ist kein Java-Compiler erforderlich.

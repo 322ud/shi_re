@@ -293,6 +293,8 @@ box-sizing: border-box;
 
 .myx-grand-total-spacer {
     grid-column: 1 / 3;
+    text-align: right;
+    font-weight: bold;
 }
 
 .myx-grand-total-row .myx-amount {

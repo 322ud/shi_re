@@ -101,4 +101,6 @@ $status = $_['status'];
         <h3 id="shire-admin-readme-title">README</h3>
         <?php require __DIR__ . '/readme-content.php'; ?>
     </section>
+    <button id="myx-clear-archive" type="button">Archiv leeren</button>
+    <p id="myx-clear-archive-result" role="status" aria-live="polite"></p>
 </div>

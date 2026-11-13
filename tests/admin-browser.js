@@ -55,6 +55,15 @@ const path = require('node:path');
             setTimeout(() => { window.OCA.Text = text; }, 150);
         });
         await page.addScriptTag({path: path.resolve('js/readme.js')});
+        for (const answer of [null, 'nein', 'JA', 'ja']) {
+            const before = await page.evaluate(() => calls.length);
+            page.once('dialog', dialog => answer === null ? dialog.dismiss() : dialog.accept(answer));
+            await page.locator('#myx-clear-archive').click();
+            assert.equal(await page.evaluate(() => calls.length), before + (answer === 'ja' ? 1 : 0));
+        }
+        assert.deepEqual(await page.evaluate(() => calls.at(-1)), {
+            url: '/apps/shi_re/admin/archive/clear', body: {confirmation: 'ja'},
+        });
         assert.equal(await page.locator('[role=switch]').count(), 4);
         assert.equal(await page.locator('#myx-hide-validator').isChecked(), true);
         assert.equal(await page.locator('#myx-pdf-templates').isVisible(), false);
