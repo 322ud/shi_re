@@ -580,10 +580,9 @@ button:hover {
     margin-top: 20px;
 }
 
-/* Highlight empty invoice fields; populated and archived fields stay neutral. */
-#myx-invoice-form input[name="buyer.reference"]:not([readonly]):placeholder-shown,
-#myx-invoice-form textarea[name="item.description"]:not([readonly]):placeholder-shown,
-#myx-invoice-form input[name="item.quantity"]:not([readonly]):placeholder-shown {
-    background-color: #fce4ec;
-    color: #222;
+/* Empty fields and zero hours use red text, including their placeholders. */
+#myx-invoice-form .myx-empty-input,
+#myx-invoice-form .myx-empty-input::placeholder {
+    color: #c00;
+    opacity: 1;
 }

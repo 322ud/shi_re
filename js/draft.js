@@ -41,7 +41,7 @@
             items: [{
                 name: seed.firstItem?.name || '',
                 description: '',
-                quantity: 1,
+                quantity: 0,
                 unitPrice: NS.parseAmount(seed.firstItem?.unitPrice || 0),
             }],
 

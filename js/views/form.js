@@ -59,8 +59,9 @@
 
         const referenceLine = NS.make('div', { class: 'myx-reference-line' });
         referenceLine.appendChild(NS.field('Aktenzeichen', 'buyer.reference', NS.state.invoiceData.buyer.reference));
-        const hours = NS.decimalField('Stunden', 'item.quantity', NS.state.invoiceData.items[0]?.quantity ?? 1, 1);
+        const hours = NS.decimalField('Stunden', 'item.quantity', NS.state.invoiceData.items[0]?.quantity ?? 0, 1);
         hours.classList.add('myx-hours-field');
+        hours.querySelector('input').tabIndex = -1;
         referenceLine.appendChild(hours);
         form.appendChild(referenceLine);
 
@@ -107,7 +108,6 @@
         if (!archived) {
             const order = [form.querySelector('[name="buyer.reference"]'),
                 form.querySelector('[name="item.description"]'),
-                form.querySelector('[name="item.quantity"]'),
                 form.querySelector('.myx-primary')];
             form.addEventListener('keydown', event => {
                 if (event.key !== 'Tab' || event.ctrlKey || event.altKey || event.metaKey) return;
@@ -137,6 +137,7 @@
         let previousWidth = description.clientWidth;
         observer.observe(description);
         NS.recalculate();
+        if (!archived) form.querySelector('[name="buyer.reference"]').focus();
     };
 
     NS.savedInvoiceDropdown = function () {
@@ -462,6 +463,11 @@
         }
 
         const data = NS.state.archiveDraft ? NS.state.invoiceData : NS.collectFormData();
+        for (const name of ['buyer.reference', 'item.description', 'item.quantity']) {
+            const field = document.querySelector(`#myx-invoice-form [name="${name}"]`);
+            const empty = name === 'item.quantity' ? NS.parseAmount(field.value) === 0 : field.value.trim() === '';
+            field.classList.toggle('myx-empty-input', !field.readOnly && empty);
+        }
 
         document.querySelectorAll('.myx-item-row').forEach(function (row, index) {
             const item = data.items[index] || {}
