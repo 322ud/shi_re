@@ -96,6 +96,13 @@ Erst dann liefert die authentifizierte, CSRF-geschützte POST-Route `/en16931/do
 
 ## Tests
 
+GitHub Actions führt bei jedem Push und Pull Request sowie bei manuellem Start den Workflow
+`.github/workflows/ci.yml` aus: PHP-Syntaxprüfung und Backend-Tests mit PHP 8.3,
+Frontend-Build mit Node.js 22 sowie JavaScript- und Browsertests mit Playwright-Chromium.
+Der Navigationstest verwendet einen festgelegten Commit des öffentlichen Repositorys
+`322ud/inv_validator`. Echte LibreOffice-/Mustang-/veraPDF-Prüfungen bleiben separate
+Integrationstests mit den unten angegebenen Werkzeugen.
+
 ```bash
 for test in tests/*.php; do php "$test" || exit; done
 for test in tests/*.js; do node "$test" || exit; done

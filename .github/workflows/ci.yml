@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: PHP, build and browser tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out ShiRE
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Check out validator contract dependency
+        uses: actions/checkout@v6
+        with:
+          repository: 322ud/inv_validator
+          ref: cd050f9b9d04db9da070dfeeee3e16690cd60a23
+          path: .ci/inv_validator
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, xml, simplexml, xmlwriter, zip, mbstring
+          coverage: none
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Check PHP syntax
+        run: |
+          command -v php
+          find lib templates tests -type f -name '*.php' -print0 |
+            xargs -0 -n 1 php -l
+
+      - name: Run PHP tests
+        run: |
+          for test in tests/*.php; do
+            case "$test" in
+              tests/proof-fixtures.php) continue ;;
+              tests/kosit-navigation.php) php "$test" .ci/inv_validator ;;
+              *) php "$test" ;;
+            esac
+          done
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Install Chromium and system dependencies
+        run: |
+          npx --no-install playwright install --with-deps chromium
+          node -e 'console.log("CHROMIUM_PATH=" + require("playwright").chromium.executablePath())' >> "$GITHUB_ENV"
+
+      - name: Run JavaScript and browser tests
+        run: |
+          test -x "$CHROMIUM_PATH"
+          for test in tests/*.js; do
+            node "$test"
+          done
