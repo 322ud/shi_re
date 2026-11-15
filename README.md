@@ -76,7 +76,7 @@ Die nächste Rechnungsnummer wird aus der höchsten Nummer der aktiven XML-Vorla
 
 ## PDF-Erzeugung und Download
 
-Nach der KoSIT-Prüfung erscheinen: links bei valider XML „XML annehmen“, daneben „abbrechen“, rechts „Bericht als PDF speichern“. Der Bericht-Button öffnet den Browser-Druckdialog; dort „Als PDF speichern“ auswählen.
+Bei valider XML und aktivem PDF-Modul wird die XML automatisch angenommen und unmittelbar die PDF-Rechnung erzeugt; eine Zwischenansicht mit Bericht-Button entfällt. Andernfalls erscheinen nach der KoSIT-Prüfung: links bei valider XML „XML annehmen“, daneben „abbrechen“, rechts „Bericht als PDF speichern“. Der Prüfbericht wird im Ablauf nicht angezeigt. Wenn ein Bericht vorliegt, öffnet der Bericht-Button den Browser-Druckdialog; dort „Als PDF speichern“ auswählen. Nach der PDF-Erzeugung bleibt der Bericht-Button neben „PDF-Rechnung speichern“ verfügbar.
 
 Nur bei Annahme wird die validierte XML-Datei dauerhaft als `<Rechnungsnummer>.xml` archiviert. „speichern und …“ lädt diese Datei herunter und schließt die App oder beginnt eine neue Rechnung. „in PDF einbinden“ verlässt das Menü und erzeugt aus dieser Archivdatei die PDF-Rechnung. Ein PDF-Fehler lässt die bereits angenommene XML unverändert im Archiv. Abbrechen verwirft die Rechnung ohne Archivierung. Nach Annahme oder Abbruch werden Arbeits-XML und Entwurfsdaten entfernt; der Entwurf bleibt bis dahin gesperrt und per Heartbeat aktiv.
 

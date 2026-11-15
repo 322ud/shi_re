@@ -42,6 +42,21 @@ const path = require('node:path');
         });
         assert.equal(await page.getByRole('button', {name: 'XML annehmen', exact: true}).count(), 0);
         assert.equal(await page.getByRole('button', {name: 'abbrechen', exact: true}).count(), 1);
+        await page.evaluate(() => {
+            document.body.replaceChildren();
+            const mount = document.createElement('div'); document.body.appendChild(mount);
+            window.ShiRE.mountFinishedActions(mount, () => {}, () => {},
+                () => window.choices.push('save-pdf'), () => window.choices.push('save-report'));
+        });
+        await page.getByRole('button', {name: 'PDF-Rechnung speichern', exact: true}).click();
+        await page.getByRole('button', {name: 'Bericht als PDF speichern', exact: true}).click();
+        assert.deepEqual(await page.evaluate(() => window.choices.slice(-2)), ['save-pdf', 'save-report']);
+        await page.evaluate(() => {
+            document.body.replaceChildren();
+            const mount = document.createElement('div'); document.body.appendChild(mount);
+            window.ShiRE.mountFinishedActions(mount, () => {}, () => {}, () => {}, null);
+        });
+        assert.equal(await page.getByRole('button', {name: 'Bericht als PDF speichern', exact: true}).count(), 0);
         assert.deepEqual(errors, []);
         console.log('Real Chromium NcActions test passed: menus, actions, disabled state and invalid XML.');
     } finally { await browser.close(); }

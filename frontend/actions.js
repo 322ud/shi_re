@@ -24,18 +24,19 @@ window.ShiRE.mountReviewActions = function (element, valid, choose, report) {
                     action(appName + ' schließen', 'cancel-close'),
                     action('neue Rechnung starten', 'cancel-new'),
                 ]),
-                h(NcButton, {props: {disabled: this.busy}, on: {click: report}}, ['Bericht als PDF speichern']),
+                report ? h(NcButton, {props: {disabled: this.busy}, on: {click: report}}, ['Bericht als PDF speichern']) : null,
             ])
         },
     }).$mount(element)
     return {setBusy: value => { vm.busy = value }, destroy: () => { vm.$destroy(); vm.$el.remove() }}
 }
 
-window.ShiRE.mountFinishedActions = function (element, start, close, savePdf) {
+window.ShiRE.mountFinishedActions = function (element, start, close, savePdf, report) {
     return new Vue({
         render(h) {
             return h('div', {class: 'myx-review-actions'}, [
                 savePdf ? h(NcButton, {on: {click: savePdf}}, ['PDF-Rechnung speichern']) : null,
+                report ? h(NcButton, {on: {click: report}}, ['Bericht als PDF speichern']) : null,
                 h(NcButton, {on: {click: start}}, ['neue Rechnung starten']),
                 h(NcButton, {on: {click: close}}, ['ShiRE schließen']),
             ])

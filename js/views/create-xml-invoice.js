@@ -44,25 +44,30 @@
             NS.state.validationToken = NS.state.invoiceInterrupted ? null : (data.validationToken || null);
         } catch (error) {
             NS.log('KoSIT-Prüfung fehlgeschlagen: ' + error.message);
-            data = {valid: false, xmlHash: NS.state.xmlHash, html: '<p>Die Prüfung konnte nicht abgeschlossen werden.</p>'};
+            data = {valid: false, xmlHash: NS.state.xmlHash};
         } finally {
             busy.hidden = true;
         }
         NS.log(data.valid ? 'XRechnung (XML) ist valide' : 'XRechnung (XML) ist nicht valide');
-        const frame = NS.make('iframe', {
-            class: 'myx-validation-frame', title: 'KoSIT-Prüfbericht',
-            // Printing requires same-origin access and modal permission. Scripts remain forbidden.
-            sandbox: 'allow-same-origin allow-modals',
-        });
-        frame.srcdoc = data.html || '<p>Keine Validator-Ausgabe vorhanden.</p>';
-        input.appendChild(frame);
-        const host = NS.make('div');
-        input.appendChild(host);
+        if (data.html && !NS.state.invoiceInterrupted) {
+            const frame = NS.make('iframe', {
+                title: 'KoSIT-Prüfbericht',
+                // Keep the print document outside the visible invoice flow. Scripts remain forbidden.
+                sandbox: 'allow-same-origin allow-modals',
+                style: 'position:fixed;width:0;height:0;border:0;visibility:hidden;',
+                'aria-hidden': 'true', tabindex: '-1',
+            });
+            frame.srcdoc = data.html;
+            NS.validationReportFrame = frame;
+            document.body.appendChild(frame);
+        }
+        if (NS.state.invoiceInterrupted) return;
         let pending = false;
-        const menu = NS.mountReviewActions(host, data.valid === true, async function (choice) {
+        let menu = null;
+        async function choose(choice) {
             if (pending) return;
             pending = true;
-            menu.setBusy(true);
+            if (menu) menu.setBusy(true);
             busy.hidden = false;
             busyText.textContent = choice.startsWith('cancel-') ? 'Rechnung wird verworfen …' : 'XML wird angenommen …';
             let finished = false;
@@ -73,7 +78,7 @@
                 finished = true;
                 if (accepted) NS.log('XML-Rechnung archiviert');
                 NS.stopHeartbeat();
-                menu.destroy();
+                if (menu) menu.destroy();
                 if (choice === 'pdf') {
                     await NS.showAcceptedPdf(result.filename, data.xmlHash);
                 } else {
@@ -88,17 +93,29 @@
                 if (finished) NS.showFinishedInvoice();
             } finally {
                 busy.hidden = true;
-                if (!finished) { menu.setBusy(false); pending = false; }
+                if (!finished) { if (menu) menu.setBusy(false); pending = false; }
             }
-        }, function () {
-            if (pending) return;
-            try {
-                frame.contentWindow.focus();
-                frame.contentWindow.print();
-            } catch (error) {
-                NS.log('Bericht konnte nicht gedruckt werden: ' + error.message);
-            }
-        });
+            return finished;
+        }
+        if (data.valid === true && NS.state.pdfStatus?.enabled && NS.state.validationToken) {
+            if (await choose('pdf')) return;
+            if (NS.state.invoiceInterrupted) return;
+        }
+        const host = NS.make('div');
+        input.appendChild(host);
+        menu = NS.mountReviewActions(host, data.valid === true, choose,
+            NS.validationReportFrame ? () => { if (!pending) NS.saveValidationReport(); } : null);
+    };
+
+    NS.saveValidationReport = function () {
+        const frame = NS.validationReportFrame;
+        if (!frame) return;
+        try {
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+        } catch (error) {
+            NS.log('Bericht konnte nicht gedruckt werden: ' + error.message);
+        }
     };
 
     NS.closeApp = function () {
@@ -112,7 +129,8 @@
         NS.clear(input);
         const host = NS.make('div');
         input.appendChild(host);
-        NS.finishedActions = NS.mountFinishedActions(host, NS.startInvoice, NS.closeApp, savePdf);
+        NS.finishedActions = NS.mountFinishedActions(host, NS.startInvoice, NS.closeApp, savePdf,
+            NS.validationReportFrame ? NS.saveValidationReport : null);
     };
 
     NS.showAcceptedPdf = async function (filename, xmlHash) {
@@ -156,6 +174,10 @@
     };
 
     NS.releasePdfDownload = function () {
+        if (NS.validationReportFrame) {
+            NS.validationReportFrame.remove();
+            NS.validationReportFrame = null;
+        }
         if (NS.finishedActions) {
             NS.finishedActions.$destroy();
             NS.finishedActions = null;
