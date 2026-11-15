@@ -38,10 +38,20 @@ const path = require('node:path');
         await page.evaluate(() => {
             window.controls.destroy();
             const mount = document.createElement('div'); document.body.appendChild(mount);
-            window.ShiRE.mountReviewActions(mount, false, () => {}, () => {});
+            window.ShiRE.mountReviewActions(mount, false, choice => window.choices.push(choice), () => {});
         });
         assert.equal(await page.getByRole('button', {name: 'XML annehmen', exact: true}).count(), 0);
         assert.equal(await page.getByRole('button', {name: 'abbrechen', exact: true}).count(), 1);
+        await page.getByRole('button', {name: 'abbrechen', exact: true}).click();
+        await page.getByRole('menuitem', {name: 'ShiRE schließen', exact: true}).waitFor({state: 'visible'});
+        assert.deepEqual((await page.getByRole('menuitem').allTextContents()).map(text => text.trim()), ['ShiRE schließen', 'neue Rechnung starten']);
+        await page.getByRole('menuitem', {name: 'ShiRE schließen', exact: true}).click();
+        await page.keyboard.press('Escape');
+        await page.getByRole('button', {name: 'abbrechen', exact: true}).click();
+        await page.getByRole('menuitem', {name: 'neue Rechnung starten', exact: true}).click();
+        await page.keyboard.press('Escape');
+        assert.deepEqual(await page.evaluate(() => window.choices.slice(-2)), ['cancel-close', 'cancel-new']);
+
         await page.evaluate(() => {
             document.body.replaceChildren();
             const mount = document.createElement('div'); document.body.appendChild(mount);
