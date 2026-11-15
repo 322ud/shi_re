@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace OCA\ShiRE\Service;
 
 use OCP\App\IAppManager;
+use OCP\IConfig;
 use OCP\AppFramework\App;
 
 /** Adapter: Ausführung und Konfiguration gehören ausschließlich zu inv_validator. */
 class KositValidatorService {
-    public function __construct(private IAppManager $appManager) {
+    public function __construct(private IAppManager $appManager, private IConfig $config) {
     }
 
     /** Local installed versions, never latest releases or the invoice's guideline version. */
@@ -32,6 +33,9 @@ class KositValidatorService {
     }
 
     public function validateXml(string $xml): array {
+        if ($this->config->getAppValue('shi_re', 'validation_enabled', 'yes') !== 'yes') {
+            throw new \RuntimeException('Die XML-Prüfung mit INValidator ist in ShiRE deaktiviert.');
+        }
         if (!$this->appManager->isEnabledForUser('inv_validator')) {
             throw new \RuntimeException('Die App inv_validator ist nicht verfügbar. Bitte die Administration zur Einrichtung öffnen.');
         }

@@ -7,12 +7,16 @@ $status = $_['status'];
     <section aria-labelledby="shire-settings-title">
         <h3 id="shire-settings-title">Einstellungen</h3>
         <?php foreach ([
-            'myx-auto-update' => ['automatisches Update für INValidator beim Start der App', $status['auto_update']],
+            'myx-install-validator' => ['INValdator installieren', false],
+            'myx-validation-enabled' => ['XML-Rechnung mit INValidator prüfen', $status['validation_enabled']],
+            'myx-auto-update' => ['beim App-Start INValidator automatisch updaten', $status['auto_update']],
             'myx-hide-validator' => ['INValidator ausblenden', $status['hide_navigation']],
             'myx-allow-draft-deletion' => ['Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt', $_['allowDraftDeletion']],
             'myx-custom-templates' => ['eigene Vorlagen', $_['customTemplates']],
         ] as $id => [$label, $checked]): ?>
-        <div class="shire-switch">
+        <div class="shire-switch"<?php if (($id === 'myx-install-validator' && !empty($status['installed']))
+            || ($id === 'myx-validation-enabled' && empty($status['installed']))
+            || ($id === 'myx-auto-update' && (empty($status['installed']) || !$status['enabled'] || !$status['validation_enabled']))) { print_unescaped(' hidden'); } ?>>
             <input id="<?php p($id); ?>" type="checkbox" role="switch" aria-labelledby="<?php p($id); ?>-label" <?php if ($checked) { print_unescaped('checked'); } ?>>
             <span id="<?php p($id); ?>-label"><?php p($label); ?></span>
         </div>
@@ -51,7 +55,7 @@ $status = $_['status'];
     <h3 id="shire-system-title">System</h3>
     <button id="myx-check-system" type="button">Systemprüfung wiederholen</button>
     <?php
-    $validatorReady = !empty($status['installed']) && $status['enabled'] && empty($status['check_error']);
+    $validatorReady = !empty($status['installed']) && $status['enabled'] && $status['validation_enabled'] && empty($status['check_error']);
     $checks = ['validator' => ['ok' => $validatorReady,
         'version' => $status['installed'] ?? '', 'detail' => $status['check_error'] ?? ($status['enabled'] ? '' : 'INValidator fehlt oder ist deaktiviert.')]]
         + $_['pdfStatus']['checks'];
@@ -72,7 +76,6 @@ $status = $_['status'];
                     <td data-version><?php p($key === 'templates' ? '—' : ($check['version'] ?: '—')); ?></td>
                     <td data-detail><?php p($check['detail']); ?></td>
                     <td class="shire-system-actions">
-                        <?php if ($key === 'validator'): ?><button id="myx-check-validator" type="button">Release prüfen / installieren</button><?php endif; ?>
                         <a href="#shire-admin-readme-title" data-readme-help="<?php p($key === 'templates' ? 'Vorlagen und Mapping' : ($key === 'validator' ? 'Einstellungen' : 'PDF-Modul einrichten')); ?>">Info ↗</a>
                     </td>
                 </tr>

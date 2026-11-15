@@ -7,7 +7,7 @@ const path = require('node:path');
     const html = execFileSync('php', ['-r', `
         function p($value) { echo htmlspecialchars((string)$value, ENT_QUOTES); }
         function print_unescaped($value) { echo $value; }
-        $_ = ['status' => ['auto_update' => false, 'hide_navigation' => true, 'installed' => '1.0', 'enabled' => true, 'navigation_supported' => true],
+        $_ = ['status' => ['validation_enabled' => true, 'auto_update' => false, 'hide_navigation' => true, 'installed' => '1.0', 'enabled' => true, 'navigation_supported' => true],
             'allowDraftDeletion' => false, 'customTemplates' => false,
             'pdfStatus' => ['enabled' => true, 'errors' => [], 'versions' => [], 'checks' => array_fill_keys(['libreoffice', 'mustang', 'verapdf', 'templates'], ['ok' => false, 'version' => '', 'detail' => 'Nicht eingerichtet'])]];
         $_['pdfStatus']['checks']['templates'] = ['ok' => true, 'version' => 'abc123', 'detail' => 'geprüft'];
@@ -27,7 +27,7 @@ const path = require('node:path');
             window.fetch = async (url, options) => {
                 calls.push({url, body: JSON.parse(options.body)});
                 return {ok: !window.fail, json: async () => ({success: !window.fail, error: 'Speichern fehlgeschlagen',
-                    status: url === '/apps/shi_re/validator/status' ? {installed: '1.2', enabled: true} : {enabled: true, checks: {templates: {ok: true, version: 'def456', detail: 'geprüft', files: {mapping: {name: 'mapping.tsv', source: 'default'}, xml: {name: 'meine-rechnung.xml', date: '13.11.2026 10:30 UTC'}}}, libreoffice: {ok: true, version: '24.2', detail: '/usr/bin/libreoffice'}}}})};
+                    status: url === '/apps/shi_re/admin/validator/settings' ? {installed: '1.0', enabled: true, ...JSON.parse(options.body)} : url === '/apps/shi_re/validator/status' ? {installed: '1.2', enabled: true} : {enabled: true, checks: {templates: {ok: true, version: 'def456', detail: 'geprüft', files: {mapping: {name: 'mapping.tsv', source: 'default'}, xml: {name: 'meine-rechnung.xml', date: '13.11.2026 10:30 UTC'}}}, libreoffice: {ok: true, version: '24.2', detail: '/usr/bin/libreoffice'}}}})};
             };
         });
         await page.addScriptTag({path: path.resolve('js/admin.js')});
@@ -64,7 +64,39 @@ const path = require('node:path');
         assert.deepEqual(await page.evaluate(() => calls.at(-1)), {
             url: '/apps/shi_re/admin/pdf/settings', body: {action: 'clear_archive', confirmation: 'ja'},
         });
-        assert.equal(await page.locator('[role=switch]').count(), 4);
+        assert.equal(await page.locator('[role=switch]').count(), 6);
+        assert.equal(await page.locator('#myx-install-validator').isVisible(), false);
+        assert.equal(await page.locator('#myx-validation-enabled').isChecked(), true);
+        assert.equal(await page.locator('#myx-check-validator').count(), 0);
+        await page.locator('#myx-validation-enabled').uncheck();
+        await page.waitForFunction(() => !document.getElementById('myx-validation-enabled').disabled);
+        assert.equal(await page.locator('#myx-auto-update').isVisible(), false);
+        assert.equal(await page.locator('#myx-xml-status').textContent(), 'XML-Rechnung wird erzeugt, aber nicht validiert.');
+        assert.ok((await page.evaluate(() => calls)).some(call => call.body.validation_enabled === false));
+        await page.locator('#myx-validation-enabled').check();
+        await page.waitForFunction(() => !document.getElementById('myx-validation-enabled').disabled);
+        // Refresh after an external removal, then install via the switch.
+        await page.evaluate(() => {
+            window.savedFetch = window.fetch;
+            window.fetch = async url => ({ok: true, json: async () => ({success: true,
+                status: url.endsWith('/admin/validator/install')
+                    ? {installed: '1.2', enabled: true, validation_enabled: true, auto_update: true}
+                    : {installed: null, enabled: false, validation_enabled: true, auto_update: true}})});
+        });
+        await page.locator('#myx-check-system').click();
+        await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
+        assert.equal(await page.locator('#myx-install-validator').isVisible(), true);
+        assert.equal(await page.locator('#myx-install-validator').isChecked(), false);
+        assert.equal(await page.locator('#myx-validation-enabled').isVisible(), false);
+        assert.equal(await page.locator('#myx-auto-update').isVisible(), false);
+        await page.locator('#myx-install-validator').click();
+        await page.waitForFunction(() => !document.getElementById('myx-install-validator').disabled);
+        assert.equal(await page.locator('#myx-install-validator').isVisible(), false);
+        assert.equal(await page.locator('#myx-validation-enabled').isVisible(), true);
+        assert.equal(await page.locator('#myx-auto-update').isChecked(), true);
+        await page.evaluate(() => { window.fetch = window.savedFetch; });
+        await page.locator('#myx-auto-update').uncheck();
+        await page.waitForFunction(() => !document.getElementById('myx-auto-update').disabled);
         assert.equal(await page.locator('#myx-hide-validator').isChecked(), true);
         assert.equal(await page.locator('#myx-pdf-templates').isVisible(), false);
         assert.equal(await page.locator('.shire-readme-link').count(), 0);

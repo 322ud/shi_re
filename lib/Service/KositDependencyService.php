@@ -24,7 +24,8 @@ class KositDependencyService {
 
     public function settings(): array {
         $result = [];
-        $result['auto_update'] = $this->config->getAppValue('shi_re', 'auto_update_validator', 'no') === 'yes';
+        $result['validation_enabled'] = $this->config->getAppValue('shi_re', 'validation_enabled', 'yes') === 'yes';
+        $result['auto_update'] = $this->config->getAppValue('shi_re', 'auto_update_validator', 'yes') === 'yes';
         if ($this->config->getAppValue('inv_validator', 'hide_navigation', '') === '') {
             $this->config->setAppValue('inv_validator', 'hide_navigation', 'yes');
         }
@@ -41,13 +42,13 @@ class KositDependencyService {
 
     public function save(array $data): void {
         foreach ($data as $key => $value) {
-            if (!in_array($key, ['hide_navigation', 'auto_update'], true) || !is_bool($value)) {
+            if (!in_array($key, ['hide_navigation', 'auto_update', 'validation_enabled'], true) || !is_bool($value)) {
                 throw new \InvalidArgumentException('Ungültige Einstellung.');
             }
         }
         foreach ($data as $key => $value) {
             $this->config->setAppValue($key === 'hide_navigation' ? 'inv_validator' : 'shi_re',
-                $key === 'hide_navigation' ? $key : 'auto_update_validator', $value ? 'yes' : 'no');
+                $key === 'auto_update' ? 'auto_update_validator' : $key, $value ? 'yes' : 'no');
         }
     }
 

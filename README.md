@@ -6,7 +6,7 @@ Die Dokumentation ist auf den Rechnungsseiten über das Info-Symbol rechts oben 
 
 ## Einstellungen
 
-Die Schalter in der Administration speichern Änderungen sofort. Standardwerte: automatisches INValidator-Update beim App-Start **nein**, INValidator für normale Nutzer ausblenden **ja**, Button zum Löschen bei Entwurfskonflikt **nein**, eigene Vorlagen **nein**. Automatische Updates erfolgen nur beim Start durch einen Administrator. Fehlt INValidator, wird die App weiterhin beim Start durch einen Administrator installiert.
+Die Schalter in der Administration speichern Änderungen sofort. Fehlt INValidator, erscheint „INValdator installieren“ (Standard **nein**); Einschalten installiert die App. Bei installierter App erscheint „XML-Rechnung mit INValidator prüfen“ (Standard **ja**). Nur bei aktiver Prüfung erscheint „beim App-Start INValidator automatisch updaten“ (Standard **ja**). Bestehende Einstellungen bleiben erhalten. Automatische Updates erfolgen nur beim Start durch einen Administrator. Weitere Standardwerte: INValidator für normale Nutzer ausblenden **ja**, Button zum Löschen bei Entwurfskonflikt **nein**, eigene Vorlagen **nein**.
 
 Bei „eigene Vorlagen: nein“ verwendet ShiRE die mitgelieferten Standardvorlagen. Gespeicherte eigene Vorlagen bleiben erhalten und werden beim Einschalten wieder verwendet. Nur bei aktivierter Option erscheinen Dateiauswahl und „Vorlagen prüfen“.
 

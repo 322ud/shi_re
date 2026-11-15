@@ -29,12 +29,6 @@
       </navigation>
     </navigations>
 
-    <repair-steps>
-        <install>
-            <step>OCA\ShiRE\Migration\InstallValidator</step>
-        </install>
-    </repair-steps>
-
     <settings>
         <admin>OCA\ShiRE\Settings\Admin</admin>
         <admin-section>OCA\ShiRE\Settings\AdminSection</admin-section>

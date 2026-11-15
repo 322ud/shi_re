@@ -67,13 +67,13 @@ class ValidatorAdminController extends Controller {
     public function save(): JSONResponse {
         try {
             $data = [];
-            foreach (['hide_navigation', 'auto_update'] as $key) {
+            foreach (['hide_navigation', 'auto_update', 'validation_enabled'] as $key) {
                 $value = $this->request->getParam($key);
                 if ($value !== null) $data[$key] = $value;
             }
             if (!$data) throw new \InvalidArgumentException('Einstellung fehlt.');
             $this->dependency->save($data);
-            return new JSONResponse(['success' => true]);
+            return new JSONResponse(['success' => true, 'status' => $this->dependency->settings()]);
         } catch (\InvalidArgumentException $e) {
             return new JSONResponse(['success' => false, 'error' => $e->getMessage()], 400);
         }

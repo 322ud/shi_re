@@ -4,7 +4,8 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 (async () => {
     for (const [status, shouldInstall] of [
-        [{installed: null, admin: true}, true],
+        [{installed: null, admin: true}, false],
+        [{installed: '0.5.1', enabled: true, validation_enabled: false, admin: true, auto_update: true, update_available: true}, false],
         [{installed: null, admin: false}, false],
         [{installed: null, admin: true, check_error: 'offline'}, false],
         [{installed: '0.5.1', enabled: true, admin: true, auto_update: true, update_available: true}, true],

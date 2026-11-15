@@ -67,14 +67,8 @@
         try {
             const {status} = await NS.post('/validator/status');
             if (status.check_error) notices.push(status.check_error);
-            if (!status.installed) {
-                if (status.admin && !status.check_error) {
-                    NS.log('KoSIT-App wird installiert …');
-                    await NS.post('/admin/validator/install');
-                    notices.push('KoSIT-App installiert. Java und Prüfszenarien gegebenenfalls in der KoSIT-Administration einrichten.');
-                } else {
-                    notices.push('KoSIT-App fehlt. Bitte die Administration zur Einrichtung öffnen.');
-                }
+            if (!status.installed || status.validation_enabled === false) {
+                // Installation is explicitly requested in the admin settings.
             } else if (!status.enabled) {
                 notices.push('KoSIT-App ist deaktiviert. Bitte durch einen Administrator aktivieren lassen.');
             } else if (status.update_available) {

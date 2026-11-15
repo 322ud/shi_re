@@ -69,7 +69,8 @@
         }
         bindSwitch('myx-allow-draft-deletion', '/admin/draft/settings', 'allow_draft_deletion');
         bindSwitch('myx-hide-validator', '/admin/validator/settings', 'hide_navigation');
-        bindSwitch('myx-auto-update', '/admin/validator/settings', 'auto_update');
+        bindSwitch('myx-auto-update', '/admin/validator/settings', 'auto_update', data => showValidatorStatus(data.status));
+        bindSwitch('myx-validation-enabled', '/admin/validator/settings', 'validation_enabled', data => showValidatorStatus(data.status));
         bindSwitch('myx-custom-templates', '/admin/pdf/settings', 'custom_templates', data => {
             document.getElementById('myx-pdf-templates').hidden = !document.getElementById('myx-custom-templates').checked;
             showPdfStatus(data.status);
@@ -82,20 +83,19 @@
             showPdfStatus(data.status);
             output.textContent = 'Eigene Vorlagen verworfen. Standardvorlagen werden verwendet.';
         });
-        bind('myx-check-validator', async () => {
-            const {status} = await post('/validator/status');
-            showValidatorStatus(status);
-            if (status.check_error) throw new Error(status.check_error);
-            if (!status.installed) {
-                output.textContent = 'Aktuelle Validator-App wird installiert …';
-                const installed = await post('/admin/validator/install');
-                showValidatorStatus(installed.status);
-                output.textContent = 'Validator-App installiert. Seite neu laden. Java und Prüfszenarien können in der KoSIT-Administration eingerichtet werden.';
-            } else {
-                output.textContent = status.update_available
-                    ? 'Release ' + status.latest + ' verfügbar. Bitte über den administrativen Release-Deploymentweg aktualisieren.'
-                    : 'Installierte Validator-App ist aktuell.';
-                if (!status.enabled) output.textContent += ' Die App ist deaktiviert; bitte in der App-Verwaltung aktivieren.';
+        const installSwitch = document.getElementById('myx-install-validator');
+        installSwitch.addEventListener('change', async () => {
+            installSwitch.disabled = true;
+            output.textContent = 'INValidator wird installiert …';
+            try {
+                const data = await post('/admin/validator/install');
+                showValidatorStatus(data.status);
+                output.textContent = 'INValidator installiert. Java und Prüfszenarien können in der INValidator-Administration eingerichtet werden.';
+            } catch (error) {
+                output.textContent = error.message;
+            } finally {
+                installSwitch.checked = false;
+                installSwitch.disabled = false;
             }
         });
         const pdfOutput = document.getElementById('myx-pdf-status');
@@ -112,7 +112,13 @@
             row.querySelector('[data-detail]').textContent = check.detail || '';
         }
         function showValidatorStatus(status) {
-            const ready = Boolean(status.installed && status.enabled && !status.check_error);
+            const validation = document.getElementById('myx-validation-enabled');
+            if (typeof status.validation_enabled === 'boolean') validation.checked = status.validation_enabled;
+            if (typeof status.auto_update === 'boolean') document.getElementById('myx-auto-update').checked = status.auto_update;
+            installSwitch.parentElement.hidden = Boolean(status.installed);
+            validation.parentElement.hidden = !status.installed;
+            document.getElementById('myx-auto-update').parentElement.hidden = !(status.installed && status.enabled && validation.checked);
+            const ready = Boolean(status.installed && status.enabled && validation.checked && !status.check_error);
             xmlOutput.dataset.ready = String(ready);
             xmlOutput.textContent = ready ? 'XML-Rechnung wird erzeugt und validiert.' : 'XML-Rechnung wird erzeugt, aber nicht validiert.';
             showCheck('validator', {ok: Boolean(status.installed && status.enabled && !status.check_error),
