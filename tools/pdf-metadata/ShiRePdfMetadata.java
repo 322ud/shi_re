@@ -173,6 +173,12 @@ public final class ShiRePdfMetadata {
             }
             node = next;
         }
+        boolean active = false;
+        for (String name : names) {
+            removeProperty(rdf, namespace, name);
+            if (values.containsKey(prefix + ":" + name)) active = true;
+        }
+        if (!active) return;
         Element schema = element(bag, RDF, "rdf:li", null);
         schema.setAttributeNS(RDF, "rdf:parseType", "Resource");
         element(schema, SCHEMA, "pdfaSchema:schema", label);
@@ -180,7 +186,6 @@ public final class ShiRePdfMetadata {
         element(schema, SCHEMA, "pdfaSchema:prefix", prefix);
         Element properties = element(element(schema, SCHEMA, "pdfaSchema:property", null), RDF, "rdf:Seq", null);
         for (String name : names) {
-            removeProperty(rdf, namespace, name);
             String value = values.get(prefix + ":" + name);
             if (value == null) continue;
             element(description, namespace, prefix + ":" + name, value);

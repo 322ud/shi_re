@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace OCA\ShiRE\Service;
 
+use OCP\IConfig;
+
 class PdfInvoiceService {
     public function __construct(
         private PdfDependencyService $dependencies,
@@ -10,6 +12,7 @@ class PdfInvoiceService {
         private OdtInvoiceRenderer $renderer,
         private PdfProcessRunner $runner,
         private PdfWorkspace $workspace,
+        private IConfig $config,
     ) {}
 
     /** Aufrufer muss exakt diese XML-Bytes zuvor erfolgreich validiert haben. */
@@ -41,7 +44,8 @@ class PdfInvoiceService {
             $this->pdf($dir . '/combined.pdf');
             $metadata = new PdfMetadataService();
             $this->write($dir . '/metadata.xml', $metadata->properties($values['{{DocumentType}}'], $status['versions'] ?? [],
-                $validatorVersions, $tools['verapdf'] !== ''));
+                $this->config->getAppValue('shi_re', 'validation_enabled', 'yes') === 'yes' ? $validatorVersions : [],
+                $tools['verapdf'] !== ''));
             $this->runner->run([$tools['java'], '-Djava.awt.headless=true', '-cp',
                 $metadata->classPath($tools['mustang']), 'ShiRePdfMetadata',
                 $dir . '/combined.pdf', $dir . '/final.pdf', $dir . '/metadata.xml'], $dir);

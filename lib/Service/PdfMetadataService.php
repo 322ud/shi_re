@@ -17,10 +17,13 @@ class PdfMetadataService {
             'creator' => $xp->evaluate('string(/info/name)') . ' ' . $xp->evaluate('string(/info/version)'),
             'producer' => 'MustangCLI ' . ($tools['mustang'] ?? 'unbekannt'),
             'shi_re:libreOfficeVersion' => $tools['libreoffice'] ?? 'unbekannt',
-            'shi_re:INValidatorVersion' => $validator['INValidatorVersion'] ?? 'unbekannt',
-            'inv_validator:kositValidatorVersion' => $validator['kositValidatorVersion'] ?? 'unbekannt',
-            'inv_validator:xrechnungSzenarioVersion' => $validator['xrechnungSzenarioVersion'] ?? 'unbekannt',
         ];
+        // An empty version set means this invoice was not checked with INValidator.
+        if ($validator !== []) {
+            $properties['shi_re:INValidatorVersion'] = $validator['INValidatorVersion'] ?? 'unbekannt';
+            $properties['inv_validator:kositValidatorVersion'] = $validator['kositValidatorVersion'] ?? 'unbekannt';
+            $properties['inv_validator:xrechnungSzenarioVersion'] = $validator['xrechnungSzenarioVersion'] ?? 'unbekannt';
+        }
         if ($veraPdf) $properties['shi_re:veraPDFVersion'] = $tools['verapdf'] ?? 'unbekannt';
         $doc = new \DOMDocument('1.0', 'UTF-8');
         $root = $doc->appendChild($doc->createElement('metadata'));

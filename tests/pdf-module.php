@@ -197,6 +197,18 @@ namespace {
     check($xp->evaluate('count(/metadata/property[@name="shi_re:veraPDFVersion"])') === 0.0, 'Unused veraPDF omitted');
     check($xp->evaluate('string(/metadata/property[@name="inv_validator:xrechnungSzenarioVersion"])') === '2026-01-31', 'Scenario release preserved');
     check(str_contains($metadata->properties('Rechnung', [], [], true), 'unbekannt'), 'Missing versions explicit');
+    foreach ([false, true] as $xmlActive) {
+        foreach ([false, true] as $pdfaActive) {
+            $doc = OdtInvoiceRenderer::xml($metadata->properties('Rechnung', ['verapdf' => '1.28.2'],
+                $xmlActive ? ['INValidatorVersion' => '0.5.1'] : [], $pdfaActive));
+            $xp = new DOMXPath($doc);
+            check($xp->evaluate('count(/metadata/property[starts-with(@name,"inv_validator:") or @name="shi_re:INValidatorVersion"])')
+                === ($xmlActive ? 3.0 : 0.0), 'INValidator metadata only for active XML validation');
+            check($xp->evaluate('count(/metadata/property[@name="shi_re:veraPDFVersion"])')
+                === ($pdfaActive ? 1.0 : 0.0), 'veraPDF metadata only for active PDF/A validation');
+        }
+    }
+
     $dependencies = new PdfDependencyService($config, $runner, $workspace, $templates, $consistency);
     check(!$dependencies->status()['enabled'], 'Missing Mustang disables module');
     $config->system['shi_re_libreoffice'] = PHP_BINARY;
@@ -268,7 +280,7 @@ namespace {
             return '';
         }
     };
-    $pdf = new PdfInvoiceService($fakeDependencies, $templates, $renderer, $fakeRunner, $workspace);
+    $pdf = new PdfInvoiceService($fakeDependencies, $templates, $renderer, $fakeRunner, $workspace, $config);
     rejects(fn () => $pdf->generate($unsupportedXml, $saved['version']), $unsupportedMessage);
     check($fakeRunner->commands === [], 'Unsupported document type rejected before PDF tools run');
     $result = $pdf->generate($bundle['xml'], $saved['version']);
@@ -277,6 +289,11 @@ namespace {
         && in_array('extract', $fakeRunner->commands[3], true)
         && in_array('validate', $fakeRunner->commands[4], true), 'Metadata written before final extraction and validation');
     check(str_contains($fakeRunner->metadata, '<property name="title">Rechnung</property>'), 'Title derived from TypeCode');
+    $config->app['validation_enabled'] = 'no';
+    $pdf->generate($bundle['xml'], $saved['version'], ['INValidatorVersion' => '0.5.1']);
+    check(!str_contains($fakeRunner->metadata, 'Validator') && !str_contains($fakeRunner->metadata, 'inv_validator:'),
+        'Disabling XML validation omits even remembered validator versions');
+    $config->app['validation_enabled'] = 'yes';
     $fakeRunner->failMetadata = true;
     rejects(fn () => $pdf->generate($bundle['xml'], $saved['version']), 'metadata failure');
     $fakeRunner->failMetadata = false;
@@ -460,7 +477,7 @@ namespace {
         if (!str_starts_with($arg, '--mustang=')) continue;
         $config->system['shi_re_mustang_jar'] = substr($arg, 10);
         check($dependencies->status()['enabled'], implode(' ', $dependencies->status()['errors']));
-        $realPdf = new PdfInvoiceService($dependencies, $templates, $renderer, $runner, $workspace);
+        $realPdf = new PdfInvoiceService($dependencies, $templates, $renderer, $runner, $workspace, $config);
         $result = $realPdf->generate($bundle['xml'], $saved['version'], $validator->versions());
         check(str_starts_with($result['content'], '%PDF-'), 'Real Mustang PDF, extraction and validation');
         $dir = $workspace->create();
@@ -504,6 +521,16 @@ namespace {
             check($rewrittenXmp->getElementsByTagNameNS('http://www.aiim.org/pdfa/ns/schema#', 'namespaceURI')->length
                 === $xmp->getElementsByTagNameNS('http://www.aiim.org/pdfa/ns/schema#', 'namespaceURI')->length, 'Rewriting does not duplicate schemas');
             check($rewrittenXmp->getElementsByTagNameNS('https://github.com/322ud/shi_re/ns/metadata/1.0/', 'veraPDFVersion')->length === 0, 'Stale optional version removed');
+            file_put_contents($dir . '/metadata.xml', $metadata->properties($title, $dependencies->status()['versions'], [], false));
+            $runner->run($metadataCommand, $dir);
+            $inactiveXmp = OdtInvoiceRenderer::xml($runner->run(['/usr/bin/pdfinfo', '-meta', $dir . '/rewritten.pdf'], $dir));
+            $inactiveXp = new DOMXPath($inactiveXmp);
+            check($inactiveXp->evaluate('count(//*[namespace-uri()="https://github.com/322ud/inv_validator/ns/metadata/1.0/"])') === 0.0,
+                'Inactive validator properties removed from PDF');
+            check($inactiveXp->evaluate('count(//*[local-name()="namespaceURI" and text()="https://github.com/322ud/inv_validator/ns/metadata/1.0/"])') === 0.0,
+                'Inactive validator schema removed from PDF');
+            check($inactiveXp->evaluate('count(//*[local-name()="INValidatorVersion" or local-name()="veraPDFVersion"])') === 0.0,
+                'Inactive optional tool versions removed from PDF');
             file_put_contents($dir . '/metadata.xml', '<!DOCTYPE metadata [<!ENTITY test SYSTEM "file:///etc/passwd">]><metadata>&test;</metadata>');
             rejects(fn () => $runner->run($metadataCommand, $dir), 'DOCTYPE');
         } finally { $workspace->remove($dir); }
