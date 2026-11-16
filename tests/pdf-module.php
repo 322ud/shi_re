@@ -191,7 +191,9 @@ namespace {
     $runner = new PdfProcessRunner();
     $metadata = new \OCA\ShiRE\Service\PdfMetadataService();
     check($metadata->author('Max Mustermann', '322UD.DE:8443') === 'mm@322ud.de', 'Lowercase initials and domain without port');
-    check($metadata->author('Änne-Marie Öster', 'CLOUD.Example.org') === 'ämö@cloud.example.org', 'Unicode and hyphen initials');
+    check($metadata->author('Änne-Marie Öster', 'CLOUD.Example.org') === 'ämö@example.org', 'Unicode and hyphen initials');
+    check($metadata->author('Frank Bauer', 'cloud.322ud.de') === 'fb@322ud.de', 'Cloud prefix removed from author domain');
+    check($metadata->author('Frank Bauer', 'CLOUD.Example.CO.UK:8443') === 'fb@example.co.uk', 'Multi-part domain suffix preserved');
     $properties = OdtInvoiceRenderer::xml($metadata->properties('Rechnung & Prüfung',
         ['mustang' => '2.26.0', 'libreoffice' => '24.2.1', 'verapdf' => '1.28.2'],
         ['INValidatorVersion' => '0.5.1', 'kositValidatorVersion' => '1.6.0', 'xrechnungSzenarioVersion' => '2026-01-31'], false));
@@ -331,7 +333,7 @@ namespace {
     $fakeDependencies->enabled = true;
 
     $request = new class implements \OCP\IRequest {
-        public function getServerHost(): string { return '322UD.DE:8443'; }
+        public function getServerHost(): string { return 'CLOUD.322UD.DE:8443'; }
         public array $params = [];
         public function getParam($key) { return $this->params[$key] ?? null; }
     };

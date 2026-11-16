@@ -92,7 +92,7 @@ Die PDF-Route akzeptiert ausschließlich die für diesen Vorgang angenommene Arc
 
 LibreOffice exportiert mit `SelectPdfVersion=3` (PDF/A-3b). Mustang kombiniert PDF und XML im Factur-X-Format, Version 1, mit Profil EN16931 oder XRECHNUNG entsprechend der XML-Guideline. Andere Guidelines und mehrere Rechnungspositionen werden abgewiesen. Anschließend ergänzt der Java-Helfer die Metadaten. Erst danach extrahiert Mustang den XML-Anhang; sein SHA-256-Hash muss mit der validierten XML übereinstimmen. Außerdem muss Mustangs Validierung des fertigen PDFs erfolgreich sein. Falls konfiguriert, muss auch veraPDF die PDF/A-3b-Konformität bestätigen. Ohne veraPDF gibt es keinen zusätzlichen unabhängigen PDF/A-Konformitätsnachweis.
 
-Der PDF-Autor (Author und XMP `dc:creator`) wird als `initialen@domain` vollständig in Kleinbuchstaben gesetzt. Die Initialen stammen aus dem Anzeigenamen des angemeldeten Nextcloud-Nutzers (ersatzweise der Benutzerkennung), die Domain aus dem von Nextcloud ermittelten Anfragehost ohne Port.
+Der PDF-Autor (Author und XMP `dc:creator`) wird als `initialen@domain` vollständig in Kleinbuchstaben gesetzt. Die Initialen stammen aus dem Anzeigenamen des angemeldeten Nextcloud-Nutzers (ersatzweise der Benutzerkennung), die Domain aus dem von Nextcloud ermittelten Anfragehost ohne Port und ohne führendes `cloud.` (z. B. `cloud.322ud.de` → `322ud.de`).
 
 Die Standardfelder stehen synchron im PDF-Info-Dictionary und in XMP: Titel (`dc:title`) ist „Rechnung“, abgeleitet aus dem XML-TypeCode 380; Creator (`xmp:CreatorTool`) ist App-Name und Version aus `appinfo/info.xml`; Producer (`pdf:Producer`) ist `MustangCLI <JAR-Version>`. Die JAR-Version stammt aus den JAR-Metadaten, nicht aus Formatversionen im Hilfetext oder aus dem Dateinamen.
 

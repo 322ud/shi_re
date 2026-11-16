@@ -15,6 +15,8 @@ class PdfMetadataService {
         if ($initials[1] === [] || !is_string($domain) || $domain === '') {
             throw new \RuntimeException('PDF-Autor konnte nicht ermittelt werden.');
         }
+        // Use the domain behind the Nextcloud host, e.g. cloud.322ud.de -> 322ud.de.
+        $domain = preg_replace('/^cloud\./i', '', rtrim($domain, '.'));
         return mb_strtolower(implode('', $initials[1]) . '@' . $domain, 'UTF-8');
     }
 
