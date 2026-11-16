@@ -31,7 +31,7 @@
         return data;
     };
 
-    NS.post = async function (path, payload = {}) {
+    async function post(path, payload) {
         payload.windowId = NS.state.windowId;
 
         const response = await fetch(NS.route(path), {
@@ -50,6 +50,12 @@
         }
 
         return data;
+    }
+
+    NS.post = async function (path, payload = {}) {
+        return NS.trackProgress
+            ? NS.trackProgress(path, payload, () => post(path, payload))
+            : post(path, payload);
     };
 
     NS.startHeartbeat = function () {

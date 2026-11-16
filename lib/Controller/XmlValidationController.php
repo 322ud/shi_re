@@ -23,6 +23,7 @@ class XmlValidationController extends Controller {
         private KositValidatorService $validatorService,
         private ValidationProofService $proof,
         private DraftService $drafts,
+        private ?\OCA\ShiRE\Service\ProgressService $progress = null,
     ) {
         parent::__construct($appName, $request);
     }
@@ -53,13 +54,18 @@ class XmlValidationController extends Controller {
 
                 $xml = $folder->getFile(AppFiles::XmlWorkFile)->getContent();
                 if (!$this->validatorService->isActive()) {
+                    $this->progress?->finish('XML-Prüfung übersprungen: INValidator nicht aktiv.');
                     return new JSONResponse([
                         'success' => true, 'valid' => null, 'skipped' => true,
                         'validationToken' => $this->proof->remember($xml, $windowId, [], false),
                         'xmlHash' => hash('sha256', $xml),
                     ]);
                 }
+                $this->progress?->start('XML wird mit INValidator geprüft …');
                 $result = $this->validatorService->validateXml($xml);
+                $this->progress?->finish($result['valid'] === true
+                    ? 'INValidator-Prüfung abgeschlossen: XML valide.'
+                    : 'INValidator-Prüfung abgeschlossen: XML nicht valide. Prüfbericht verfügbar.');
 
                 $token = $result['valid'] === true
                     ? $this->proof->remember($xml, $windowId, $this->validatorService->versions()) : null;
@@ -72,6 +78,7 @@ class XmlValidationController extends Controller {
                 ]);
             });
         } catch (\Throwable $e) {
+            $this->progress?->fail();
             return new JSONResponse([
                 'success' => false,
                 'valid' => false,
@@ -105,6 +112,7 @@ class XmlValidationController extends Controller {
                 ]);
             });
         } catch (\Throwable $e) {
+            $this->progress?->fail();
             return new JSONResponse(['success' => false, 'error' => $e->getMessage()], $e->getCode() === 409 ? 409 : 500);
         }
     }

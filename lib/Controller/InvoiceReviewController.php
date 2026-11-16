@@ -10,7 +10,8 @@ use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 
 class InvoiceReviewController extends Controller {
-    public function __construct(string $appName, IRequest $request, private InvoiceReviewService $review) {
+    public function __construct(string $appName, IRequest $request, private InvoiceReviewService $review,
+        private ?\OCA\ShiRE\Service\ProgressService $progress = null) {
         parent::__construct($appName, $request);
     }
 
@@ -24,10 +25,13 @@ class InvoiceReviewController extends Controller {
             if (!is_bool($accept) || !is_string($hash) || !is_string($windowId)) {
                 throw new \InvalidArgumentException('Ungültige Entscheidung.');
             }
+            $this->progress?->start($accept ? 'XML-Rechnung wird archiviert …' : 'Rechnung wird verworfen …');
             $filename = $this->review->finish($windowId, $hash, $accept,
                 (string)$this->request->getParam('validationToken'), $this->request->getParam('pdf') === true);
+            $this->progress?->finish($accept ? 'XML-Rechnung archiviert: ' . $filename : 'Rechnung verworfen; Entwurfsdateien entfernt.');
             return new JSONResponse(['success' => true, 'filename' => $filename]);
         } catch (\Throwable $e) {
+            $this->progress?->fail();
             return new JSONResponse(['success' => false, 'error' => $e->getMessage()],
                 $e instanceof \InvalidArgumentException ? 400 : (in_array($e->getCode(), [409, 422], true) ? $e->getCode() : 500));
         }

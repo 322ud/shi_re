@@ -39,5 +39,13 @@ namespace {
     $request->values = ['allow_draft_deletion' => false, 'confirmation' => 'ja', 'deletionToken' => 'old-token'];
     check($admin->saveDraftSettings()->status === 200);
     check($invoice->deleteActiveDraft()->status === 403); // Auch alter Button/Token wird gesperrt.
+    $request->values = ['detailed_progress' => 'yes'];
+    check($admin->saveProgressSettings()->status === 400);
+    $request->values = ['detailed_progress' => true];
+    check($admin->saveProgressSettings()->status === 200);
+    check($config->values['detailed_progress'] === 'yes');
+    $request->values = ['detailed_progress' => false];
+    check($admin->saveProgressSettings()->status === 200);
+    check($config->values['detailed_progress'] === 'no');
     echo "Draft deletion default, save and server-side blocking tests passed.\n";
 }

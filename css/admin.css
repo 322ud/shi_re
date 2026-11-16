@@ -65,4 +65,3 @@ transition: transform 0.15s;
 #myx-admin .shire-switch[hidden] { display: none !important; }
 
 #myx-admin .shire-settings-group { margin-top: 24px; }
-#myx-detailed-progress:disabled { cursor: not-allowed !important; }

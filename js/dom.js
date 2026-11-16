@@ -38,7 +38,8 @@
         if (!out) return;
 
         const p = document.createElement('div');
-        p.textContent = text;
+        p.textContent = NS.state?.detailedProgress && NS.progressTime && !/^\[\d{2}:\d{2}:\d{2}\] /.test(text)
+            ? '[' + NS.progressTime() + '] ' + text : text;
         out.appendChild(p);
         out.scrollTop = out.scrollHeight;
     };

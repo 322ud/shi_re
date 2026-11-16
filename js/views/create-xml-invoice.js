@@ -2,6 +2,8 @@
     'use strict';
 
     const NS = window.ShiRE;
+    const progressLabel = text => NS.state.detailedProgress && NS.progressTime
+        ? '[' + NS.progressTime() + '] ' + text : text;
 
     NS.createXmlInvoice = async function (choice) {
         const invoiceData = NS.collectFormData();
@@ -17,7 +19,7 @@
 
 
 
-        NS.log(
+        if (!NS.state.detailedProgress || !NS.progressReported) NS.log(
             'XML-Rechnung erstellt: Datei ' +
             NS.state.xmlInvoiceFile +
             ', Rechnungsnummer ' +
@@ -35,7 +37,7 @@
         input.className = 'myx-xml-validation-result';
         const busy = NS.make('div', {class: 'myx-busy', role: 'status', 'aria-live': 'polite'});
         busy.appendChild(NS.make('span', {class: 'icon-loading-small', 'aria-hidden': 'true'}));
-        const busyText = NS.make('span', {}, NS.state.validationActive === false ? 'XML-Rechnung wird vorbereitet …' : 'XRechnung wird mit KoSIT geprüft …');
+        const busyText = NS.make('span', {}, progressLabel(NS.state.validationActive === false ? 'XML-Rechnung wird vorbereitet …' : 'XRechnung wird mit KoSIT geprüft …'));
         busy.appendChild(busyText);
         input.appendChild(busy);
         let data;
@@ -48,7 +50,7 @@
         } finally {
             busy.hidden = true;
         }
-        NS.log(data.skipped ? 'XML-Rechnung ohne INValidator-Prüfung erstellt'
+        if (!NS.state.detailedProgress || !NS.progressReported) NS.log(data.skipped ? 'XML-Rechnung ohne INValidator-Prüfung erstellt'
             : data.valid ? 'XRechnung (XML) ist valide' : 'XRechnung (XML) ist nicht valide');
         if (data.html && !NS.state.invoiceInterrupted) {
             const frame = NS.make('iframe', {
@@ -70,14 +72,14 @@
             pending = true;
             if (menu) menu.setBusy(true);
             busy.hidden = false;
-            busyText.textContent = choice.startsWith('cancel-') ? 'Rechnung wird verworfen …' : 'XML wird angenommen …';
+            busyText.textContent = progressLabel(choice.startsWith('cancel-') ? 'Rechnung wird verworfen …' : 'XML wird angenommen …');
             let finished = false;
             try {
                 const accepted = choice === 'pdf' || choice.startsWith('accept-');
                 const result = await NS.post('/en16931/review', {xmlHash: data.xmlHash, accept: accepted,
                     validationToken: NS.state.validationToken, pdf: choice === 'pdf'});
                 finished = true;
-                if (accepted) NS.log('XML-Rechnung archiviert');
+                if (accepted && (!NS.state.detailedProgress || !NS.progressReported)) NS.log('XML-Rechnung archiviert');
                 NS.stopHeartbeat();
                 if (menu) menu.destroy();
                 if (choice === 'pdf') {
@@ -144,33 +146,57 @@
         NS.clear(input);
         const busy = NS.make('div', {class: 'myx-busy', role: 'status'});
         busy.appendChild(NS.make('span', {class: 'icon-loading-small', 'aria-hidden': 'true'}));
-        busy.appendChild(NS.make('span', {}, 'PDF-Rechnung wird aus der archivierten XML erstellt …'));
+        busy.appendChild(NS.make('span', {}, progressLabel(NS.state.detailedProgress
+            ? 'PDF-Werkzeuge und Vorlagen werden geprüft …' : 'PDF-Rechnung wird aus der archivierten XML erstellt …')));
         input.appendChild(busy);
         try {
             const {status} = await NS.post('/pdf/status');
             if (!status.enabled) throw new Error(status.message);
-            const response = await fetch(NS.route('/en16931/downloadPdfInvoice'), {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json', requesttoken: OC.requestToken},
-                body: JSON.stringify({filename, xmlHash, templateVersion: status.templateVersion,
-                    windowId: NS.state.windowId, validationToken: NS.state.validationToken}),
-            });
+            const payload = {filename, xmlHash, templateVersion: status.templateVersion,
+                windowId: NS.state.windowId, validationToken: NS.state.validationToken};
+            const download = async () => {
+                const response = await fetch(NS.route('/en16931/downloadPdfInvoice'), {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', requesttoken: OC.requestToken},
+                    body: JSON.stringify(payload),
+                });
+                // Receive the complete file before ending progress collection.
+                if (response.ok && !response.redirected && (response.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase() === 'application/pdf') {
+                    pdfBlob = await response.blob();
+                }
+                return response;
+            };
+            let pdfBlob;
+            const response = NS.trackProgress
+                ? await NS.trackProgress('/en16931/downloadPdfInvoice', payload, download) : await download();
             const type = (response.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
             if (!response.ok || response.redirected || type !== 'application/pdf') {
                 let message = 'PDF-Erstellung fehlgeschlagen (HTTP ' + response.status + ').';
                 if (type === 'application/json') message = (await NS.readJsonResponse(response, '/en16931/downloadPdfInvoice')).error || message;
                 throw new Error(message);
             }
-            NS.state.pdfDownloadUrl = URL.createObjectURL(await response.blob());
-            NS.log('PDF-Rechnung erstellt');
-            NS.log('PDF-Rechnung archiviert');
+            NS.state.pdfDownloadUrl = URL.createObjectURL(pdfBlob);
+            if (!NS.state.detailedProgress || !NS.progressReported) {
+                NS.log('PDF-Rechnung erstellt');
+                NS.log('PDF-Rechnung archiviert');
+            }
             NS.showFinishedInvoice(function () {
                 const link = NS.make('a', {href: NS.state.pdfDownloadUrl, download: filename.replace(/\.xml$/, '.pdf')});
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
+                if (NS.state.detailedProgress) NS.log('PDF-Download gestartet.');
             });
-            input.appendChild(NS.make('iframe', {src: NS.state.pdfDownloadUrl, title: 'PDF-Rechnung', class: 'myx-validation-frame'}));
+            const preview = NS.make('iframe', {src: NS.state.pdfDownloadUrl, title: 'PDF-Rechnung', class: 'myx-validation-frame'});
+            if (NS.state.detailedProgress) {
+                const loading = NS.make('p', {role: 'status'}, '[' + NS.progressTime() + '] PDF-Rechnung wird zur Anzeige geladen …');
+                input.appendChild(loading);
+                preview.addEventListener('load', () => {
+                    loading.remove();
+                    NS.log('PDF-Rechnung zur Anzeige und zum Speichern bereit.');
+                }, {once: true});
+            }
+            input.appendChild(preview);
         } catch (error) {
             NS.showFinishedInvoice();
             NS.log('XML ist archiviert. PDF: ' + error.message);

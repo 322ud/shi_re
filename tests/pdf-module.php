@@ -282,7 +282,16 @@ namespace {
             return '';
         }
     };
-    $pdf = new PdfInvoiceService($fakeDependencies, $templates, $renderer, $fakeRunner, $workspace, $config);
+    require __DIR__ . '/../lib/Service/ProgressService.php';
+    $progress = new class extends \OCA\ShiRE\Service\ProgressService {
+        public array $events = [];
+        public ?string $current = null;
+        public function __construct() {}
+        public function start(string $text): void { $this->current = $text; }
+        public function finish(string $text): void { $this->events[] = $text; $this->current = null; }
+        public function fail(): void { if ($this->current !== null) $this->finish('FAILED: ' . $this->current); }
+    };
+    $pdf = new PdfInvoiceService($fakeDependencies, $templates, $renderer, $fakeRunner, $workspace, $config, $progress);
     rejects(fn () => $pdf->generate($unsupportedXml, $saved['version']), $unsupportedMessage);
     check($fakeRunner->commands === [], 'Unsupported document type rejected before PDF tools run');
     $result = $pdf->generate($bundle['xml'], $saved['version']);
@@ -296,8 +305,16 @@ namespace {
     check(!str_contains($fakeRunner->metadata, 'Validator') && !str_contains($fakeRunner->metadata, 'inv_validator:'),
         'Disabling XML validation omits even remembered validator versions');
     $config->app['validation_enabled'] = 'yes';
+    check(in_array('PDF aus der Rechnungsvorlage erzeugt.', $progress->events, true), 'LibreOffice completion reported');
+    check(in_array('Mustang-Prüfung erfolgreich abgeschlossen.', $progress->events, true), 'Mustang completion reported');
+    check(in_array('Zusätzliche PDF/A-3b-Prüfung mit veraPDF nicht aktiviert.', $progress->events, true), 'Skipped veraPDF explicitly reported');
+    check(!in_array('PDF/A-3b-Prüfung erfolgreich abgeschlossen.', $progress->events, true), 'No success reported for skipped validation');
+    $progress->events = [];
     $fakeRunner->failMetadata = true;
     rejects(fn () => $pdf->generate($bundle['xml'], $saved['version']), 'metadata failure');
+    check(in_array('FAILED: PDF-Metadaten werden ergänzt …', $progress->events, true), 'Failed metadata step identified');
+    check(!in_array('PDF-Metadaten ergänzt.', $progress->events, true), 'No false metadata completion after failure');
+    check(end($progress->events) === 'Temporäre PDF-Arbeitsdateien entfernt.', 'Cleanup completion survives PDF failure');
     $fakeRunner->failMetadata = false;
     check($result['filename'] === '26 200.pdf', 'Invoice ID filename');
     check(PdfInvoiceService::filename('../../a/b') === '_.._a_b.pdf', 'Filename sanitization');
@@ -336,7 +353,7 @@ namespace {
         $request->params['validationToken'] = $token;
         $request->params['windowId'] = 'window';
     };
-    $controller = new \OCA\ShiRE\Controller\PdfInvoiceController('shi_re', $request, $storage, $proof, $fakeDependencies, $templates, $pdf, $logger, $locking);
+    $controller = new \OCA\ShiRE\Controller\PdfInvoiceController('shi_re', $request, $storage, $proof, $fakeDependencies, $templates, $pdf, $logger, $locking, $progress);
     $storage->files['en16931.xml'] = $bundle['xml'];
     check($controller->download()->status === 400 && $validator->calls === 0, 'Temporary XML cannot generate PDF');
     $storage->files['26 200.xml'] = $bundle['xml'];

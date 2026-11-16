@@ -29,6 +29,7 @@ class EN16931Controller extends Controller {
         private IConfig $config,
         private ValidationProofService $proof,
         private \OCP\IUserSession $users,
+        private ?\OCA\ShiRE\Service\ProgressService $progress = null,
     ) {
         parent::__construct($appName, $request);
     }
@@ -75,6 +76,7 @@ class EN16931Controller extends Controller {
                         ? null : $this->draftService->deletionToken($activeDraft),
                 ], 409);
             }
+            $this->progress?->fail();
             return $this->errorResponse($e);
         }
     }
@@ -102,6 +104,7 @@ class EN16931Controller extends Controller {
             $this->draftService->deleteConfirmed($token, $this->draftXmlService);
             return new JSONResponse(['success' => true]);
         } catch (\Throwable $e) {
+            $this->progress?->fail();
             return $this->errorResponse($e);
         }
     }
@@ -123,6 +126,7 @@ class EN16931Controller extends Controller {
                 'draft' => $this->publicDraftData($draft),
             ]);
         } catch (\Throwable $e) {
+            $this->progress?->fail();
             return $this->errorResponse($e);
         }
     }
@@ -161,6 +165,7 @@ class EN16931Controller extends Controller {
                     throw new \RuntimeException('Kein Nextcloud-Nutzer angemeldet.', 401);
                 }
 
+                $this->progress?->start('Rechnungsdaten werden geprüft …');
                 $this->invoiceXmlService->apply(
                     $dom,
                     $invoiceData,
@@ -169,7 +174,10 @@ class EN16931Controller extends Controller {
                     trim($user->getDisplayName()) ?: $user->getUID(),
                 );
 
+                $this->progress?->finish('Rechnungsdaten auf Pflichtfelder und zulässige Werte geprüft.');
+                $this->progress?->start('XML-Rechnung wird erstellt …');
                 $this->domService->saveDom($dom, AppFiles::XmlWorkFile);
+                $this->progress?->finish('XML-Rechnung erstellt: Rechnungsnummer ' . $draft['ramID'] . '.');
 
                 $this->draftXmlService->delete();
                 // Keep ownership until the user accepts or discards the reviewed XML.
@@ -183,6 +191,7 @@ class EN16931Controller extends Controller {
                 ]);
             });
         } catch (\Throwable $e) {
+            $this->progress?->fail();
             return $this->errorResponse($e);
         }
     }
@@ -194,12 +203,15 @@ class EN16931Controller extends Controller {
     #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/en16931/cancel')]
     public function cancel(): JSONResponse {
         try {
+            $this->progress?->start('Rechnung wird verworfen …');
             $this->draftService->cancel($this->windowIdFromRequest());
+            $this->progress?->finish('Rechnung verworfen; Entwurfsdateien entfernt.');
 
             return new JSONResponse([
                 'success' => true,
             ]);
         } catch (\Throwable $e) {
+            $this->progress?->fail();
             return $this->errorResponse($e);
         }
     }

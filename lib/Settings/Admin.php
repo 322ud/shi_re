@@ -25,6 +25,7 @@ class Admin implements ISettings {
             'readmeUrl' => $this->urls->linkToRoute('shi_re.page.readme'),
             'status' => $this->dependency->settings(),
             'allowDraftDeletion' => $this->config->getAppValue('shi_re', 'allow_draft_deletion', 'no') === 'yes',
+            'detailedProgress' => $this->config->getAppValue('shi_re', 'detailed_progress', 'no') === 'yes',
             'customTemplates' => $this->config->getAppValue('shi_re', 'custom_templates', 'no') === 'yes',
             'pdfStatus' => $this->pdf->status(),
         ]);

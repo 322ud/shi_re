@@ -43,6 +43,7 @@ class PageController extends Controller {
         Util::addScript('shi_re', 'dom');
         Util::addScript('shi_re', 'validation-actions');
         Util::addScript('shi_re', 'api');
+        Util::addScript('shi_re', 'progress');
         Util::addScript('shi_re', 'calc');
         Util::addScript('shi_re', 'draft');
         Util::addScript('shi_re', 'views/form');

@@ -13,16 +13,20 @@ class PdfInvoiceService {
         private PdfProcessRunner $runner,
         private PdfWorkspace $workspace,
         private IConfig $config,
+        private ?ProgressService $progress = null,
     ) {}
 
     /** Aufrufer muss exakt diese XML-Bytes serverseitig zur PDF-Erzeugung freigegeben haben. */
     public function generate(string $xml, string $templateVersion, array $validatorVersions = []): array {
+        $this->progress?->start('PDF-Werkzeuge und Vorlagen werden geprüft …');
         $status = $this->dependencies->status();
         if (!$status['enabled']) throw new \RuntimeException(implode("\n", $status['errors']), 503);
         $bundle = $this->templates->current();
         if (!hash_equals($bundle['version'], $templateVersion)) {
             throw new \RuntimeException('Die Vorlagen haben sich geändert. Bitte erneut validieren.', 409);
         }
+        $this->progress?->finish('PDF-Werkzeuge und Vorlagen verfügbar.');
+        $this->progress?->start('Rechnungsdaten werden in die ODT-Vorlage übertragen …');
         $values = $this->renderer->values($this->renderer->mapping($bundle['mapping']), $xml);
         $name = self::filename($values['{{ID}}']);
         $tools = $this->dependencies->tools();
@@ -30,18 +34,24 @@ class PdfInvoiceService {
         try {
             $this->write($dir . '/invoice.xml', $xml);
             $this->write($dir . '/invoice.odt', $this->renderer->render($bundle['odt'], $values));
+            $this->progress?->finish('ODT-Rechnungsvorlage ausgefüllt.');
+            $this->progress?->start('PDF wird mit LibreOffice erzeugt …');
             $profile = 'file://' . implode('/', array_map('rawurlencode', explode('/', $dir . '/lo-profile')));
             $this->runner->run([$tools['libreoffice'], '-env:UserInstallation=' . $profile,
                 '--headless', '--nologo', '--nodefault', '--norestore', '--convert-to',
                 'pdf:writer_pdf_Export:{"SelectPdfVersion":{"type":"long","value":"3"}}',
                 '--outdir', $dir, $dir . '/invoice.odt'], $dir);
             $this->pdf($dir . '/invoice.pdf'); // LibreOffice meldet manche Exportfehler mit Exitcode 0.
+            $this->progress?->finish('PDF aus der Rechnungsvorlage erzeugt.');
+            $this->progress?->start('XML wird mit Mustang in die PDF eingebettet …');
             $base = [$tools['java'], '-jar', $tools['mustang'], '--disable-file-logging'];
             $this->runner->run(array_merge($base, ['--action', 'combine', '--source', $dir . '/invoice.pdf',
                 '--source-xml', $dir . '/invoice.xml', '--out', $dir . '/combined.pdf',
                 '--format', 'fx', '--version', '1', '--profile', $this->profile($xml),
                 '--no-additional-attachments']), $dir);
             $this->pdf($dir . '/combined.pdf');
+            $this->progress?->finish('XML-Rechnung in PDF eingebettet.');
+            $this->progress?->start('PDF-Metadaten werden ergänzt …');
             $metadata = new PdfMetadataService();
             $this->write($dir . '/metadata.xml', $metadata->properties($values['{{DocumentType}}'], $status['versions'] ?? [],
                 $this->config->getAppValue('shi_re', 'validation_enabled', 'yes') === 'yes' ? $validatorVersions : [],
@@ -50,14 +60,20 @@ class PdfInvoiceService {
                 $metadata->classPath($tools['mustang']), 'ShiRePdfMetadata',
                 $dir . '/combined.pdf', $dir . '/final.pdf', $dir . '/metadata.xml'], $dir);
             $pdf = $this->pdf($dir . '/final.pdf');
+            $this->progress?->finish('PDF-Metadaten ergänzt.');
+            $this->progress?->start('Eingebettete XML wird abgeglichen …');
             $this->runner->run(array_merge($base, ['--action', 'extract', '--source', $dir . '/final.pdf',
                 '--out', $dir . '/extracted.xml']), $dir);
             $extracted = @file_get_contents($dir . '/extracted.xml');
             if ($extracted === false || !hash_equals(hash('sha256', $xml), hash('sha256', $extracted))) {
                 throw new \RuntimeException('Die eingebettete XML stimmt nicht mit der validierten XML überein.');
             }
+            $this->progress?->finish('Eingebettete XML stimmt mit der archivierten XML überein.');
+            $this->progress?->start('PDF-Rechnung wird mit Mustang geprüft …');
             $this->runner->run(array_merge($base, ['--action', 'validate', '--source', $dir . '/final.pdf']), $dir);
+            $this->progress?->finish('Mustang-Prüfung erfolgreich abgeschlossen.');
             if ($tools['verapdf'] !== '') {
+                $this->progress?->start('PDF/A-3b wird mit veraPDF geprüft …');
                 $report = $this->runner->run([$tools['verapdf'], '--format', 'xml', '--flavour', '3b', $dir . '/final.pdf'], $dir);
                 $doc = OdtInvoiceRenderer::xml($report);
                 $xp = new \DOMXPath($doc);
@@ -65,10 +81,18 @@ class PdfInvoiceService {
                 if ($results->length !== 1 || $results->item(0)->getAttribute('isCompliant') !== 'true') {
                     throw new \RuntimeException('PDF/A-3b-Prüfung fehlgeschlagen.');
                 }
+                $this->progress?->finish('PDF/A-3b-Prüfung erfolgreich abgeschlossen.');
+            } else {
+                $this->progress?->finish('Zusätzliche PDF/A-3b-Prüfung mit veraPDF nicht aktiviert.');
             }
             return ['content' => $pdf, 'filename' => $name];
+        } catch (\Throwable $e) {
+            $this->progress?->fail();
+            throw $e;
         } finally {
+            $this->progress?->start('Temporäre PDF-Arbeitsdateien werden entfernt …');
             $this->workspace->remove($dir);
+            $this->progress?->finish('Temporäre PDF-Arbeitsdateien entfernt.');
         }
     }
 

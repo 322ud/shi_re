@@ -64,7 +64,7 @@ $status = $_['status'];
             <span id="myx-allow-draft-deletion-label">zeige Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt</span>
         </div>
         <div class="shire-switch">
-            <input id="myx-detailed-progress" type="checkbox" role="switch" aria-labelledby="myx-detailed-progress-label" disabled>
+            <input id="myx-detailed-progress" type="checkbox" role="switch" aria-labelledby="myx-detailed-progress-label" <?php if ($_['detailedProgress'] ?? false) { print_unescaped('checked'); } ?>>
             <span id="myx-detailed-progress-label">ausführliche Ablaufdokumentation</span>
         </div>
         <button id="myx-clear-archive" type="button">Archiv leeren</button>

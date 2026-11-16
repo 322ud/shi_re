@@ -69,8 +69,11 @@ const path = require('node:path');
         assert.equal(await page.locator('[aria-labelledby="shire-validation-title"] #myx-validation-enabled').count(), 1);
         assert.equal(await page.locator('[aria-labelledby="shire-templates-title"] #myx-pdf-templates').count(), 1);
         assert.equal(await page.locator('[aria-labelledby="shire-other-title"] #myx-clear-archive').count(), 1);
-        assert.equal(await page.locator('#myx-detailed-progress').isDisabled(), true);
+        assert.equal(await page.locator('#myx-detailed-progress').isDisabled(), false);
         assert.equal(await page.locator('#myx-detailed-progress').isChecked(), false);
+        await page.locator('#myx-detailed-progress').check();
+        await page.waitForFunction(() => !document.getElementById('myx-detailed-progress').disabled);
+        assert.ok((await page.evaluate(() => calls)).some(call => call.url.endsWith('/admin/progress/settings') && call.body.detailed_progress === true));
         assert.equal(await page.locator('#myx-clear-archive').evaluate(node => Boolean(
             node.compareDocumentPosition(document.getElementById('shire-admin-readme-title')) & Node.DOCUMENT_POSITION_FOLLOWING)), true);
 

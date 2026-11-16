@@ -24,6 +24,7 @@ class PdfInvoiceController extends Controller {
         private PdfDependencyService $dependencies, private InvoiceTemplateService $templates,
         private PdfInvoiceService $pdf, private LoggerInterface $logger,
         private ILockingProvider $locking,
+        private ?\OCA\ShiRE\Service\ProgressService $progress = null,
     ) { parent::__construct($appName, $request); }
 
     #[NoAdminRequired]
@@ -43,6 +44,7 @@ class PdfInvoiceController extends Controller {
         try {
             return $this->proof->locked(fn () => $this->generateDownload());
         } catch (\Throwable $e) {
+            $this->progress?->fail();
             return new JSONResponse(['success' => false, 'error' => 'PDF-Vorgang ist derzeit gesperrt.'], 500);
         }
     }
@@ -66,6 +68,7 @@ class PdfInvoiceController extends Controller {
             $this->proof->clear();
             $validatorVersions = $proof['versions'];
             $result = $this->pdf->generate($xml, $version, $validatorVersions);
+            $this->progress?->start('PDF-Rechnung wird archiviert …');
             // Prüfung und Neuanlage gemeinsam sperren: Auch parallele Requests
             // dürfen eine bereits archivierte Rechnung niemals ersetzen.
             $lock = 'shi_re/pdf/' . hash('sha256', $result['filename']);
@@ -82,11 +85,13 @@ class PdfInvoiceController extends Controller {
             } finally {
                 $this->locking->releaseLock($lock, ILockingProvider::LOCK_EXCLUSIVE);
             }
+            $this->progress?->finish('PDF-Rechnung archiviert: ' . $result['filename']);
             return new DataDownloadResponse($result['content'], $result['filename'], 'application/pdf', 200, [
                 'Cache-Control' => 'no-store', 'X-Content-Type-Options' => 'nosniff',
                 'X-Invoice-Filename' => rawurlencode($result['filename']),
             ]);
         } catch (\Throwable $e) {
+            $this->progress?->fail();
             $this->logger->error('PDF-Rechnung fehlgeschlagen', ['exception' => $e, 'app' => 'shi_re']);
             $status = in_array($e->getCode(), [409, 422, 503], true) ? $e->getCode() : 500;
             return new JSONResponse(['success' => false, 'error' => in_array($status, [409, 422], true) ? $e->getMessage()
