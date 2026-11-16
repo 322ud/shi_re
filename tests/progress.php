@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace OCP { interface IConfig {} interface IRequest {} interface IUserSession {} interface ISession {} }
+namespace OCP\AppFramework { class Controller { protected $request; } }
+namespace OCP\AppFramework\Http { class JSONResponse { public function __construct(public array $data) {} } }
 namespace {
     require __DIR__ . '/../lib/Service/ProgressService.php';
     function check(bool $ok): void { if (!$ok) throw new RuntimeException('Progress test failed'); }
@@ -54,5 +56,20 @@ namespace {
     $before = $config->values;
     $request->params['progressId'] = '../invalid'; $make()->start('ignored');
     check($before === $config->values);
+    // Exercise the established status route without initializing release lookup dependencies.
+    require __DIR__ . '/../lib/Controller/ValidatorAdminController.php';
+    $request->params = ['action' => 'progress', 'progressId' => str_repeat('b', 32), 'windowId' => 'window'];
+    $make()->start('Aktueller Schritt');
+    $reflection = new ReflectionClass(\OCA\ShiRE\Controller\ValidatorAdminController::class);
+    $controller = $reflection->newInstanceWithoutConstructor();
+    $reflection->getProperty('request')->setValue($controller, $request);
+    $reflection->getProperty('progress')->setValue($controller, $make());
+    check($controller->status()->data['progress']['current']['text'] === 'Aktueller Schritt');
+    $request->params['windowId'] = 'other-window';
+    check($controller->status()->data['progress'] === null);
+    $request->params['windowId'] = 'window';
+    $users->uid = 'bob';
+    check($controller->status()->data['progress'] === null);
+    $users->uid = 'alice';
     echo "Progress snapshots: live state, timestamps, failures, session release, isolation, expiration and disabled mode passed.\n";
 }

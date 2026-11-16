@@ -40,12 +40,21 @@ namespace {
     check($admin->saveDraftSettings()->status === 200);
     check($invoice->deleteActiveDraft()->status === 403); // Auch alter Button/Token wird gesperrt.
     $request->values = ['detailed_progress' => 'yes'];
-    check($admin->saveProgressSettings()->status === 400);
+    check($admin->save()->status === 400);
     $request->values = ['detailed_progress' => true];
-    check($admin->saveProgressSettings()->status === 200);
+    check($admin->save()->status === 200);
     check($config->values['detailed_progress'] === 'yes');
     $request->values = ['detailed_progress' => false];
-    check($admin->saveProgressSettings()->status === 200);
+    check($admin->save()->status === 200);
     check($config->values['detailed_progress'] === 'no');
+    // Both the established route and newer alias retain admin and CSRF requirements.
+    foreach (['save', 'saveProgressSettings'] as $method) {
+        $reflection = new ReflectionMethod($admin, $method);
+        foreach (['NoAdminRequired', 'NoCSRFRequired'] as $attribute) {
+            check($reflection->getAttributes('OCP\\AppFramework\\Http\\Attribute\\' . $attribute) === []);
+        }
+    }
+    $request->values = ['detailed_progress' => true];
+    check($admin->saveProgressSettings()->status === 200); // Newer clients remain compatible.
     echo "Draft deletion default, save and server-side blocking tests passed.\n";
 }

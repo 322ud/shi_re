@@ -22,7 +22,8 @@ const path = require('node:path');
             window.polls = 0;
             window.fetch = async (url, options) => {
                 const body = JSON.parse(options.body);
-                if (url === '/progress/status') {
+                if (url === '/validator/status') {
+                    if (body.action !== 'progress') throw Error('Missing progress action');
                     window.polls++;
                     if (body.progressId !== window.operation.progressId || body.windowId !== 'window') throw Error('Wrong operation');
                     return new Response(JSON.stringify({success: true, progress: window.snapshot}), {headers: {'Content-Type': 'application/json'}});
@@ -53,7 +54,7 @@ const path = require('node:path');
         await page.evaluate(async () => {
             ShiRE.state.detailedProgress = false;
             window.fetch = async (url, options) => {
-                if (url === '/progress/status' || JSON.parse(options.body).progressId) throw Error('Disabled progress made request');
+                if (url === '/validator/status' || JSON.parse(options.body).progressId) throw Error('Disabled progress made request');
                 return new Response(JSON.stringify({success: true}));
             };
             await ShiRE.post('/en16931/createXmlInvoice');

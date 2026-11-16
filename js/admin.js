@@ -67,7 +67,7 @@
                 }
             });
         }
-        bindSwitch('myx-detailed-progress', '/admin/progress/settings', 'detailed_progress');
+        bindSwitch('myx-detailed-progress', '/admin/validator/settings', 'detailed_progress');
         bindSwitch('myx-allow-draft-deletion', '/admin/draft/settings', 'allow_draft_deletion');
         bindSwitch('myx-hide-validator', '/admin/validator/settings', 'hide_navigation');
         bindSwitch('myx-auto-update', '/admin/validator/settings', 'auto_update', data => showValidatorStatus(data.status));

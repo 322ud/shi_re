@@ -35,13 +35,13 @@
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 3000);
             try {
-                const response = await fetch(NS.route('/progress/status'), {
+                const response = await fetch(NS.route('/validator/status'), {
                     method: 'POST', signal: controller.signal,
                     headers: {'Content-Type': 'application/json', requesttoken: OC.requestToken},
-                    body: JSON.stringify({progressId: body.progressId, windowId}),
+                    body: JSON.stringify({action: 'progress', progressId: body.progressId, windowId}),
                 });
                 if (!response.ok) return;
-                const data = await NS.readJsonResponse(response, '/progress/status');
+                const data = await NS.readJsonResponse(response, '/validator/status');
                 if (!active || NS.state.invoiceInterrupted || NS.state.windowId !== windowId) return;
                 const snapshot = data.progress;
                 if (!snapshot) return;

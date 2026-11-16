@@ -11,7 +11,7 @@ for (const root of ['', '/nextcloud']) {
             window: {ShiRE: ns},
             OC: {generateUrl: path => root + (rewritten ? '' : '/index.php') + path},
         });
-        for (const path of ['/pdf/invoices', '/en16931/review', '/en16931/downloadPdfInvoice', '/pdf/saved']) {
+        for (const path of ['/pdf/invoices', '/en16931/review', '/en16931/downloadPdfInvoice', '/pdf/saved', '/validator/status', '/admin/validator/settings']) {
             assert.equal(ns.route(path), root + '/index.php/apps/shi_re' + path);
         }
     }
