@@ -17,7 +17,7 @@ class PdfInvoiceService {
     ) {}
 
     /** Aufrufer muss exakt diese XML-Bytes serverseitig zur PDF-Erzeugung freigegeben haben. */
-    public function generate(string $xml, string $templateVersion, array $validatorVersions = []): array {
+    public function generate(string $xml, string $templateVersion, array $validatorVersions = [], string $author = 'unbekannt'): array {
         $this->progress?->start('PDF-Werkzeuge und Vorlagen werden geprüft …');
         $status = $this->dependencies->status();
         if (!$status['enabled']) throw new \RuntimeException(implode("\n", $status['errors']), 503);
@@ -55,7 +55,7 @@ class PdfInvoiceService {
             $metadata = new PdfMetadataService();
             $this->write($dir . '/metadata.xml', $metadata->properties($values['{{DocumentType}}'], $status['versions'] ?? [],
                 $this->config->getAppValue('shi_re', 'validation_enabled', 'yes') === 'yes' ? $validatorVersions : [],
-                $tools['verapdf'] !== ''));
+                $tools['verapdf'] !== '', $author));
             $this->runner->run([$tools['java'], '-Djava.awt.headless=true', '-cp',
                 $metadata->classPath($tools['mustang']), 'ShiRePdfMetadata',
                 $dir . '/combined.pdf', $dir . '/final.pdf', $dir . '/metadata.xml'], $dir);

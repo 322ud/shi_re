@@ -9,6 +9,7 @@ namespace {
             public function getUser(): object {
                 return new class($this->uid) {
                     public function __construct(private string $uid) {}
+                    public function getDisplayName(): string { return $this->uid; }
                     public function getUID(): string { return $this->uid; }
                 };
             }

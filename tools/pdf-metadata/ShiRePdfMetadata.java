@@ -59,6 +59,9 @@ public final class ShiRePdfMetadata {
             Element alt = element(title, RDF, "rdf:Alt", null);
             Element text = element(alt, RDF, "rdf:li", required(values, "title"));
             text.setAttributeNS(XMLConstants.XML_NS_URI, "xml:lang", "x-default");
+            removeProperty(rdf, DC, "creator");
+            Element author = element(description, DC, "dc:creator", null);
+            element(element(author, RDF, "rdf:Seq", null), RDF, "rdf:li", required(values, "author"));
             replace(rdf, description, XMP, "xmp:CreatorTool", required(values, "creator"));
             replace(rdf, description, PDF, "pdf:Producer", required(values, "producer"));
 
@@ -68,6 +71,7 @@ public final class ShiRePdfMetadata {
                 new String[]{"kositValidatorVersion", "xrechnungSzenarioVersion"});
 
             PDDocumentInformation info = pdf.getDocumentInformation();
+            info.setAuthor(required(values, "author"));
             info.setTitle(values.get("title"));
             info.setCreator(values.get("creator"));
             info.setProducer(values.get("producer"));

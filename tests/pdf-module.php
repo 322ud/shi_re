@@ -190,6 +190,8 @@ namespace {
     check($templates->current()['version'] === $saved['version'], 'Re-enabling valid saved templates works');
     $runner = new PdfProcessRunner();
     $metadata = new \OCA\ShiRE\Service\PdfMetadataService();
+    check($metadata->author('Max Mustermann', '322UD.DE:8443') === 'mm@322ud.de', 'Lowercase initials and domain without port');
+    check($metadata->author('Änne-Marie Öster', 'CLOUD.Example.org') === 'ämö@cloud.example.org', 'Unicode and hyphen initials');
     $properties = OdtInvoiceRenderer::xml($metadata->properties('Rechnung & Prüfung',
         ['mustang' => '2.26.0', 'libreoffice' => '24.2.1', 'verapdf' => '1.28.2'],
         ['INValidatorVersion' => '0.5.1', 'kositValidatorVersion' => '1.6.0', 'xrechnungSzenarioVersion' => '2026-01-31'], false));
@@ -329,6 +331,7 @@ namespace {
     $fakeDependencies->enabled = true;
 
     $request = new class implements \OCP\IRequest {
+        public function getServerHost(): string { return '322UD.DE:8443'; }
         public array $params = [];
         public function getParam($key) { return $this->params[$key] ?? null; }
     };
@@ -353,7 +356,7 @@ namespace {
         $request->params['validationToken'] = $token;
         $request->params['windowId'] = 'window';
     };
-    $controller = new \OCA\ShiRE\Controller\PdfInvoiceController('shi_re', $request, $storage, $proof, $fakeDependencies, $templates, $pdf, $logger, $locking, $progress);
+    $controller = new \OCA\ShiRE\Controller\PdfInvoiceController('shi_re', $request, $storage, $proof, $fakeDependencies, $templates, $pdf, $logger, $locking, $users, $progress);
     $storage->files['en16931.xml'] = $bundle['xml'];
     check($controller->download()->status === 400 && $validator->calls === 0, 'Temporary XML cannot generate PDF');
     $storage->files['26 200.xml'] = $bundle['xml'];
@@ -362,6 +365,7 @@ namespace {
     check($controller->download()->status === 409, 'Archive alone does not authorize PDF');
     $authorizePdf($bundle['xml']);
     check($controller->download() instanceof \OCP\AppFramework\Http\DataDownloadResponse, 'Validated PDF response');
+    check(str_contains($fakeRunner->metadata, '<property name="author">a@322ud.de</property>'), 'Current user and request host reach PDF metadata');
     check(str_contains($fakeRunner->metadata, '<property name="inv_validator:kositValidatorVersion">1.6.0</property>')
         && str_contains($fakeRunner->metadata, '<property name="inv_validator:xrechnungSzenarioVersion">2026-01-31</property>'), 'Controller forwards local validator versions to PDF metadata');
     check($storage->files['26 200.pdf'] === '%PDF-1.7 final', 'Generated PDF persisted');
@@ -547,11 +551,14 @@ namespace {
             check(($xp->evaluate('count(//shi_re:veraPDFVersion)') === 1.0) === $hasVeraPdf, 'veraPDF version only when used');
             // Rewriting must replace old values/schema declarations, including attribute-form XMP from LibreOffice.
             $title = 'Rechnung Ä & <2026>';
-            file_put_contents($dir . '/metadata.xml', $metadata->properties($title, $dependencies->status()['versions'], $validator->versions(), false));
+            file_put_contents($dir . '/metadata.xml', $metadata->properties($title, $dependencies->status()['versions'], $validator->versions(), false, 'mm@322ud.de'));
             $metadataCommand = ['/usr/bin/java', '-cp', $metadata->classPath($config->system['shi_re_mustang_jar']), 'ShiRePdfMetadata',
                 $dir . '/final.pdf', $dir . '/rewritten.pdf', $dir . '/metadata.xml'];
             $runner->run($metadataCommand, $dir);
             $rewrittenXmp = OdtInvoiceRenderer::xml($runner->run(['/usr/bin/pdfinfo', '-meta', $dir . '/rewritten.pdf'], $dir));
+            check($rewrittenXmp->getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', 'creator')->length === 1, 'One XMP author after rewrite');
+            check($rewrittenXmp->getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', 'creator')->item(0)->textContent === 'mm@322ud.de', 'XMP author updated');
+            check(preg_match('/^Author:\s+mm@322ud.de$/m', $runner->run(['/usr/bin/pdfinfo', $dir . '/rewritten.pdf'], $dir)) === 1, 'PDF Info author updated');
             check($rewrittenXmp->getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', 'title')->length === 1, 'One title after rewrite');
             check($rewrittenXmp->getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', 'title')->item(0)->textContent === $title, 'Unicode and XML characters survive PDF metadata round trip');
             check($rewrittenXmp->getElementsByTagNameNS('http://www.aiim.org/pdfa/ns/schema#', 'namespaceURI')->length

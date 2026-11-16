@@ -24,6 +24,7 @@ class PdfInvoiceController extends Controller {
         private PdfDependencyService $dependencies, private InvoiceTemplateService $templates,
         private PdfInvoiceService $pdf, private LoggerInterface $logger,
         private ILockingProvider $locking,
+        private \OCP\IUserSession $users,
         private ?\OCA\ShiRE\Service\ProgressService $progress = null,
     ) { parent::__construct($appName, $request); }
 
@@ -67,7 +68,11 @@ class PdfInvoiceController extends Controller {
             // Einmalige Verwendung, auch ein fehlgeschlagener PDF-Versuch beendet den Vorgang.
             $this->proof->clear();
             $validatorVersions = $proof['versions'];
-            $result = $this->pdf->generate($xml, $version, $validatorVersions);
+            $user = $this->users->getUser();
+            if ($user === null) throw new \RuntimeException('Kein Nextcloud-Nutzer angemeldet.', 401);
+            $author = (new \OCA\ShiRE\Service\PdfMetadataService())->author(
+                trim($user->getDisplayName()) ?: $user->getUID(), $this->request->getServerHost());
+            $result = $this->pdf->generate($xml, $version, $validatorVersions, $author);
             $this->progress?->start('PDF-Rechnung wird archiviert …');
             // Prüfung und Neuanlage gemeinsam sperren: Auch parallele Requests
             // dürfen eine bereits archivierte Rechnung niemals ersetzen.
