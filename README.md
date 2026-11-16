@@ -162,3 +162,11 @@ Version und App-ID kommen aus `appinfo/info.xml`. Laufzeitdateien werden anhand 
 Ein ausdrücklich **unsigniertes Testpaket** lässt sich mit `APP_REQUIRE_SIGNING=0 bash tools/build-release.sh --unsigned` erstellen. Es liegt getrennt unter `dist/shi_re-VERSION-unsigned/` und ist nicht für die Store-Einreichung bestimmt.
 
 Prüfsummen prüfen: im Ausgabeverzeichnis `sha256sum --check --strict shi_re-0.3.0.tar.gz.sha256` ausführen. Automatisierte Pakettests: `bash tests/release-package.sh`. Diese verwenden einen temporären Testschlüssel und einen simulierten `occ`-Signierablauf; sie ersetzen keine Prüfung der echten Nextcloud-Zertifikatskette. Die tatsächliche Vertrauensprüfung erfolgt beim signierten Build durch das angegebene Nextcloud-`occ`.
+
+## Lizenz
+
+ShiRE ist unter **GNU AGPL Version 3 oder später** (`AGPL-3.0-or-later`)
+lizenziert. Der vollständige Text steht in [LICENSE](LICENSE).
+Die gebündelten Fremdkomponenten behalten ihre jeweiligen Lizenzen;
+Versionen, Copyright-Hinweise und Lizenztexte sind in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) und [LICENSES/](LICENSES/) dokumentiert.
