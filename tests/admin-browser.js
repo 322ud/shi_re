@@ -64,7 +64,16 @@ const path = require('node:path');
         assert.deepEqual(await page.evaluate(() => calls.at(-1)), {
             url: '/apps/shi_re/admin/pdf/settings', body: {action: 'clear_archive', confirmation: 'ja'},
         });
-        assert.equal(await page.locator('[role=switch]').count(), 6);
+        assert.equal(await page.locator('[role=switch]').count(), 7);
+        assert.deepEqual(await page.locator('.shire-settings-group h4').allTextContents(), ['Validierung', 'Vorlagen', 'andere']);
+        assert.equal(await page.locator('[aria-labelledby="shire-validation-title"] #myx-validation-enabled').count(), 1);
+        assert.equal(await page.locator('[aria-labelledby="shire-templates-title"] #myx-pdf-templates').count(), 1);
+        assert.equal(await page.locator('[aria-labelledby="shire-other-title"] #myx-clear-archive').count(), 1);
+        assert.equal(await page.locator('#myx-detailed-progress').isDisabled(), true);
+        assert.equal(await page.locator('#myx-detailed-progress').isChecked(), false);
+        assert.equal(await page.locator('#myx-clear-archive').evaluate(node => Boolean(
+            node.compareDocumentPosition(document.getElementById('shire-admin-readme-title')) & Node.DOCUMENT_POSITION_FOLLOWING)), true);
+
         assert.equal(await page.locator('#myx-install-validator').isVisible(), false);
         assert.equal(await page.locator('#myx-validation-enabled').isChecked(), true);
         assert.equal(await page.locator('#myx-check-validator').count(), 0);

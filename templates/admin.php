@@ -6,13 +6,13 @@ $status = $_['status'];
     <h2>ShiRE</h2>
     <section aria-labelledby="shire-settings-title">
         <h3 id="shire-settings-title">Einstellungen</h3>
+        <div class="shire-settings-group" role="group" aria-labelledby="shire-validation-title">
+        <h4 id="shire-validation-title">Validierung</h4>
         <?php foreach ([
             'myx-install-validator' => ['INValdator installieren', false],
             'myx-validation-enabled' => ['XML-Rechnung mit INValidator prüfen', $status['validation_enabled']],
             'myx-auto-update' => ['beim App-Start INValidator automatisch updaten', $status['auto_update']],
             'myx-hide-validator' => ['INValidator ausblenden', $status['hide_navigation']],
-            'myx-allow-draft-deletion' => ['Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt', $_['allowDraftDeletion']],
-            'myx-custom-templates' => ['eigene Vorlagen', $_['customTemplates']],
         ] as $id => [$label, $checked]): ?>
         <div class="shire-switch"<?php if (($id === 'myx-install-validator' && !empty($status['installed']))
             || ($id === 'myx-validation-enabled' && empty($status['installed']))
@@ -21,7 +21,13 @@ $status = $_['status'];
             <span id="<?php p($id); ?>-label"><?php p($label); ?></span>
         </div>
         <?php endforeach; ?>
-        <p id="myx-admin-result" role="status" aria-live="polite"></p>
+        </div>
+        <div class="shire-settings-group" role="group" aria-labelledby="shire-templates-title">
+        <h4 id="shire-templates-title">Vorlagen</h4>
+        <div class="shire-switch">
+            <input id="myx-custom-templates" type="checkbox" role="switch" aria-labelledby="myx-custom-templates-label" <?php if ($_['customTemplates']) { print_unescaped('checked'); } ?>>
+            <span id="myx-custom-templates-label">eigene Vorlagen</span>
+        </div>
     <form id="myx-pdf-templates"<?php if (!$_['customTemplates']) { print_unescaped(' hidden'); } ?>>
         <input type="hidden" name="templatesCheck" value="yes">
         <?php $savedTemplates = $_['pdfStatus']['checks']['templates']; ?>
@@ -50,6 +56,21 @@ $status = $_['status'];
         <button id="myx-pdf-upload" type="submit">neue Vorlagen prüfen</button>
         </details>
     </form>
+        </div>
+        <div class="shire-settings-group" role="group" aria-labelledby="shire-other-title">
+        <h4 id="shire-other-title">andere</h4>
+        <div class="shire-switch">
+            <input id="myx-allow-draft-deletion" type="checkbox" role="switch" aria-labelledby="myx-allow-draft-deletion-label" <?php if ($_['allowDraftDeletion']) { print_unescaped('checked'); } ?>>
+            <span id="myx-allow-draft-deletion-label">zeige Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt</span>
+        </div>
+        <div class="shire-switch">
+            <input id="myx-detailed-progress" type="checkbox" role="switch" aria-labelledby="myx-detailed-progress-label" disabled>
+            <span id="myx-detailed-progress-label">ausführliche Ablaufdokumentation</span>
+        </div>
+        <button id="myx-clear-archive" type="button">Archiv leeren</button>
+        <p id="myx-clear-archive-result" role="status" aria-live="polite"></p>
+        </div>
+        <p id="myx-admin-result" role="status" aria-live="polite"></p>
     </section>
     <section aria-labelledby="shire-system-title">
     <h3 id="shire-system-title">System</h3>
@@ -104,6 +125,4 @@ $status = $_['status'];
         <h3 id="shire-admin-readme-title">README</h3>
         <?php require __DIR__ . '/readme-content.php'; ?>
     </section>
-    <button id="myx-clear-archive" type="button">Archiv leeren</button>
-    <p id="myx-clear-archive-result" role="status" aria-live="polite"></p>
 </div>
