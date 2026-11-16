@@ -144,11 +144,10 @@
                 }
             }
             Object.entries(status.checks || {}).forEach(([key, check]) => showCheck(key, check));
-            const xmlReady = xmlOutput.dataset.ready === 'true';
-            pdfOutput.textContent = status.enabled && xmlReady
+            pdfOutput.textContent = status.enabled
                 ? 'PDF-Rechnung wird erzeugt und mit MustangCLI geprüft. ' + (status.checks?.verapdf?.ok
                     ? 'Zusätzlich wird PDF/A-3b mit veraPDF geprüft.' : 'PDF/A-3b wird nicht mit veraPDF geprüft.')
-                : 'PDF-Rechnung wird nicht erzeugt und nicht geprüft. ' + (status.errors || []).join(' ') + (!xmlReady ? 'XML-Validierung ist nicht verfügbar.' : '');
+                : 'PDF-Rechnung wird nicht erzeugt und nicht geprüft. ' + (status.errors || []).join(' ');
         }
         bind('myx-check-system', async () => {
             const results = await Promise.allSettled([

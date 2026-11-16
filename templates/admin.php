@@ -87,9 +87,9 @@ $status = $_['status'];
     <p id="myx-xml-status" data-ready="<?php p($validatorReady ? 'true' : 'false'); ?>" role="status" aria-live="polite"><?php p($validatorReady ? 'XML-Rechnung wird erzeugt und validiert.' : 'XML-Rechnung wird erzeugt, aber nicht validiert.'); ?></p>
     <?php else: ?>
     <p id="myx-pdf-status" data-status="<?php p(json_encode($_['pdfStatus'])); ?>" role="status" aria-live="polite"><?php
-        p($_['pdfStatus']['enabled'] && $validatorReady
+        p($_['pdfStatus']['enabled']
             ? 'PDF-Rechnung wird erzeugt und mit MustangCLI geprüft. ' . (!empty($checks['verapdf']['ok']) ? 'Zusätzlich wird PDF/A-3b mit veraPDF geprüft.' : 'PDF/A-3b wird nicht mit veraPDF geprüft.')
-            : 'PDF-Rechnung wird nicht erzeugt und nicht geprüft. ' . implode(' ', $_['pdfStatus']['errors']) . (!$validatorReady ? 'XML-Validierung ist nicht verfügbar.' : ''));
+            : 'PDF-Rechnung wird nicht erzeugt und nicht geprüft. ' . implode(' ', $_['pdfStatus']['errors']));
     ?></p>
     <?php endif; ?>
     <?php endforeach; ?>

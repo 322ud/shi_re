@@ -12,7 +12,7 @@ class ValidationProofService {
     private int $depth = 0;
 
     public function __construct(private IAppData $appData, private IUserSession $users,
-        private ILockingProvider $locking) {}
+        private ILockingProvider $locking, private KositValidatorService $validator) {}
 
     public function locked(callable $action): mixed {
         if ($this->depth > 0) return $action();
@@ -30,11 +30,14 @@ class ValidationProofService {
         if ($folder->fileExists(self::FILE)) $folder->getFile(self::FILE)->delete();
     }
 
-    public function remember(string $xml, string $windowId, array $versions): string {
+    public function remember(string $xml, string $windowId, array $versions, bool $validated = true): string {
+        if (!$validated && $this->validator->isActive()) {
+            throw new \RuntimeException('XML-Prüfung ist aktiv. Bitte erneut prüfen.', 409);
+        }
         $token = bin2hex(random_bytes(32));
         $this->write(['hash' => hash('sha256', $xml), 'tokenHash' => hash('sha256', $token),
             'user' => $this->user(), 'windowId' => $windowId, 'stage' => 'review',
-            'filename' => null, 'versions' => $versions]);
+            'filename' => null, 'versions' => $validated ? $versions : [], 'validated' => $validated]);
         return $token;
     }
 
@@ -51,6 +54,9 @@ class ValidationProofService {
             || !hash_equals($proof['tokenHash'] ?? '', hash('sha256', $token))
             || !hash_equals($proof['hash'] ?? '', hash('sha256', $xml))) {
             throw new \RuntimeException('Gültiger Validierungsnachweis fehlt oder die XML wurde geändert. Bitte eine neue Rechnung starten.', 409);
+        }
+        if (($proof['validated'] ?? true) === false && $this->validator->isActive()) {
+            throw new \RuntimeException('XML-Prüfung wurde aktiviert. Bitte erneut prüfen.', 409);
         }
         return $proof;
     }

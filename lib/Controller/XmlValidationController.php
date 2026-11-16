@@ -52,6 +52,13 @@ class XmlValidationController extends Controller {
                 }
 
                 $xml = $folder->getFile(AppFiles::XmlWorkFile)->getContent();
+                if (!$this->validatorService->isActive()) {
+                    return new JSONResponse([
+                        'success' => true, 'valid' => null, 'skipped' => true,
+                        'validationToken' => $this->proof->remember($xml, $windowId, [], false),
+                        'xmlHash' => hash('sha256', $xml),
+                    ]);
+                }
                 $result = $this->validatorService->validateXml($xml);
 
                 $token = $result['valid'] === true

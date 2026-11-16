@@ -133,7 +133,7 @@ const path = require('node:path');
         await page.locator('#myx-check-system').click();
         await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
         assert.equal(await page.locator('#myx-xml-status').textContent(), 'XML-Rechnung wird erzeugt, aber nicht validiert.');
-        assert.match(await page.locator('#myx-pdf-status').textContent(), /PDF-Rechnung wird nicht erzeugt und nicht geprüft/);
+        assert.match(await page.locator('#myx-pdf-status').textContent(), /PDF-Rechnung wird erzeugt und mit MustangCLI geprüft/);
         await page.evaluate(() => {
             window.fetch = async () => ({ok: false, json: async () => ({success: false, error: 'Speichern fehlgeschlagen'})});
         });

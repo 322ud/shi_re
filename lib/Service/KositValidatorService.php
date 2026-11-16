@@ -13,6 +13,11 @@ class KositValidatorService {
     public function __construct(private IAppManager $appManager, private IConfig $config) {
     }
 
+    public function isActive(): bool {
+        return $this->config->getAppValue('shi_re', 'validation_enabled', 'yes') === 'yes'
+            && $this->appManager->isEnabledForUser('inv_validator');
+    }
+
     /** Local installed versions, never latest releases or the invoice's guideline version. */
     public function versions(): array {
         $versions = [

@@ -274,7 +274,12 @@ namespace {
     check($versions === ['INValidatorVersion' => '0.5.1', 'kositValidatorVersion' => '1.6.0', 'xrechnungSzenarioVersion' => '2026-01-31'], 'Installed versions and scenario release, not latest or standard version');
     \OCA\INValidator\Service\ValidatorAdminService::$status = ['validator' => ['installedVersion' => null], 'configuration' => ['installedVersion' => null]];
     check((new KositValidatorService($apps, $config))->versions()['kositValidatorVersion'] === 'unbekannt', 'Unknown installed versions are explicit');
+    check((new KositValidatorService($apps, $config))->isActive(), 'Available validator is active by default');
+    $dependency->save(['validation_enabled' => false]);
+    check(!(new KositValidatorService($apps, $config))->isActive(), 'ShiRE setting disables validation');
+    $dependency->save(['validation_enabled' => true]);
     $apps->enabled = false;
+    check(!(new KositValidatorService($apps, $config))->isActive(), 'Unavailable validator is inactive');
     rejects(fn () => (new KositValidatorService($apps, $config))->validateXml('<invoice/>'));
     echo "KoSIT adapter, archive, installation, updates, migration failures, digest and redirect tests passed.\n";
 }

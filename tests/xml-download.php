@@ -15,6 +15,8 @@ namespace OCP\AppFramework\Http {
 }
 namespace OCA\ShiRE\Service {
     class KositValidatorService {
+        public bool $active = true;
+        public function isActive(): bool { return $this->active; }
         public bool $valid = true;
         public int $calls = 0;
         public function versions(): array { return []; }
@@ -52,11 +54,11 @@ namespace {
         public function acquireLock($key, $type) { if ($this->locked) throw new \RuntimeException('Already locked'); $this->locked = true; }
         public function releaseLock($key, $type) { $this->locked = false; }
     };
+    $validator = new \OCA\ShiRE\Service\KositValidatorService();
     $users = proofUsers();
-    $proof = new \OCA\ShiRE\Service\ValidationProofService($storage, $users, $locking);
+    $proof = new \OCA\ShiRE\Service\ValidationProofService($storage, $users, $locking, $validator);
     $drafts = new \OCA\ShiRE\Service\DraftService($storage, $proof);
     $drafts->create('window', '26 200');
-    $validator = new \OCA\ShiRE\Service\KositValidatorService();
     $controller = new \OCA\ShiRE\Controller\XmlValidationController('shi_re', $request, $storage, $validator, $proof, $drafts);
     function check(bool $value): void { if (!$value) throw new \RuntimeException('Download test failed'); }
     $validation = $controller->validateXmlInvoice();
@@ -81,6 +83,17 @@ namespace {
     $validator->valid = false;
     check($controller->validateXmlInvoice()->data['validationToken'] === null);
     check(!$storage->fileExists($proof::FILE));
+    check($controller->downloadXmlInvoice()->status === 409);
+    $validator->active = false;
+    $calls = $validator->calls;
+    $unvalidated = $controller->validateXmlInvoice();
+    check($unvalidated->data['skipped'] === true && $unvalidated->data['valid'] === null);
+    check(!isset($unvalidated->data['html']) && $validator->calls === $calls);
+    $request->params['validationToken'] = $unvalidated->data['validationToken'];
+    check($controller->downloadXmlInvoice()->status === 200);
+    $record = $proof->requireProof('<changed/>', $request->params['validationToken'], 'window', 'review');
+    check($record['validated'] === false && $record['versions'] === []);
+    $validator->active = true;
     check($controller->downloadXmlInvoice()->status === 409);
     echo "XML proof tests passed: single validation, user/token binding, changed XML and failed revalidation.\n";
 }

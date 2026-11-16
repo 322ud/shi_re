@@ -9,7 +9,7 @@ namespace OCP\AppFramework {
 namespace OCP\AppFramework\Http {
     class JSONResponse { public function __construct(public array $data, public int $status = 200) {} }
 }
-namespace OCA\ShiRE\Service { class InvoiceTemplateService {} class PdfDependencyService {} }
+namespace OCA\ShiRE\Service { class KositValidatorService { public function isActive(): bool { return true; } } class InvoiceTemplateService {} class PdfDependencyService {} }
 namespace {
     require __DIR__ . '/proof-fixtures.php';
     require __DIR__ . '/../lib/Controller/PdfAdminController.php';
@@ -33,7 +33,7 @@ namespace {
         public function acquireLock($key, $type) { $this->locked = true; }
         public function releaseLock($key, $type) { $this->locked = false; }
     };
-    $proof = new \OCA\ShiRE\Service\ValidationProofService($storage, proofUsers(), $locking);
+    $proof = new \OCA\ShiRE\Service\ValidationProofService($storage, proofUsers(), $locking, new \OCA\ShiRE\Service\KositValidatorService());
     $controller = new \OCA\ShiRE\Controller\PdfAdminController('shi_re', $request,
         new \OCA\ShiRE\Service\InvoiceTemplateService(), new \OCA\ShiRE\Service\PdfDependencyService(), $storage, $proof);
     foreach (['saveSettings', 'clearArchive'] as $method) {

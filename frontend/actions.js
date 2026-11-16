@@ -3,22 +3,22 @@ import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NcButton from '@nextcloud/vue/components/NcButton'
 
-window.ShiRE.mountReviewActions = function (element, valid, choose, report) {
+window.ShiRE.mountReviewActions = function (element, valid, choose, report, options = {}) {
     const appName = 'ShiRE'
     const vm = new Vue({
         data: () => ({busy: false}),
         render(h) {
             const action = (label, choice) => h(NcActionButton, {
-                props: {disabled: this.busy}, on: {click: () => choose(choice)},
+                props: {disabled: this.busy || (options.createDisabled && !choice.startsWith('cancel-'))}, on: {click: () => choose(choice)},
             }, [label])
             const menu = (label, children) => h(NcActions, {
                 props: {menuName: label, forceMenu: true, disabled: this.busy},
             }, children)
             return h('div', {class: 'myx-review-actions'}, [
-                valid ? menu('XML annehmen', [
-                    action('in PDF einbinden', 'pdf'),
-                    action('speichern und ' + appName + ' schließen', 'accept-close'),
-                    action('speichern und neue Rechnung starten', 'accept-new'),
+                valid ? menu(options.unvalidated ? 'Rechnung erstellen' : 'XML annehmen', [
+                    (!options.unvalidated || options.pdfEnabled) ? action(options.unvalidated ? 'PDF-Rechnung erstellen' : 'in PDF einbinden', 'pdf') : null,
+                    action((options.unvalidated ? 'XML speichern und ' : 'speichern und ') + appName + ' schließen', 'accept-close'),
+                    action(options.unvalidated ? 'XML speichern und neue Rechnung starten' : 'speichern und neue Rechnung starten', 'accept-new'),
                 ]) : null,
                 menu('abbrechen', [
                     action(appName + ' schließen', 'cancel-close'),

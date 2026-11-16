@@ -22,6 +22,7 @@ class ValidatorAdminController extends Controller {
         private IUserSession $session,
         private IGroupManager $groups,
         private IConfig $config,
+        private \OCA\ShiRE\Service\KositValidatorService $validator,
     ) {
         parent::__construct($appName, $request);
     }
@@ -30,6 +31,7 @@ class ValidatorAdminController extends Controller {
     #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/validator/status')]
     public function status(): JSONResponse {
         $status = $this->dependency->settings();
+        $status['validation_active'] = $this->validator->isActive();
         $user = $this->session->getUser();
         $status['admin'] = $user !== null && $this->groups->isAdmin($user->getUID());
         try {

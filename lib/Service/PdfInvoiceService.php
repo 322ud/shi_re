@@ -15,7 +15,7 @@ class PdfInvoiceService {
         private IConfig $config,
     ) {}
 
-    /** Aufrufer muss exakt diese XML-Bytes zuvor erfolgreich validiert haben. */
+    /** Aufrufer muss exakt diese XML-Bytes serverseitig zur PDF-Erzeugung freigegeben haben. */
     public function generate(string $xml, string $templateVersion, array $validatorVersions = []): array {
         $status = $this->dependencies->status();
         if (!$status['enabled']) throw new \RuntimeException(implode("\n", $status['errors']), 503);

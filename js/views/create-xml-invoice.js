@@ -3,7 +3,7 @@
 
     const NS = window.ShiRE;
 
-    NS.createXmlInvoice = async function () {
+    NS.createXmlInvoice = async function (choice) {
         const invoiceData = NS.collectFormData();
 
         const data = await NS.post('/en16931/createXmlInvoice', {
@@ -24,10 +24,10 @@
             NS.state.ramID
         );
 
-        await NS.showXmlValidation();
+        await NS.showXmlValidation(choice);
     };
 
-    NS.showXmlValidation = async function () {
+    NS.showXmlValidation = async function (requestedChoice) {
         NS.state.validationToken = null;
         NS.releasePdfDownload();
         const input = NS.inputArea();
@@ -35,7 +35,7 @@
         input.className = 'myx-xml-validation-result';
         const busy = NS.make('div', {class: 'myx-busy', role: 'status', 'aria-live': 'polite'});
         busy.appendChild(NS.make('span', {class: 'icon-loading-small', 'aria-hidden': 'true'}));
-        const busyText = NS.make('span', {}, 'XRechnung wird mit KoSIT geprüft …');
+        const busyText = NS.make('span', {}, NS.state.validationActive === false ? 'XML-Rechnung wird vorbereitet …' : 'XRechnung wird mit KoSIT geprüft …');
         busy.appendChild(busyText);
         input.appendChild(busy);
         let data;
@@ -48,7 +48,8 @@
         } finally {
             busy.hidden = true;
         }
-        NS.log(data.valid ? 'XRechnung (XML) ist valide' : 'XRechnung (XML) ist nicht valide');
+        NS.log(data.skipped ? 'XML-Rechnung ohne INValidator-Prüfung erstellt'
+            : data.valid ? 'XRechnung (XML) ist valide' : 'XRechnung (XML) ist nicht valide');
         if (data.html && !NS.state.invoiceInterrupted) {
             const frame = NS.make('iframe', {
                 title: 'KoSIT-Prüfbericht',
@@ -97,14 +98,19 @@
             }
             return finished;
         }
+        if (data.skipped && NS.state.validationToken && ['pdf', 'accept-close', 'accept-new'].includes(requestedChoice)) {
+            if (await choose(requestedChoice)) return;
+            if (NS.state.invoiceInterrupted) return;
+        }
         if (data.valid === true && NS.state.pdfStatus?.enabled && NS.state.validationToken) {
             if (await choose('pdf')) return;
             if (NS.state.invoiceInterrupted) return;
         }
         const host = NS.make('div');
         input.appendChild(host);
-        menu = NS.mountReviewActions(host, data.valid === true, choose,
-            NS.validationReportFrame ? () => { if (!pending) NS.saveValidationReport(); } : null);
+        menu = NS.mountReviewActions(host, data.valid === true || data.skipped === true, choose,
+            NS.validationReportFrame ? () => { if (!pending) NS.saveValidationReport(); } : null,
+            {unvalidated: data.skipped === true, pdfEnabled: Boolean(NS.state.pdfStatus?.enabled)});
     };
 
     NS.saveValidationReport = function () {
@@ -174,6 +180,10 @@
     };
 
     NS.releasePdfDownload = function () {
+        if (NS.creationActions) {
+            NS.creationActions.destroy();
+            NS.creationActions = null;
+        }
         if (NS.validationReportFrame) {
             NS.validationReportFrame.remove();
             NS.validationReportFrame = null;

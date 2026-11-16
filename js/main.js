@@ -66,6 +66,7 @@
         NS.log('KoSIT-App: aktuelles GitHub-Release wird geprüft …');
         try {
             const {status} = await NS.post('/validator/status');
+            NS.state.validationActive = status.validation_active ?? Boolean(status.installed && status.enabled && status.validation_enabled !== false);
             if (status.check_error) notices.push(status.check_error);
             if (!status.installed || status.validation_enabled === false) {
                 // Installation is explicitly requested in the admin settings.

@@ -16,6 +16,8 @@ namespace Psr\Log { interface LoggerInterface {} }
 namespace OCP\Lock { interface ILockingProvider { public const LOCK_EXCLUSIVE = 2; } }
 namespace OCA\ShiRE\Service {
     class KositValidatorService {
+        public bool $active = true;
+        public function isActive(): bool { return $this->active; }
         public bool $valid = true;
         public int $calls = 0;
         public function versions(): array { return ['INValidatorVersion' => '0.5.1', 'kositValidatorVersion' => '1.6.0', 'xrechnungSzenarioVersion' => '2026-01-31']; }
@@ -326,7 +328,7 @@ namespace {
         public function releaseLock($path, $type): void { unset($this->locks[$path]); $this->locked = (bool)$this->locks; }
     };
     $users = proofUsers();
-    $proof = new \OCA\ShiRE\Service\ValidationProofService($storage, $users, $locking);
+    $proof = new \OCA\ShiRE\Service\ValidationProofService($storage, $users, $locking, $validator);
     $authorizePdf = function (string $xml) use ($proof, $request, $validator): void {
         $token = $proof->remember($xml, 'window', $validator->versions());
         $record = $proof->requireProof($xml, $token, 'window', 'review');
@@ -386,6 +388,23 @@ namespace {
     check($controller->download()->status === 409, 'Missing proof blocked');
     $storage->files['26 200.xml'] = '<changed/>';
     check($controller->download()->status === 409, 'Concurrent XML change blocked');
+    $validator->active = false;
+    $storage->files = [];
+    $unvalidatedDrafts = new \OCA\ShiRE\Service\DraftService($storage, $proof);
+    $unvalidatedReview = new \OCA\ShiRE\Service\InvoiceReviewService($storage, $unvalidatedDrafts, $proof);
+    $unvalidatedDrafts->create('window', '26 200');
+    $storage->files['en16931.xml'] = $bundle['xml'];
+    $unvalidatedToken = $proof->remember($bundle['xml'], 'window', [], false);
+    $unvalidatedReview->finish('window', hash('sha256', $bundle['xml']), true, $unvalidatedToken, true);
+    $request->params = ['filename' => '26 200.xml', 'xmlHash' => hash('sha256', $bundle['xml']),
+        'templateVersion' => $saved['version'], 'windowId' => 'window', 'validationToken' => $unvalidatedToken];
+    $validator->active = true;
+    check($controller->download()->status === 409, 'Reenabled XML validation blocks unvalidated PDF authorization');
+    $validator->active = false;
+    check($controller->download()->status === 200, 'Unvalidated XML can generate PDF when validator is inactive');
+    check(!str_contains($fakeRunner->metadata, 'inv_validator:') && !str_contains($fakeRunner->metadata, 'INValidatorVersion'),
+        'Unvalidated PDF has no INValidator metadata');
+    $validator->active = true;
     // Review acceptance/discard uses the real draft lifecycle and exact XML bytes.
     $storage->files = [];
     $drafts = new \OCA\ShiRE\Service\DraftService($storage, $proof);
