@@ -130,3 +130,35 @@ Während der KoSIT-Prüfung und PDF-Erzeugung wird der Nextcloud-Ladeindikator m
 ## Frontend bauen
 
 Die Nextcloud-Menükomponenten werden lokal gebündelt; es gibt keine CDN-Abhängigkeit. Mit Node.js 20 und npm: `npm ci && npm run build`. Die erzeugten Dateien `js/validation-actions.js` und `css/validation-actions.css` werden mit ausgeliefert. `node_modules` gehört nicht ins Deployment. Quellcode: `frontend/actions.js`.
+
+## Release-Paket und Signierung
+
+`tools/build-release.sh` baut ausschließlich lokale Artefakte. Es lädt nichts zu GitHub oder zum App Store hoch. Benötigt werden Bash, Git, GNU tar/coreutils, gzip, PHP mit SimpleXML und OpenSSL, OpenSSL CLI sowie Node.js 22/npm. `npm ci` installiert die festgeschriebenen Frontend-Abhängigkeiten in einem temporären Verzeichnis und benötigt Zugriff auf die npm-Registry oder einen vollständigen npm-Cache. Der Quellcheckout bleibt dabei unverändert.
+
+Für ein signiertes Release die Pfade zum von Nextcloud ausgestellten **ShiRE-Zertifikat (CN `shi_re`)**, zum zugehörigen unverschlüsselten RSA-Schlüssel (mindestens 4096 Bit) und zu einer eingerichteten Nextcloud-Installation angeben. Schlüssel außerhalb des Repositorys aufbewahren. Die Signierbefehle müssen unter einem Benutzer laufen, der diese Nextcloud-Installation verwenden darf; eine isolierte Build-Installation ist dafür geeignet.
+
+```bash
+export APP_SIGNING_KEY_FILE="$HOME/shi-re-signing/private.key"
+export APP_SIGNING_CERTIFICATE_FILE="$HOME/shi-re-signing/shi_re.crt"
+export APP_REQUIRE_SIGNING=1
+export NEXTCLOUD_OCC=/pfad/nextcloud/occ
+bash tools/build-release.sh --signed
+```
+
+`shi_re.crt` ist der vorgesehene Ablageort für das noch zu beantragende Zertifikat. Ein erzeugtes Schlüsselpaar allein reicht für den signierten Build nicht aus. `APP_REQUIRE_SIGNING=1` verbietet ausdrücklich auch den Aufruf mit `--unsigned`; andere Werte als `0` und `1` werden abgewiesen.
+
+Das Skript prüft Schlüssel/Zertifikat, App-ID und Gültigkeitszeitraum. Nextcloud erzeugt `appinfo/signature.json` und prüft die App anschließend mit `integrity:check-app`. Erst danach wird das Archiv gebaut, separat mit SHA-512 signiert und diese Archivsignatur überprüft. Fehler brechen den Build ab; es gibt keinen automatischen Rückfall auf ein unsigniertes Paket.
+
+Ausgabe bei Version 0.3.0: `dist/shi_re-0.3.0-signed/` mit:
+
+- `shi_re-0.3.0.tar.gz`: genau ein Hauptordner `shi_re/`, Laufzeitdateien einschließlich Vorlagen, frisch gebautem Frontend und Java-Helfer samt Quellcode.
+- `.tar.gz.sig`: binäre SHA-512-Archivsignatur.
+- `.tar.gz.sig.b64`: Base64-Archivsignatur für die spätere Store-Einreichung.
+- `.tar.gz.crt`: öffentliches Zertifikat.
+- `.tar.gz.sha256`: Prüfsummen der vier Dateien.
+
+Version und App-ID kommen aus `appinfo/info.xml`. Laufzeitdateien werden anhand einer Positivliste aus den von Git erfassten Pfaden kopiert; ihr Inhalt stammt aus dem aktuellen Arbeitsverzeichnis. Neue Laufzeitdateien müssen daher zunächst zu Git hinzugefügt werden. Entwicklungsdateien, private Schlüssel und `node_modules` gehören nicht ins Archiv. Vorhandene Lizenzdateien und Änderungsprotokolle werden mitgenommen. Ein vorhandenes Ausgabeverzeichnis wird nicht überschrieben; als zweites Argument kann ein anderes Ziel angegeben werden. Das Skript verändert weder Version noch Git-Tags.
+
+Ein ausdrücklich **unsigniertes Testpaket** lässt sich mit `APP_REQUIRE_SIGNING=0 bash tools/build-release.sh --unsigned` erstellen. Es liegt getrennt unter `dist/shi_re-VERSION-unsigned/` und ist nicht für die Store-Einreichung bestimmt.
+
+Prüfsummen prüfen: im Ausgabeverzeichnis `sha256sum --check --strict shi_re-0.3.0.tar.gz.sha256` ausführen. Automatisierte Pakettests: `bash tests/release-package.sh`. Diese verwenden einen temporären Testschlüssel und einen simulierten `occ`-Signierablauf; sie ersetzen keine Prüfung der echten Nextcloud-Zertifikatskette. Die tatsächliche Vertrauensprüfung erfolgt beim signierten Build durch das angegebene Nextcloud-`occ`.
