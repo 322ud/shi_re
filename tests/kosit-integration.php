@@ -4,14 +4,6 @@ declare(strict_types=1);
 namespace OCP { interface IConfig {} interface ITempManager {} }
 namespace OCP\App { interface IAppManager {} class AppPathNotFoundException extends \RuntimeException {} }
 namespace OCP\Http\Client { interface IClientService {} }
-namespace OC {
-    class Installer {
-        public array $calls = [];
-        public function __construct(private string $root, private object $apps) {}
-        public function getInstallPath(): string { return $this->root; }
-        public function installApp(string $id): void { $this->calls[] = $id; $this->apps->versions[$id] = '0.5.1'; }
-    }
-}
 namespace OCP\AppFramework {
     class App {
         public static object $container;
@@ -153,19 +145,16 @@ namespace {
         }
     };
     mkdir($root . '/apps');
-    $installer = new \OC\Installer($root . '/apps', $apps);
-    $dependency = new KositDependencyService($apps, $config, $http, $temp, $installer);
-    $http->evilRedirect = true;
+    $dependency = new KositDependencyService($apps, $config, $http, $temp);
     rejects(fn () => $dependency->ensureInstalled());
-    check(!is_dir($root . '/apps/inv_validator'), 'Malicious redirect rejected');
-    $http->evilRedirect = false; $http->badDigest = true;
-    rejects(fn () => $dependency->ensureInstalled());
-    check(!is_dir($root . '/apps/inv_validator'), 'Hash mismatch rejected');
-    $http->badDigest = false;
+    check($http->requests === [], 'Missing app does not trigger downloads or release lookups');
+    check(!is_dir($root . '/apps/inv_validator'), 'Missing app requires administrative installation');
+    // Simulate an app registered and enabled through Nextcloud administration.
+    KositReleaseArchive::unpack($archive, $root . '/apps', '0.5.1');
+    $apps->versions['inv_validator'] = '0.5.1';
+    $apps->enabled = true;
     $dependency->ensureInstalled();
-    check($apps->enabled && count($installer->calls) === 1, 'Installed and enabled');
-    $dependency->ensureInstalled();
-    check(count($installer->calls) === 1, 'Existing app not reinstalled');
+    check($apps->enables === 0 && $apps->upgrades === 0, 'Current app is left unchanged');
     $apps->versions['inv_validator'] = '0.6.0';
     $requests = count($http->requests);
     $dependency->ensureInstalled();
@@ -221,7 +210,7 @@ namespace {
 
     $dependency->ensureInstalled();
     check($apps->versions['inv_validator'] === '0.5.1' && $apps->upgrades === 1, 'Existing installation upgraded');
-    check(count($installer->calls) === 1 && $apps->enables === 1, 'Update uses upgrade, preserves disabled state');
+    check($apps->enables === 0, 'Update uses upgrade, preserves disabled state');
     check(!$apps->enabled, 'Disabled app stays disabled');
     check(!file_exists($root . '/apps/inv_validator'), 'Update stays in original app root');
     check(glob($root . '/custom-apps/.myx-kosit-*') === [], 'Successful update removes staging and backup');

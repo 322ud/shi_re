@@ -84,21 +84,6 @@
             showPdfStatus(data.status);
             output.textContent = 'Eigene Vorlagen verworfen. Standardvorlagen werden verwendet.';
         });
-        const installSwitch = document.getElementById('myx-install-validator');
-        installSwitch.addEventListener('change', async () => {
-            installSwitch.disabled = true;
-            output.textContent = 'INValidator wird installiert …';
-            try {
-                const data = await post('/admin/validator/install');
-                showValidatorStatus(data.status);
-                output.textContent = 'INValidator installiert. Java und Prüfszenarien können in der INValidator-Administration eingerichtet werden.';
-            } catch (error) {
-                output.textContent = error.message;
-            } finally {
-                installSwitch.checked = false;
-                installSwitch.disabled = false;
-            }
-        });
         const pdfOutput = document.getElementById('myx-pdf-status');
         const xmlOutput = document.getElementById('myx-xml-status');
         let pdfStatus = JSON.parse(pdfOutput.dataset.status);
@@ -116,7 +101,7 @@
             const validation = document.getElementById('myx-validation-enabled');
             if (typeof status.validation_enabled === 'boolean') validation.checked = status.validation_enabled;
             if (typeof status.auto_update === 'boolean') document.getElementById('myx-auto-update').checked = status.auto_update;
-            installSwitch.parentElement.hidden = Boolean(status.installed);
+            document.getElementById('myx-validator-install-help').hidden = Boolean(status.installed);
             validation.parentElement.hidden = !status.installed;
             document.getElementById('myx-auto-update').parentElement.hidden = !(status.installed && status.enabled && validation.checked);
             const ready = Boolean(status.installed && status.enabled && validation.checked && !status.check_error);

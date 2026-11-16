@@ -13,17 +13,16 @@ class InstallValidator implements IRepairStep {
     }
 
     public function getName(): string {
-        return 'KoSIT-Validator-App bereitstellen';
+        return 'KoSIT-Validator-Abhängigkeit prüfen';
     }
 
     public function run(IOutput $output): void {
         try {
             if ($this->dependency->settings()['installed'] === null) {
-                $this->dependency->ensureInstalled();
-                $output->info('inv_validator wurde installiert.');
+                $output->warning('INValidator bitte separat durch die Nextcloud-Administration installieren und aktivieren.');
             }
         } catch (\Throwable $e) {
-            $output->warning($e->getMessage() . ' Die Einrichtung kann beim nächsten App-Start durch einen Administrator wiederholt werden.');
+            $output->warning($e->getMessage() . ' Bitte die Einrichtung administrativ prüfen.');
         }
     }
 }

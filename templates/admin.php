@@ -8,14 +8,13 @@ $status = $_['status'];
         <h3 id="shire-settings-title">Einstellungen</h3>
         <div class="shire-settings-group" role="group" aria-labelledby="shire-validation-title">
         <h4 id="shire-validation-title">Validierung</h4>
+        <p id="myx-validator-install-help"<?php if (!empty($status['installed'])) { print_unescaped(' hidden'); } ?>>INValidator bitte durch die Nextcloud-Administration installieren und aktivieren. Hinweise stehen in der README.</p>
         <?php foreach ([
-            'myx-install-validator' => ['INValdator installieren', false],
             'myx-validation-enabled' => ['XML-Rechnung mit INValidator prüfen', $status['validation_enabled']],
             'myx-auto-update' => ['beim App-Start INValidator automatisch updaten', $status['auto_update']],
             'myx-hide-validator' => ['INValidator ausblenden', $status['hide_navigation']],
         ] as $id => [$label, $checked]): ?>
-        <div class="shire-switch"<?php if (($id === 'myx-install-validator' && !empty($status['installed']))
-            || ($id === 'myx-validation-enabled' && empty($status['installed']))
+        <div class="shire-switch"<?php if (($id === 'myx-validation-enabled' && empty($status['installed']))
             || ($id === 'myx-auto-update' && (empty($status['installed']) || !$status['enabled'] || !$status['validation_enabled']))) { print_unescaped(' hidden'); } ?>>
             <input id="<?php p($id); ?>" type="checkbox" role="switch" aria-labelledby="<?php p($id); ?>-label" <?php if ($checked) { print_unescaped('checked'); } ?>>
             <span id="<?php p($id); ?>-label"><?php p($label); ?></span>

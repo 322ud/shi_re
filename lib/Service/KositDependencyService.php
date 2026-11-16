@@ -4,21 +4,18 @@ declare(strict_types=1);
 
 namespace OCA\ShiRE\Service;
 
-use OC\Installer;
-use OCP\App\AppPathNotFoundException;
 use OCP\App\IAppManager;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\ITempManager;
 
-/** Ermittelt das aktuelle stabile GitHub-Release und installiert oder aktualisiert die App. */
+/** Ermittelt das aktuelle stabile GitHub-Release und aktualisiert eine bereits installierte App. */
 class KositDependencyService {
     public function __construct(
         private IAppManager $apps,
         private IConfig $config,
         private IClientService $clients,
         private ITempManager $temp,
-        private Installer $installer,
     ) {
     }
 
@@ -88,32 +85,20 @@ class KositDependencyService {
         return $headers;
     }
 
+    /** Historical name retained for the existing admin update endpoint. First installation is administrative. */
     public function ensureInstalled(): void {
-        $settings = $this->latest();
         $installed = $this->apps->getAppInstalledVersions()['inv_validator'] ?? null;
-        if ($installed !== null && version_compare($installed, $settings['release_version'], '>=')) {
+        if ($installed === null) {
+            throw new \RuntimeException('INValidator bitte durch die Nextcloud-Administration installieren und aktivieren. ShiRE kann nur eine bereits installierte App aktualisieren.');
+        }
+        $settings = $this->latest();
+        if (version_compare($installed, $settings['release_version'], '>=')) {
             return;
         }
-        if ($installed === null) {
-            try {
-                $path = $this->apps->getAppPath('inv_validator');
-                $info = $this->apps->getAppInfoByPath($path . '/appinfo/info.xml');
-                if (($info['version'] ?? '') !== $settings['release_version']) {
-                    throw new \RuntimeException('Vorhandener Validator-App-Code entspricht nicht dem aktuellen Release. Bitte administrativ aktualisieren.');
-                }
-                $this->installer->installApp('inv_validator');
-                $this->apps->enableApp('inv_validator');
-                return;
-            } catch (AppPathNotFoundException) {
-            }
-            $installRoot = $this->installer->getInstallPath();
-            $destination = $installRoot === null ? null : $installRoot . '/inv_validator';
-        } else {
-            // Im tatsächlich verwendeten App-Verzeichnis aktualisieren, auch bei mehreren App-Roots.
-            $destination = $this->apps->getAppPath('inv_validator', true);
-            $installRoot = dirname($destination);
-        }
-        if ($installRoot === null || !is_writable($installRoot)) {
+        // Im tatsächlich verwendeten App-Verzeichnis aktualisieren, auch bei mehreren App-Roots.
+        $destination = $this->apps->getAppPath('inv_validator', true);
+        $installRoot = dirname($destination);
+        if (!is_writable($installRoot)) {
             throw new \RuntimeException('Kein beschreibbares Nextcloud-App-Verzeichnis vorhanden.');
         }
         $lock = fopen($installRoot . '/.shi_re-kosit-install.lock', 'c');
@@ -132,9 +117,7 @@ class KositDependencyService {
                 return;
             }
             if ($installed === null) {
-                if (file_exists($destination) || is_link($destination)) {
-                    throw new \RuntimeException('Validator-App-Verzeichnis ist inzwischen vorhanden. Bitte erneut prüfen.');
-                }
+                throw new \RuntimeException('INValidator wurde inzwischen deinstalliert. Bitte administrativ prüfen.');
             } else {
                 if (is_link($destination) || !is_dir($destination)
                     || $this->apps->getAppPath('inv_validator', true) !== $destination) {
@@ -152,35 +135,30 @@ class KositDependencyService {
             }
             KositReleaseArchive::unpack($archive, $staging, $settings['release_version']);
             $backup = $staging . '/previous';
-            if ($installed !== null && !rename($destination, $backup)) {
+            if (!rename($destination, $backup)) {
                 throw new \RuntimeException('Vorhandene Validator-App konnte nicht gesichert werden.');
             }
             if (!rename($staging . '/inv_validator', $destination)) {
-                if ($installed !== null && !rename($backup, $destination)) {
+                if (!rename($backup, $destination)) {
                     $keepBackup = true;
                     throw new \RuntimeException('Validator-App konnte nicht wiederhergestellt werden. Sicherung: ' . $backup);
                 }
                 throw new \RuntimeException('Validator-App konnte nicht bereitgestellt werden.');
             }
-            $keepBackup = $installed !== null;
+            $keepBackup = true;
             $this->apps->clearAppsCache();
             if (function_exists('opcache_reset')) {
                 opcache_reset();
             }
-            if ($installed === null) {
-                $this->installer->installApp('inv_validator');
-                $this->apps->enableApp('inv_validator');
-            } else {
-                // Migrationen können die Datenbank bereits verändert haben: kein Code-Downgrade bei Fehlern.
-                try {
-                    if (!$this->apps->upgradeApp('inv_validator')) {
-                        throw new \RuntimeException('Nextcloud hat das App-Update nicht abgeschlossen.');
-                    }
-                } catch (\Throwable $e) {
-                    throw new \RuntimeException('Nextcloud-Update der Validator-App fehlgeschlagen. Neuer Code und Sicherung bleiben erhalten; Migrationen administrativ prüfen. Sicherung: ' . $backup, 0, $e);
+            // Migrationen können die Datenbank bereits verändert haben: kein Code-Downgrade bei Fehlern.
+            try {
+                if (!$this->apps->upgradeApp('inv_validator')) {
+                    throw new \RuntimeException('Nextcloud hat das App-Update nicht abgeschlossen.');
                 }
-                $keepBackup = false;
+            } catch (\Throwable $e) {
+                throw new \RuntimeException('Nextcloud-Update der Validator-App fehlgeschlagen. Neuer Code und Sicherung bleiben erhalten; Migrationen administrativ prüfen. Sicherung: ' . $backup, 0, $e);
             }
+            $keepBackup = false;
         } finally {
             if (!$keepBackup && $staging !== null && is_dir($staging)) {
                 self::removeTemporaryTree($staging);

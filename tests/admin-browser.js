@@ -64,7 +64,7 @@ const path = require('node:path');
         assert.deepEqual(await page.evaluate(() => calls.at(-1)), {
             url: '/apps/shi_re/admin/pdf/settings', body: {action: 'clear_archive', confirmation: 'ja'},
         });
-        assert.equal(await page.locator('[role=switch]').count(), 7);
+        assert.equal(await page.locator('[role=switch]').count(), 6);
         assert.deepEqual(await page.locator('.shire-settings-group h4').allTextContents(), ['Validierung', 'Vorlagen', 'andere']);
         assert.equal(await page.locator('[aria-labelledby="shire-validation-title"] #myx-validation-enabled').count(), 1);
         assert.equal(await page.locator('[aria-labelledby="shire-templates-title"] #myx-pdf-templates').count(), 1);
@@ -77,7 +77,7 @@ const path = require('node:path');
         assert.equal(await page.locator('#myx-clear-archive').evaluate(node => Boolean(
             node.compareDocumentPosition(document.getElementById('shire-admin-readme-title')) & Node.DOCUMENT_POSITION_FOLLOWING)), true);
 
-        assert.equal(await page.locator('#myx-install-validator').isVisible(), false);
+        assert.equal(await page.locator('#myx-validator-install-help').isVisible(), false);
         assert.equal(await page.locator('#myx-validation-enabled').isChecked(), true);
         assert.equal(await page.locator('#myx-check-validator').count(), 0);
         await page.locator('#myx-validation-enabled').uncheck();
@@ -87,7 +87,7 @@ const path = require('node:path');
         assert.ok((await page.evaluate(() => calls)).some(call => call.body.validation_enabled === false));
         await page.locator('#myx-validation-enabled').check();
         await page.waitForFunction(() => !document.getElementById('myx-validation-enabled').disabled);
-        // Refresh after an external removal, then install via the switch.
+        // Refresh after an external removal: show administrative installation guidance.
         await page.evaluate(() => {
             window.savedFetch = window.fetch;
             window.fetch = async url => ({ok: true, json: async () => ({success: true,
@@ -97,16 +97,16 @@ const path = require('node:path');
         });
         await page.locator('#myx-check-system').click();
         await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
-        assert.equal(await page.locator('#myx-install-validator').isVisible(), true);
-        assert.equal(await page.locator('#myx-install-validator').isChecked(), false);
+        assert.equal(await page.locator('#myx-validator-install-help').isVisible(), true);
+        assert.match(await page.locator('#myx-validator-install-help').textContent(), /Nextcloud-Administration/);
+        assert.equal(await page.locator('#myx-install-validator').count(), 0);
         assert.equal(await page.locator('#myx-validation-enabled').isVisible(), false);
         assert.equal(await page.locator('#myx-auto-update').isVisible(), false);
-        await page.locator('#myx-install-validator').click();
-        await page.waitForFunction(() => !document.getElementById('myx-install-validator').disabled);
-        assert.equal(await page.locator('#myx-install-validator').isVisible(), false);
-        assert.equal(await page.locator('#myx-validation-enabled').isVisible(), true);
-        assert.equal(await page.locator('#myx-auto-update').isChecked(), true);
         await page.evaluate(() => { window.fetch = window.savedFetch; });
+        await page.locator('#myx-check-system').click();
+        await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
+        assert.equal(await page.locator('#myx-validator-install-help').isVisible(), false);
+        assert.equal(await page.locator('#myx-validation-enabled').isVisible(), true);
         await page.locator('#myx-auto-update').uncheck();
         await page.waitForFunction(() => !document.getElementById('myx-auto-update').disabled);
         assert.equal(await page.locator('#myx-hide-validator').isChecked(), true);
