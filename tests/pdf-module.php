@@ -152,6 +152,19 @@ namespace {
     check($storedInvalid['mapping'] === '{{broken}}', 'Inconsistent first upload is persisted');
     $templates->discard();
     $templates->setCustomTemplates(true);
+    $storno = ['storno_odt' => $bundle['odt'], 'storno_mapping' => $bundle['mapping'],
+        'storno_xml' => str_replace('<ram:TypeCode>380</ram:TypeCode>', '<ram:TypeCode>384</ram:TypeCode>', $bundle['xml'])];
+    $templates->upload($storno, ['storno_xml' => 'mein-storno.xml']);
+    check($templates->customStatus()['files']['storno_xml']['name'] === 'mein-storno.xml', 'Storno upload metadata');
+    $templates = new InvoiceTemplateService($storage, $config, $apps, $consistency);
+    check($templates->current()['storno_odt'] === $bundle['odt'], 'Stored Storno ODT decoded after reload');
+    rejects(fn () => $templates->upload(['storno_mapping' => '{{broken}}']), 'Storno:');
+    check(!$templates->customStatus()['ok'], 'Invalid Storno disables custom bundle');
+    $templates->upload(['storno_mapping' => $bundle['mapping']]);
+    check($templates->customStatus()['ok'], 'Partial Storno repair reactivates bundle');
+    check($templates->current()['storno_xml'] === $storno['storno_xml'], 'Partial repair preserves Storno XML');
+    $templates->discard();
+    $templates->setCustomTemplates(true);
     $saved = $templates->upload(['xml' => file_get_contents(__DIR__ . '/../config/XRechnung.xml')], ['xml' => 'eigene-rechnung.xml']);
     check($templates->customStatus()['files']['mapping'] === ['name' => 'XRechnung.tsv', 'source' => 'default'], 'Default mapping is identified');
     $metadata = $templates->customStatus()['files'];

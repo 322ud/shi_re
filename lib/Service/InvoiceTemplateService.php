@@ -11,7 +11,8 @@ use OCP\IConfig;
 /** Unveränderliche Vorlagensätze; erst nach vollständigem Schreiben den Zeiger umschalten. */
 class InvoiceTemplateService {
     private ?array $snapshot = null;
-    private const FILES = ['xml' => 'XRechnung.xml', 'odt' => 'XRechnung.odt', 'mapping' => 'XRechnung.tsv'];
+    private const FILES = ['xml' => 'XRechnung.xml', 'odt' => 'XRechnung.odt', 'mapping' => 'XRechnung.tsv',
+        'storno_xml' => 'Storno.xml', 'storno_odt' => 'Storno.odt', 'storno_mapping' => 'Storno.tsv'];
 
     public function __construct(
         private IAppData $appData,
@@ -35,13 +36,13 @@ class InvoiceTemplateService {
         } else {
             try {
                 $bundle = $this->loadStored($version);
-                $this->consistency->check($bundle);
+                $this->checkBundle($bundle);
             } catch (\Throwable $e) {
                 $this->disable($e->getMessage());
                 return $this->current();
             }
         }
-        $bundle['version'] = $version ?: hash('sha256', $bundle['odt'] . $bundle['xml'] . $bundle['mapping']);
+        $bundle['version'] = $version ?: hash('sha256', implode('', array_intersect_key($bundle, self::FILES)));
         return $this->snapshot = $bundle;
     }
 
@@ -51,7 +52,14 @@ class InvoiceTemplateService {
         $json = $this->appData->getFolder('pdf-templates')->getFile($version . '.json')->getContent();
         if (!hash_equals($version, hash('sha256', $json))) throw new \RuntimeException('Vorlagensatz ist beschädigt.');
         $bundle = json_decode($json, true, 16, JSON_THROW_ON_ERROR);
-        $bundle['odt'] = base64_decode($bundle['odt'], true);
+        foreach (self::FILES as $key => $name) {
+            // Existing saved sets predate Storno uploads: complete them from defaults.
+            if (!array_key_exists($key, $bundle) && str_starts_with($key, 'storno_')) {
+                $bundle[$key] = @file_get_contents($this->apps->getAppPath(Application::APP_ID) . '/config/' . $name);
+            } elseif (str_ends_with($key, 'odt')) {
+                $bundle[$key] = base64_decode($bundle[$key] ?? '', true);
+            }
+        }
         foreach (self::FILES as $key => $_) {
             if (!isset($bundle[$key]) || !is_string($bundle[$key])) throw new \RuntimeException('Unvollständiger Vorlagensatz.');
         }
@@ -76,7 +84,7 @@ class InvoiceTemplateService {
             foreach (self::FILES as $key => $name) {
                 if (isset($result['files'][$key])) continue;
                 $default = @file_get_contents($this->apps->getAppPath(Application::APP_ID) . '/config/' . $name);
-                $content = $key === 'odt' ? base64_decode($bundle[$key] ?? '', true) : ($bundle[$key] ?? null);
+                $content = str_ends_with($key, 'odt') ? base64_decode($bundle[$key] ?? '', true) : ($bundle[$key] ?? null);
                 if ($default !== false && $content === $default) {
                     $result['files'][$key] = ['name' => $name, 'source' => 'default'];
                 }
@@ -122,7 +130,10 @@ class InvoiceTemplateService {
                     ];
                 }
             }
-            $stored = ['xml' => $bundle['xml'], 'odt' => base64_encode($bundle['odt']), 'mapping' => $bundle['mapping']];
+            $stored = [];
+            foreach (self::FILES as $key => $_) {
+                $stored[$key] = str_ends_with($key, 'odt') ? base64_encode($bundle[$key]) : $bundle[$key];
+            }
             if (isset($bundle['files'])) $stored['files'] = $bundle['files'];
             $json = json_encode($stored, JSON_THROW_ON_ERROR);
             $version = hash('sha256', $json);
@@ -136,7 +147,7 @@ class InvoiceTemplateService {
             $this->disable('Vorlagensatz noch nicht erfolgreich geprüft.');
             $this->config->setAppValue(Application::APP_ID, 'pdf_template_checked_version', '');
             $this->config->setAppValue(Application::APP_ID, 'pdf_template_version', $version);
-            $this->consistency->check($bundle);
+            $this->checkBundle($bundle);
             $this->config->setAppValue(Application::APP_ID, 'pdf_template_checked_version', $version);
             $this->config->setAppValue(Application::APP_ID, 'pdf_template_error', '');
             $this->snapshot = null;
@@ -144,6 +155,19 @@ class InvoiceTemplateService {
         } catch (\Throwable $e) {
             $this->disable($e->getMessage());
             throw $e;
+        }
+    }
+
+    private function checkBundle(array $bundle): void {
+        foreach (['' => 'XRechnung', 'storno_' => 'Storno'] as $prefix => $label) {
+            if ($prefix !== '' && !array_filter(['storno_odt', 'storno_xml', 'storno_mapping'],
+                fn ($key) => isset($bundle['files'][$key]) && ($bundle['files'][$key]['source'] ?? '') !== 'default')) continue;
+            try {
+                $this->consistency->check(['odt' => $bundle[$prefix . 'odt'],
+                    'xml' => $bundle[$prefix . 'xml'], 'mapping' => $bundle[$prefix . 'mapping']], templateCheck: $prefix !== '');
+            } catch (\Throwable $e) {
+                throw new \InvalidArgumentException($label . ': ' . $e->getMessage(), 0, $e);
+            }
         }
     }
 

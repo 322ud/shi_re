@@ -119,8 +119,9 @@
                 const list = document.getElementById('myx-template-files');
                 list.replaceChildren();
                 if (templates.version) {
-                    Object.entries({odt: 'ODT', xml: 'XML', mapping: 'Mapping'}).forEach(([key, label]) => {
+                    Object.entries({odt: 'XRechnung (ODT)', xml: 'XRechnung (XML)', mapping: 'XRechnung (Mapping)', storno_odt: 'Storno (ODT)', storno_xml: 'Storno (XML)', storno_mapping: 'Storno (Mapping)'}).forEach(([key, label]) => {
                         const file = templates.files?.[key];
+                        if (!file || file.source === 'default') return;
                         const entry = document.createElement('li');
                         entry.textContent = label + ': ' + (file?.name || 'Dateiname nicht erfasst')
                             + (file?.source === 'default' ? ' — mitgelieferte Standardvorlage'

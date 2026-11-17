@@ -78,7 +78,7 @@ class PdfAdminController extends Controller {
             }
             $files = [];
             $filenames = [];
-            foreach (['odt' => OdtInvoiceRenderer::MAX_ODT, 'xml' => 2097152, 'mapping' => 262144] as $key => $limit) {
+            foreach (['odt' => OdtInvoiceRenderer::MAX_ODT, 'xml' => 2097152, 'mapping' => 262144, 'storno_odt' => OdtInvoiceRenderer::MAX_ODT, 'storno_xml' => 2097152, 'storno_mapping' => 262144] as $key => $limit) {
                 $file = $this->request->getUploadedFile($key);
                 if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
                 if ($file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])

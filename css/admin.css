@@ -65,3 +65,6 @@ transition: transform 0.15s;
 #myx-admin .shire-switch[hidden] { display: none !important; }
 
 #myx-admin .shire-settings-group { margin-top: 24px; }
+
+.shire-template-uploads { width: 100%; border-collapse: collapse; }
+.shire-template-uploads th, .shire-template-uploads td { padding: 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--color-border); }

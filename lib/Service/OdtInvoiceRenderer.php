@@ -65,7 +65,7 @@ class OdtInvoiceRenderer {
         return $xpath;
     }
 
-    public function values(array $map, string $xml): array {
+    public function values(array $map, string $xml, bool $templateCheck = false): array {
         $dom = self::xml($xml);
         $xpath = self::xpath($dom);
         if ($dom->documentElement?->namespaceURI !== 'urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'
@@ -82,7 +82,8 @@ class OdtInvoiceRenderer {
                 throw new \InvalidArgumentException("Feld fehlt, ist ungültig oder mehrdeutig: $key ($path)");
             }
             $node = $nodes->item(0);
-            $values[$key] = $this->format($key, trim($node->textContent), $node);
+            $values[$key] = $templateCheck && $key === '{{DocumentType}}'
+                ? trim($node->textContent) : $this->format($key, trim($node->textContent), $node);
         }
         if (trim($values['{{ID}}'] ?? '') === '') throw new \InvalidArgumentException('Rechnungsnummer {{ID}} fehlt.');
         return $values;

@@ -32,7 +32,9 @@ $status = $_['status'];
         <?php $savedTemplates = $_['pdfStatus']['checks']['templates']; ?>
         <ul id="myx-template-files">
         <?php if (!empty($savedTemplates['version'])): ?>
-            <?php foreach (['odt' => 'ODT', 'xml' => 'XML', 'mapping' => 'Mapping'] as $key => $label): ?>
+            <?php foreach (['odt' => 'XRechnung (ODT)', 'xml' => 'XRechnung (XML)', 'mapping' => 'XRechnung (Mapping)', 'storno_odt' => 'Storno (ODT)', 'storno_xml' => 'Storno (XML)', 'storno_mapping' => 'Storno (Mapping)'] as $key => $label):
+                $file = $savedTemplates['files'][$key] ?? [];
+                if (!$file || ($file['source'] ?? '') === 'default') continue; ?>
             <li><?php
                 $file = $savedTemplates['files'][$key] ?? [];
                 p($label . ': ' . ($file['name'] ?? 'Dateiname nicht erfasst')
@@ -43,13 +45,22 @@ $status = $_['status'];
         </ul>
         <details id="myx-replace-templates">
         <summary>Vorlagen ersetzen</summary>
-        <p><label for="myx-pdf-odt">ODT-Vorlage (max. 10 MiB)</label>
-            <input id="myx-pdf-odt" name="odt" type="file" accept=".odt"></p>
-        <p><label for="myx-pdf-xml">XML-Vorlage (max. 2 MiB)</label>
-            <input id="myx-pdf-xml" name="xml" type="file" accept=".xml"></p>
-        <p><label for="myx-pdf-mapping">Mapping-Tabelle (max. 256 KiB)</label>
-            <input id="myx-pdf-mapping" name="mapping" type="file" accept=".tsv,.txt"></p>
-        <p>Nicht ausgewählte Dateien bleiben erhalten. Der gesamte Vorlagensatz wird auf vollständige
+        <div class="shire-table-scroll">
+        <table class="shire-template-uploads">
+            <thead><tr><th scope="col">Format</th><th scope="col">XRechnung</th><th scope="col">Storno</th></tr></thead>
+            <tbody>
+            <?php foreach (['odt' => ['ODT', '.odt', '10 MiB'], 'xml' => ['XML', '.xml', '2 MiB'], 'mapping' => ['Mapping', '.tsv,.txt', '256 KiB']] as $key => [$label, $accept, $limit]): ?>
+            <tr><th scope="row"><?php p($label); ?></th>
+                <?php foreach (['' => 'XRechnung', 'storno_' => 'Storno'] as $prefix => $kind): ?>
+                <td><label for="myx-pdf-<?php p($prefix . $key); ?>"><?php p($kind . ' ' . $label . ' (max. ' . $limit . ')'); ?></label>
+                    <input id="myx-pdf-<?php p($prefix . $key); ?>" name="<?php p($prefix . $key); ?>" type="file" accept="<?php p($accept); ?>"></td>
+                <?php endforeach; ?>
+            </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
+        <p>Nicht ausgewählte Dateien bleiben erhalten. Die Vorlagensätze für XRechnung und Storno werden jeweils auf vollständige
             Zuordnung zwischen ODT, Mapping und XML geprüft. Bei inkonsistenten Vorlagen werden für XML- und PDF-Rechnungen die Standardvorlagen verwendet; eigene Vorlagen sind dann inaktiv.</p>
         <button id="myx-discard-templates" type="button">eigene Vorlagen verwerfen</button>
         <button id="myx-pdf-upload" type="submit">neue Vorlagen prüfen</button>

@@ -6,7 +6,7 @@ namespace OCA\ShiRE\Service;
 class TemplateConsistencyService {
     public function __construct(private OdtInvoiceRenderer $renderer) {}
 
-    public function check(array $bundle): void {
+    public function check(array $bundle, bool $templateCheck = false): void {
         if (strlen($bundle['xml']) > 2097152 || strlen($bundle['mapping']) > 262144) {
             throw new \InvalidArgumentException('XML maximal 2 MiB, Mapping maximal 256 KiB.');
         }
@@ -18,7 +18,7 @@ class TemplateConsistencyService {
         if ($missing) $errors[] = 'a) Mapping fehlt für: ' . implode(', ', $missing);
         if ($unused) $errors[] = 'b) ODT-Platzhalter fehlt für: ' . implode(', ', $unused);
         try {
-            $this->renderer->values($map, $bundle['xml']);
+            $this->renderer->values($map, $bundle['xml'], templateCheck: $templateCheck);
         } catch (\InvalidArgumentException $e) {
             $errors[] = 'c) ' . $e->getMessage();
         }

@@ -180,3 +180,5 @@ Vor dem Einspielen dieser Umbenennung laufende Rechnungsvorgänge abschließen
 oder abbrechen, damit die bisherige Arbeitsdatei `en16931.xml` regulär entfernt
 wird. Bereits vorhandene Dateien dieses alten Namens werden nicht automatisch
 migriert; sie werden vom neuen Code nicht mehr als Arbeitsdatei verwendet.
+
+Die Vorlagenverwaltung bietet für XRechnung und Storno jeweils ODT, XML und Mapping (TSV) in einer Upload-Tabelle. Dateiname und Upload-Datum erscheinen nur für eigene Uploads. Sobald eine eigene Storno-Datei vorliegt, prüft „neue Vorlagen prüfen“ auch den vollständigen Storno-Satz; fehlende Uploads werden durch gespeicherte Dateien bzw. die mitgelieferten Storno-Vorlagen ergänzt. Fehler werden mit „Storno:“ gekennzeichnet und deaktivieren den eigenen Vorlagensatz. Die Konsistenzprüfung prüft Platzhalter, Mapping und XML-Werte; sie bestätigt keine Unterstützung des Storno-Dokumenttyps durch die PDF-Erzeugung.
