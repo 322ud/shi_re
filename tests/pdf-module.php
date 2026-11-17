@@ -67,8 +67,9 @@ namespace {
     $values = $renderer->values($map, $bundle['xml']);
     check($values['{{DocumentType}}'] === 'Rechnung', 'Document type 380 mapped to Rechnung');
     $cancelDom = (new \OCA\ShiRE\Service\CancellationInvoiceService())->build(
-        file_get_contents(__DIR__ . '/../config/Storno.xml'), $bundle['xml'], '26 201', new DateTimeImmutable('2026-11-17'));
+        file_get_contents(__DIR__ . '/../config/Storno.xml'), $bundle['xml'], '26 201', new DateTimeImmutable('2026-11-17'), 'Frank Busse');
     $cancelValues = $renderer->values($renderer->mapping(file_get_contents(__DIR__ . '/../config/Storno.tsv')), $cancelDom->saveXML());
+    check($cancelValues['{{UserID}}'] === 'fb', 'Cancellation maps current user initials from ABN into ODT');
     check($cancelValues['{{DocumentType}}'] === 'Storno-Rechnung', 'Cancellation document type');
     check($cancelValues['{{PrecedingInvoiceID}}'] === '26 200', 'Cancellation reference in ODT');
     $cancelOdt = $renderer->render(file_get_contents(__DIR__ . '/../config/Storno.odt'), $cancelValues);

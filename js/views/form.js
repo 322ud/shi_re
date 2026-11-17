@@ -25,7 +25,7 @@
             NS.make(
                 'h1',
                 {},
-                (archived ? 'archivierte Rechnung' : cancellation ? 'neue Storno-Rechnung' : (supportedType ? 'Neue Rechnung' : 'Neues Dokument')) + ' "' + firstItemName + '" Nr. ' + NS.state.ramID + ' vom ' + NS.state.todayText
+                (archived ? 'archivierte Rechnung' : cancellation ? 'neue Storno-Rechnung' : (supportedType ? 'Neue Rechnung' : 'Neues Dokument')) + (cancellation ? '' : ' "' + firstItemName + '"') + ' Nr. ' + NS.state.ramID + ' vom ' + NS.state.todayText
             )
         );
 
@@ -64,10 +64,12 @@
 
         const referenceLine = NS.make('div', { class: 'myx-reference-line' });
         referenceLine.appendChild(NS.field('Aktenzeichen', 'buyer.reference', NS.state.invoiceData.buyer.reference));
-        const hours = NS.decimalField(cancellation ? 'Menge' : 'Stunden', 'item.quantity', NS.state.invoiceData.items[0]?.quantity ?? 0, 1);
-        hours.classList.add('myx-hours-field');
-        hours.querySelector('input').tabIndex = -1;
-        referenceLine.appendChild(hours);
+        if (!cancellation) {
+            const hours = NS.decimalField('Stunden', 'item.quantity', NS.state.invoiceData.items[0]?.quantity ?? 0, 1);
+            hours.classList.add('myx-hours-field');
+            hours.querySelector('input').tabIndex = -1;
+            referenceLine.appendChild(hours);
+        }
         form.appendChild(referenceLine);
 
         const table = NS.make('div', { class: 'myx-posten-table' });
@@ -133,16 +135,20 @@
             createButton.disabled = !supportedType;
             actions.appendChild(createButton);
             if (!cancellation) actions.appendChild(NS.savedInvoiceDropdown());
-            const closeButton = NS.button('ShiRE schließen', async () => {
-                closeButton.disabled = true;
-                try {
-                    await NS.post('/en16931/cancel');
-                    NS.closeApp();
-                } finally {
-                    closeButton.disabled = false;
-                }
-            });
-            actions.appendChild(closeButton);
+            if (cancellation) {
+                actions.appendChild(NS.cancellationAbortDropdown());
+            } else {
+                const closeButton = NS.button('ShiRE schließen', async () => {
+                    closeButton.disabled = true;
+                    try {
+                        await NS.post('/en16931/cancel');
+                        NS.closeApp();
+                    } finally {
+                        closeButton.disabled = false;
+                    }
+                });
+                actions.appendChild(closeButton);
+            }
         }
 
         if (cancellation) form.querySelectorAll('input, textarea').forEach(field => { field.readOnly = true; });
@@ -183,6 +189,48 @@
         observer.observe(description);
         NS.recalculate();
         if (!archived && !cancellation) form.querySelector('[name="buyer.reference"]').focus();
+    };
+
+    NS.cancellationAbortDropdown = function () {
+        const wrapper = NS.make('div', {class: 'myx-saved-invoices'});
+        const menu = NS.make('div', {class: 'myx-saved-menu', id: 'myx-cancellation-abort-menu'});
+        menu.hidden = true;
+        const button = NS.button('abbrechen', () => {
+            menu.hidden = !menu.hidden;
+            button.setAttribute('aria-expanded', String(!menu.hidden));
+        });
+        button.setAttribute('aria-expanded', 'false');
+        button.setAttribute('aria-controls', menu.id);
+        let pending = false;
+        const choices = [];
+        for (const [label, startNew] of [['neue Rechnung erstellen', true], ['ShiRE schließen', false]]) {
+            const choice = NS.button(label, async () => {
+                if (pending) return;
+                pending = true;
+                choices.forEach(entry => { entry.disabled = true; });
+                try {
+                    await NS.post('/en16931/cancel');
+                    NS.stopHeartbeat();
+                    if (startNew) await NS.startInvoice();
+                    else NS.closeApp();
+                } finally {
+                    pending = false;
+                    choices.forEach(entry => { entry.disabled = false; });
+                }
+            });
+            choices.push(choice);
+            menu.appendChild(choice);
+        }
+        wrapper.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                menu.hidden = true;
+                button.setAttribute('aria-expanded', 'false');
+                button.focus();
+            }
+        });
+        wrapper.appendChild(button);
+        wrapper.appendChild(menu);
+        return wrapper;
     };
 
     NS.savedInvoiceDropdown = function () {
@@ -529,6 +577,7 @@
         const data = (NS.state.archiveDraft || NS.state.cancellationFilename) ? NS.state.invoiceData : NS.collectFormData();
         for (const name of ['buyer.reference', 'item.description', 'item.quantity']) {
             const field = document.querySelector(`#myx-invoice-form [name="${name}"]`);
+            if (!field) continue;
             const empty = name === 'item.quantity' ? NS.parseAmount(field.value) === 0 : field.value.trim() === '';
             field.classList.toggle('myx-empty-input', !field.readOnly && empty);
         }

@@ -48,12 +48,12 @@ class DomService {
         return IncRamID::next($dom);
     }
 
-    public function cancellation(string $filename, string $number, \DateTimeImmutable $date): DOMDocument {
+    public function cancellation(string $filename, string $number, \DateTimeImmutable $date, string $userName = ''): DOMDocument {
         if (!preg_match('/^\d{2} \d{3}\.xml$/D', $filename)) {
             throw new \InvalidArgumentException('Ungültiger Archivdateiname.');
         }
         $xml = $this->appData->getFolder('/')->getFile($filename)->getContent();
-        $dom = (new CancellationInvoiceService())->build($this->templates->current()['storno_xml'], $xml, $number, $date);
+        $dom = (new CancellationInvoiceService())->build($this->templates->current()['storno_xml'], $xml, $number, $date, $userName);
         return $dom;
     }
 

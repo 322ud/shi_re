@@ -89,13 +89,31 @@ const fs = require('node:fs');
             ns.createXmlInvoice = () => { window.cancellationCreated = true; };
             ns.showInvoiceForm();
         }, cancellationXml);
-        assert.match(await page.locator('h1').textContent(), /neue Storno-Rechnung.*26 202 vom 17.11.2026/);
-        assert.deepEqual(await page.locator('.myx-actions button').allTextContents(), ['Storno-Rechnung erstellen', 'ShiRE schließen']);
+        assert.equal(await page.locator('h1').textContent(), 'neue Storno-Rechnung Nr. 26 202 vom 17.11.2026');
+        assert.equal(await page.locator('[name="item.quantity"]').count(), 0);
+        assert.deepEqual(await page.locator('.myx-actions button:visible').allTextContents(), ['Storno-Rechnung erstellen', 'abbrechen']);
         assert.equal(await page.locator('#myx-invoice-form input:not([readonly]), #myx-invoice-form textarea:not([readonly])').count(), 0);
         assert.equal(await page.locator('[name="item.description"]').inputValue(), 'Vollständige Stornierung zu 26 201');
         assert.equal(await page.locator('.myx-grand-total').textContent(), '-119,00 €');
         await page.getByRole('button', {name: 'Storno-Rechnung erstellen', exact: true}).click();
         assert.equal(await page.evaluate(() => window.cancellationCreated), true);
+        await page.evaluate(() => {
+            window.closeAppCalled = false;
+            window.ShiRE.stopHeartbeat = () => { window.heartbeatStopped = true; };
+            window.ShiRE.startInvoice = async () => { window.newInvoiceStarted = true; };
+        });
+        await page.getByRole('button', {name: 'abbrechen', exact: true}).click();
+        await page.evaluate(() => { window.cancelFails = true; });
+        await page.getByRole('button', {name: 'neue Rechnung erstellen', exact: true}).click();
+        assert.equal(await page.evaluate(() => Boolean(window.newInvoiceStarted)), false);
+        assert.equal(await page.getByRole('button', {name: 'neue Rechnung erstellen', exact: true}).isEnabled(), true);
+        await page.evaluate(() => { window.cancelFails = false; });
+        await page.getByRole('button', {name: 'neue Rechnung erstellen', exact: true}).click();
+        assert.equal(await page.evaluate(() => window.newInvoiceStarted && window.heartbeatStopped), true);
+        assert.equal(await page.evaluate(() => window.cancelPath), '/en16931/cancel');
+        await page.getByRole('button', {name: 'ShiRE schließen', exact: true}).click();
+        assert.equal(await page.evaluate(() => window.closeAppCalled), true);
+
         assert.deepEqual(errors, []);
         console.log('Invoice form browser: seller VAT ID, red empty inputs and zero hours, forward/reverse tab order and archived VAT ID passed.');
     } finally { await browser.close(); }

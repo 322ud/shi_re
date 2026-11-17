@@ -54,7 +54,7 @@ class EN16931Controller extends Controller {
                     $filename = $this->request->getParam('filename');
                     if (!is_string($filename)) throw new \InvalidArgumentException('Archivdateiname fehlt.');
                     $dom = $this->domService->cancellation($filename, $draft['ramID'],
-                        new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin')));
+                        new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin')), $this->currentUserName());
                     return new JSONResponse(['success' => true, 'xml' => $dom->saveXML()]);
                 });
             }
@@ -181,7 +181,7 @@ class EN16931Controller extends Controller {
                 if ($filename !== null) {
                     if (!is_string($filename)) throw new \InvalidArgumentException('Archivdateiname fehlt.');
                     $dom = $this->domService->cancellation($filename, $draft['ramID'],
-                        new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin')));
+                        new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin')), $this->currentUserName());
                 } else {
                     $this->invoiceXmlService->apply(
                         $dom,
@@ -232,6 +232,12 @@ class EN16931Controller extends Controller {
             $this->progress?->fail();
             return $this->errorResponse($e);
         }
+    }
+
+    private function currentUserName(): string {
+        $user = $this->users->getUser();
+        if ($user === null) throw new \RuntimeException('Kein Nextcloud-Nutzer angemeldet.', 401);
+        return trim($user->getDisplayName()) ?: $user->getUID();
     }
 
     private function windowIdFromRequest(): string {

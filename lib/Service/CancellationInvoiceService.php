@@ -5,7 +5,7 @@ namespace OCA\ShiRE\Service;
 
 /** Builds a full cancellation from archived amounts, never from browser input. */
 final class CancellationInvoiceService {
-    public function build(string $template, string $archived, string $number, \DateTimeImmutable $date): \DOMDocument {
+    public function build(string $template, string $archived, string $number, \DateTimeImmutable $date, string $userName = ''): \DOMDocument {
         $dom = OdtInvoiceRenderer::xml($template);
         $source = OdtInvoiceRenderer::xml($archived);
         $xp = OdtInvoiceRenderer::xpath($dom);
@@ -54,6 +54,12 @@ final class CancellationInvoiceService {
         }
         $set($product . '/ram:Description', $description . ' zu ' . $oldNumber);
         IncRamID::set($dom, $number);
+        // Match the user initials used for ordinary invoices; do not reuse the archived author.
+        preg_match_all('/(?:^|[\s\p{Z}\p{Pd}]+)(\p{L}|\p{N})/u', trim($userName), $initials);
+        $userId = mb_strtolower(implode('', $initials[1]), 'UTF-8');
+        foreach ($xp->query($document . '/ram:IncludedNote[ram:SubjectCode="ABN"]/ram:Content') as $content) {
+            $content->textContent = $userId;
+        }
         $set($document . '/ram:IssueDateTime/udt:DateTimeString', $date->format('Ymd'));
         $get($xp, $document . '/ram:IssueDateTime/udt:DateTimeString')->setAttribute('format', '102');
         $copy($transaction . '/ram:ApplicableHeaderTradeAgreement');

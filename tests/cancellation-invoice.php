@@ -9,7 +9,7 @@ $service->apply($source, $data, '26 201', $date);
 $sourceXml = $source->saveXML();
 $stornoTemplate = file_get_contents(__DIR__ . '/../config/Storno.xml');
 $cancellation = new CancellationInvoiceService();
-$result = $cancellation->build($stornoTemplate, $sourceXml, '26 202', new DateTimeImmutable('2026-11-17'));
+$result = $cancellation->build($stornoTemplate, $sourceXml, '26 202', new DateTimeImmutable('2026-11-17'), 'Änne-Marie Öztürk');
 $xp = OdtInvoiceRenderer::xpath($result);
 foreach ([
     '/rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID' => '26 202',
@@ -18,6 +18,7 @@ foreach ([
     '//ram:InvoiceReferencedDocument/ram:IssuerAssignedID' => '26 201',
     '//ram:SpecifiedTradeProduct/ram:Description' => 'Vollständige Stornierung zu 26 201',
     '//ram:BilledQuantity' => '-1',
+    '//ram:IncludedNote[ram:SubjectCode="ABN"]/ram:Content' => 'ämö',
     '//ram:BuyerTradeParty/ram:Name' => $data['buyer']['name'],
 ] as $path => $expected) check($xp->evaluate('string(' . $path . ')') === $expected, $path);
 $original = OdtInvoiceRenderer::xpath($source);
