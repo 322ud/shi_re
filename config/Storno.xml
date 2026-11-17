@@ -12,9 +12,6 @@
       <udt:DateTimeString format="102">20261117</udt:DateTimeString>
     </ram:IssueDateTime>
     <ram:IncludedNote>
-      <ram:Content>Vollständige Stornierung</ram:Content>
-    </ram:IncludedNote>
-    <ram:IncludedNote>
       <ram:Content/>
       <ram:SubjectCode>ABN</ram:SubjectCode>
     </ram:IncludedNote>
@@ -25,7 +22,7 @@
         <ram:LineID>1</ram:LineID>
       </ram:AssociatedDocumentLineDocument>
       <ram:SpecifiedTradeProduct>
-        <ram:Name>Entwicklung</ram:Name>
+        <ram:Name>Vollständige Stornierung</ram:Name>
       </ram:SpecifiedTradeProduct>
       <ram:SpecifiedLineTradeAgreement>
         <ram:NetPriceProductTradePrice>
@@ -33,7 +30,7 @@
         </ram:NetPriceProductTradePrice>
       </ram:SpecifiedLineTradeAgreement>
       <ram:SpecifiedLineTradeDelivery>
-        <ram:BilledQuantity unitCode="HUR">-1.0000</ram:BilledQuantity>
+        <ram:BilledQuantity unitCode="C62">-1</ram:BilledQuantity>
       </ram:SpecifiedLineTradeDelivery>
       <ram:SpecifiedLineTradeSettlement>
         <ram:ApplicableTradeTax>
