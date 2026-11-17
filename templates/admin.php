@@ -50,10 +50,9 @@ $status = $_['status'];
             <thead><tr><th scope="col">Format</th><th scope="col">XRechnung</th><th scope="col">Storno</th></tr></thead>
             <tbody>
             <?php foreach (['odt' => ['ODT', '.odt', '10 MiB'], 'xml' => ['XML', '.xml', '2 MiB'], 'mapping' => ['Mapping', '.tsv,.txt', '256 KiB']] as $key => [$label, $accept, $limit]): ?>
-            <tr><th scope="row"><?php p($label); ?></th>
+            <tr><th scope="row"><?php p($label . ' (max ' . $limit . ')'); ?></th>
                 <?php foreach (['' => 'XRechnung', 'storno_' => 'Storno'] as $prefix => $kind): ?>
-                <td><label for="myx-pdf-<?php p($prefix . $key); ?>"><?php p($kind . ' ' . $label . ' (max. ' . $limit . ')'); ?></label>
-                    <input id="myx-pdf-<?php p($prefix . $key); ?>" name="<?php p($prefix . $key); ?>" type="file" accept="<?php p($accept); ?>"></td>
+                <td><input id="myx-pdf-<?php p($prefix . $key); ?>" name="<?php p($prefix . $key); ?>" type="file" accept="<?php p($accept); ?>" aria-label="<?php p($kind . ' ' . $label . ' (max ' . $limit . ')'); ?>"></td>
                 <?php endforeach; ?>
             </tr>
             <?php endforeach; ?>
