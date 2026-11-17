@@ -27,13 +27,15 @@ class PdfInvoiceService {
         }
         $this->progress?->finish('PDF-Werkzeuge und Vorlagen verfügbar.');
         $this->progress?->start('Rechnungsdaten werden in die ODT-Vorlage übertragen …');
-        $values = $this->renderer->values($this->renderer->mapping($bundle['mapping']), $xml);
+        $xpath = OdtInvoiceRenderer::xpath(OdtInvoiceRenderer::xml($xml));
+        $prefix = $xpath->evaluate('string(/rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:TypeCode)') === '384' ? 'storno_' : '';
+        $values = $this->renderer->values($this->renderer->mapping($bundle[$prefix . 'mapping']), $xml);
         $name = self::filename($values['{{ID}}']);
         $tools = $this->dependencies->tools();
         $dir = $this->workspace->create();
         try {
             $this->write($dir . '/invoice.xml', $xml);
-            $this->write($dir . '/invoice.odt', $this->renderer->render($bundle['odt'], $values));
+            $this->write($dir . '/invoice.odt', $this->renderer->render($bundle[$prefix . 'odt'], $values));
             $this->progress?->finish('ODT-Rechnungsvorlage ausgefüllt.');
             $this->progress?->start('PDF wird mit LibreOffice erzeugt …');
             $profile = 'file://' . implode('/', array_map('rawurlencode', explode('/', $dir . '/lo-profile')));

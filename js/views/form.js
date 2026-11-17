@@ -15,7 +15,8 @@
         input.appendChild(NS.make('div', { id: 'myx-bg-icon' }));
 
         const archived = !!NS.state.archiveDraft;
-        const supportedType = NS.state.typeCode === '380';
+        const cancellation = Boolean(NS.state.cancellationFilename);
+        const supportedType = NS.state.typeCode === '380' || cancellation;
         if (!supportedType) {
             NS.log('Typecode [' + NS.state.typeCode + '] kann (noch) nicht verarbeitet werden.');
         }
@@ -24,7 +25,7 @@
             NS.make(
                 'h1',
                 {},
-                (archived ? 'archivierte Rechnung' : (supportedType ? 'Neue Rechnung' : 'Neues Dokument')) + ' "' + firstItemName + '" Nr. ' + NS.state.ramID + ' vom ' + NS.state.todayText
+                (archived ? 'archivierte Rechnung' : cancellation ? 'neue Storno-Rechnung' : (supportedType ? 'Neue Rechnung' : 'Neues Dokument')) + ' "' + firstItemName + '" Nr. ' + NS.state.ramID + ' vom ' + NS.state.todayText
             )
         );
 
@@ -63,7 +64,7 @@
 
         const referenceLine = NS.make('div', { class: 'myx-reference-line' });
         referenceLine.appendChild(NS.field('Aktenzeichen', 'buyer.reference', NS.state.invoiceData.buyer.reference));
-        const hours = NS.decimalField('Stunden', 'item.quantity', NS.state.invoiceData.items[0]?.quantity ?? 0, 1);
+        const hours = NS.decimalField(cancellation ? 'Menge' : 'Stunden', 'item.quantity', NS.state.invoiceData.items[0]?.quantity ?? 0, 1);
         hours.classList.add('myx-hours-field');
         hours.querySelector('input').tabIndex = -1;
         referenceLine.appendChild(hours);
@@ -98,7 +99,7 @@
             actions.appendChild(NS.archiveTemplateDropdown());
             actions.appendChild(NS.button('zurück', () => NS.leaveArchive(false)));
             form.querySelectorAll('input, textarea').forEach(field => { field.readOnly = true; });
-        } else if (NS.state.validationActive === false) {
+        } else if (NS.state.validationActive === false && !cancellation) {
             const host = NS.make('div', {class: 'myx-create-menu'});
             actions.appendChild(host);
             actions.appendChild(NS.savedInvoiceDropdown());
@@ -128,10 +129,10 @@
                 }, null, {unvalidated: true, pdfEnabled: Boolean(NS.state.pdfStatus?.enabled), createDisabled: !supportedType});
             });
         } else {
-            const createButton = NS.button('Rechnung erstellen', NS.createXmlInvoice, 'myx-primary');
+            const createButton = NS.button(cancellation ? 'Storno-Rechnung erstellen' : 'Rechnung erstellen', NS.createXmlInvoice, 'myx-primary');
             createButton.disabled = !supportedType;
             actions.appendChild(createButton);
-            actions.appendChild(NS.savedInvoiceDropdown());
+            if (!cancellation) actions.appendChild(NS.savedInvoiceDropdown());
             const closeButton = NS.button('ShiRE schließen', async () => {
                 closeButton.disabled = true;
                 try {
@@ -144,10 +145,11 @@
             actions.appendChild(closeButton);
         }
 
+        if (cancellation) form.querySelectorAll('input, textarea').forEach(field => { field.readOnly = true; });
         form.appendChild(actions);
 
         input.appendChild(form);
-        if (!archived) {
+        if (!archived && !cancellation) {
             const order = [form.querySelector('[name="buyer.reference"]'),
                 form.querySelector('[name="item.description"]'),
                 form.querySelector('.myx-primary') || form.querySelector('.myx-create-menu button')];
@@ -180,7 +182,7 @@
         let previousWidth = description.clientWidth;
         observer.observe(description);
         NS.recalculate();
-        if (!archived) form.querySelector('[name="buyer.reference"]').focus();
+        if (!archived && !cancellation) form.querySelector('[name="buyer.reference"]').focus();
     };
 
     NS.savedInvoiceDropdown = function () {
@@ -260,6 +262,7 @@
         NS.collectFormData();
         const keys = ['invoiceData', 'ramID', 'seller', 'typeCode', 'todayText'];
         NS.state.archiveDraft = Object.fromEntries(keys.map(key => [key, NS.state[key]]));
+        NS.state.archiveFilename = filename;
         Object.assign(NS.state, archived);
         NS.showInvoiceForm();
     };
@@ -270,11 +273,23 @@
         if (!draft) return;
         Object.assign(NS.state, draft);
         NS.state.archiveDraft = null;
+        delete NS.state.archiveFilename;
         if (useTemplate) {
             NS.state.invoiceData.buyer = {...archived.buyer};
             NS.state.invoiceData.items[0].description = archived.items[0].description;
             NS.state.invoiceData.items[0].quantity = archived.items[0].quantity;
         }
+        NS.showInvoiceForm();
+    };
+
+    NS.startCancellation = async function () {
+        const filename = NS.state.archiveFilename;
+        const data = await NS.post('/en16931/draft', {action: 'cancellation', filename});
+        const cancellation = NS.parseArchivedInvoice(data.xml);
+        Object.assign(NS.state, cancellation);
+        NS.state.archiveDraft = null;
+        delete NS.state.archiveFilename;
+        NS.state.cancellationFilename = filename;
         NS.showInvoiceForm();
     };
 
@@ -289,8 +304,10 @@
         button.setAttribute('aria-expanded', 'false');
         button.setAttribute('aria-controls', 'myx-template-menu');
         menu.appendChild(NS.button('für neue Rechnung', () => NS.leaveArchive(true)));
-        const cancel = NS.button('für Storno-Rechnung', function () {});
-        cancel.disabled = true;
+        const cancel = NS.button('für Storno-Rechnung', async function () {
+            cancel.disabled = true;
+            try { await NS.startCancellation(); } finally { cancel.disabled = false; }
+        });
         menu.appendChild(cancel);
         wrapper.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
@@ -352,6 +369,10 @@
                 }],
                 vatRate: NS.parseAmount(value(item, 'SpecifiedLineTradeSettlement/ApplicableTradeTax/RateApplicablePercent')),
                 expenses: [],
+                archivedTotals: {
+                    vat: NS.parseAmount(value(settlement, 'SpecifiedTradeSettlementHeaderMonetarySummation/TaxTotalAmount')),
+                    grand: NS.parseAmount(value(settlement, 'SpecifiedTradeSettlementHeaderMonetarySummation/GrandTotalAmount')),
+                },
             },
         };
     };
@@ -449,6 +470,7 @@
     };
 
     NS.collectFormData = function () {
+        if (NS.state.cancellationFilename) return NS.state.invoiceData;
         const form = document.getElementById('myx-invoice-form');
 
         if (!form) {
@@ -504,7 +526,7 @@
             return;
         }
 
-        const data = NS.state.archiveDraft ? NS.state.invoiceData : NS.collectFormData();
+        const data = (NS.state.archiveDraft || NS.state.cancellationFilename) ? NS.state.invoiceData : NS.collectFormData();
         for (const name of ['buyer.reference', 'item.description', 'item.quantity']) {
             const field = document.querySelector(`#myx-invoice-form [name="${name}"]`);
             const empty = name === 'item.quantity' ? NS.parseAmount(field.value) === 0 : field.value.trim() === '';
@@ -523,7 +545,7 @@
             row.querySelector('.myx-expense-net').textContent = NS.money(q * p);
         });
 
-        const totals = NS.calculateTotals(data);
+        const totals = NS.state.cancellationFilename ? data.archivedTotals : NS.calculateTotals(data);
 
         const vat = document.querySelector('.myx-vat-total');
         const grand = document.querySelector('.myx-grand-total');

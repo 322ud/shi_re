@@ -91,10 +91,10 @@ class OdtInvoiceRenderer {
 
     private function format(string $key, string $value, \DOMElement $node): string {
         if ($key === '{{DocumentType}}') {
-            if ($value !== '380') {
+            if (!in_array($value, ['380', '384'], true)) {
                 throw new \InvalidArgumentException("TypeCode $value wird (noch) nicht unterstützt. PDF kann nicht erstellt werden.", 422);
             }
-            return 'Rechnung';
+            return $value === '384' ? 'Storno-Rechnung' : 'Rechnung';
         }
         if ($key === '{{Currency}}') return $value === 'EUR' ? '€' : $value;
         if ($key === '{{IBAN}}') {

@@ -84,7 +84,7 @@ class Element {
     assert.equal(templateMenu.hidden, false);
     assert.equal(templateMenu.children[0].text, 'für neue Rechnung');
     assert.equal(templateMenu.children[1].text, 'für Storno-Rechnung');
-    assert.equal(templateMenu.children[1].disabled, true);
+    assert.notEqual(templateMenu.children[1].disabled, true);
     templateMenu.children[0].click();
     assert.equal(ns.state.ramID, draft.ramID, 'Template keeps the reserved new invoice number');
     assert.equal(ns.state.todayText, draft.todayText);
@@ -95,6 +95,19 @@ class Element {
     assert.equal(ns.state.invoiceData.items[0].unitPrice, 120);
     assert.equal(ns.state.invoiceData.vatRate, 19);
     assert.equal(renders, 4);
+    await ns.openArchivedInvoice('2025-010.xml');
+    ns.post = async (path, payload) => {
+        assert.equal(path, '/en16931/draft');
+        assert.equal(payload.action, 'cancellation');
+        assert.equal(payload.filename, '2025-010.xml');
+        return {xml: '<cancellation />'};
+    };
+    ns.parseArchivedInvoice = () => ({...structuredClone(archived), ramID: draft.ramID, typeCode: '384'});
+    await ns.archiveTemplateDropdown().children[1].children[1].click();
+    assert.equal(ns.state.cancellationFilename, '2025-010.xml');
+    assert.equal(ns.state.archiveDraft, null);
+    assert.equal(ns.state.ramID, draft.ramID);
+    assert.equal(ns.state.typeCode, '384');
     console.log('Saved invoice dropdown tests passed: empty, refresh, order, selection, Escape and errors.');
-    console.log('Archive navigation tests passed: restore draft, copy recipient/reference/description/quantity, retain new number and current prices, disable cancellation.');
+    console.log('Archive navigation tests passed: restore draft, copy recipient/reference/description/quantity, retain new number and current prices, prepare cancellation.');
 })().catch(error => { console.error(error); process.exit(1); });

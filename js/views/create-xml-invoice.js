@@ -10,6 +10,7 @@
 
         const data = await NS.post('/en16931/createXmlInvoice', {
             invoiceData: invoiceData,
+            ...(NS.state.cancellationFilename ? {cancellationFilename: NS.state.cancellationFilename} : {}),
         });
 
 

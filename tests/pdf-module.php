@@ -37,6 +37,7 @@ namespace {
     foreach (['DraftService', 'IncRamID', 'InvoiceReviewService', 'DomService'] as $class) require __DIR__ . '/../lib/Service/' . $class . '.php';
     require __DIR__ . '/../lib/Controller/PdfInvoiceController.php';
     require __DIR__ . '/../lib/Controller/PdfAdminController.php';
+    require __DIR__ . '/../lib/Service/CancellationInvoiceService.php';
 
     function check(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); }
     function rejects(callable $action, string $contains = ''): void {
@@ -65,6 +66,14 @@ namespace {
     check(count($map) === 33 && count($renderer->placeholders($bundle['odt'])) === 33, 'Real template: 33 placeholders');
     $values = $renderer->values($map, $bundle['xml']);
     check($values['{{DocumentType}}'] === 'Rechnung', 'Document type 380 mapped to Rechnung');
+    $cancelDom = (new \OCA\ShiRE\Service\CancellationInvoiceService())->build(
+        file_get_contents(__DIR__ . '/../config/Storno.xml'), $bundle['xml'], '26 201', new DateTimeImmutable('2026-11-17'));
+    $cancelValues = $renderer->values($renderer->mapping(file_get_contents(__DIR__ . '/../config/Storno.tsv')), $cancelDom->saveXML());
+    check($cancelValues['{{DocumentType}}'] === 'Storno-Rechnung', 'Cancellation document type');
+    check($cancelValues['{{PrecedingInvoiceID}}'] === '26 200', 'Cancellation reference in ODT');
+    $cancelOdt = $renderer->render(file_get_contents(__DIR__ . '/../config/Storno.odt'), $cancelValues);
+    check($renderer->placeholders($cancelOdt) === [], 'All cancellation ODT placeholders replaced');
+
     $unsupportedXml = str_replace('<ram:TypeCode>380</ram:TypeCode>', '<ram:TypeCode>381</ram:TypeCode>', $bundle['xml']);
     $unsupportedMessage = 'TypeCode 381 wird (noch) nicht unterstützt. PDF kann nicht erstellt werden.';
     rejects(fn () => $renderer->values($map, $unsupportedXml), $unsupportedMessage);

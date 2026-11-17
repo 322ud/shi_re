@@ -48,6 +48,17 @@ class EN16931Controller extends Controller {
         try {
             $windowId = $this->windowIdFromRequest();
 
+            if ($this->request->getParam('action') === 'cancellation') {
+                return $this->proof->locked(function () use ($windowId) {
+                    $draft = $this->draftService->requireActive($windowId);
+                    $filename = $this->request->getParam('filename');
+                    if (!is_string($filename)) throw new \InvalidArgumentException('Archivdateiname fehlt.');
+                    $dom = $this->domService->cancellation($filename, $draft['ramID'],
+                        new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin')));
+                    return new JSONResponse(['success' => true, 'xml' => $dom->saveXML()]);
+                });
+            }
+
             $dom = $this->domService->loadTemplate();
             $ramID = $this->domService->nextInvoiceNumber();
             IncRamID::set($dom, $ramID);
@@ -166,13 +177,20 @@ class EN16931Controller extends Controller {
                 }
 
                 $this->progress?->start('Rechnungsdaten werden geprüft …');
-                $this->invoiceXmlService->apply(
-                    $dom,
-                    $invoiceData,
-                    $draft['ramID'],
-                    new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin')),
-                    trim($user->getDisplayName()) ?: $user->getUID(),
-                );
+                $filename = $this->request->getParam('cancellationFilename');
+                if ($filename !== null) {
+                    if (!is_string($filename)) throw new \InvalidArgumentException('Archivdateiname fehlt.');
+                    $dom = $this->domService->cancellation($filename, $draft['ramID'],
+                        new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin')));
+                } else {
+                    $this->invoiceXmlService->apply(
+                        $dom,
+                        $invoiceData,
+                        $draft['ramID'],
+                        new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin')),
+                        trim($user->getDisplayName()) ?: $user->getUID(),
+                    );
+                }
 
                 $this->progress?->finish('Rechnungsdaten auf Pflichtfelder und zulässige Werte geprüft.');
                 $this->progress?->start('XML-Rechnung wird erstellt …');

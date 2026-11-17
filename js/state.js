@@ -42,5 +42,8 @@
         NS.state.todayText = null;
         NS.state.xmlInvoiceFile = null;
         NS.state.invoiceData = null;
+        NS.state.archiveDraft = null;
+        delete NS.state.archiveFilename;
+        delete NS.state.cancellationFilename;
     };
 })();

@@ -77,6 +77,25 @@ const fs = require('node:fs');
         const xml = fs.readFileSync(path.resolve('config/XRechnung.xml'), 'utf8');
         const vatId = await page.evaluate(xml => window.ShiRE.parseArchivedInvoice(xml).seller.vatId, xml);
         assert.ok(vatId && xml.includes(vatId), 'Archive reads VAT registration with VA scheme');
+        const cancellationXml = fs.readFileSync(path.resolve('config/Storno.xml'), 'utf8');
+        await page.evaluate(xml => {
+            const ns = window.ShiRE;
+            Object.assign(ns.state, ns.parseArchivedInvoice(xml));
+            ns.state.ramID = '26 202';
+            ns.state.todayText = '17.11.2026';
+            ns.state.cancellationFilename = '26 201.xml';
+            ns.state.invoiceData.items[0].description = 'Vollständige Stornierung zu 26 201';
+            ns.state.validationActive = false;
+            ns.createXmlInvoice = () => { window.cancellationCreated = true; };
+            ns.showInvoiceForm();
+        }, cancellationXml);
+        assert.match(await page.locator('h1').textContent(), /neue Storno-Rechnung.*26 202 vom 17.11.2026/);
+        assert.deepEqual(await page.locator('.myx-actions button').allTextContents(), ['Storno-Rechnung erstellen', 'ShiRE schließen']);
+        assert.equal(await page.locator('#myx-invoice-form input:not([readonly]), #myx-invoice-form textarea:not([readonly])').count(), 0);
+        assert.equal(await page.locator('[name="item.description"]').inputValue(), 'Vollständige Stornierung zu 26 201');
+        assert.equal(await page.locator('.myx-grand-total').textContent(), '-119,00 €');
+        await page.getByRole('button', {name: 'Storno-Rechnung erstellen', exact: true}).click();
+        assert.equal(await page.evaluate(() => window.cancellationCreated), true);
         assert.deepEqual(errors, []);
         console.log('Invoice form browser: seller VAT ID, red empty inputs and zero hours, forward/reverse tab order and archived VAT ID passed.');
     } finally { await browser.close(); }

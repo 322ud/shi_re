@@ -5,6 +5,9 @@
 
     NS.startInvoice = async function () {
         NS.state.validationToken = null;
+        NS.state.archiveDraft = null;
+        delete NS.state.archiveFilename;
+        delete NS.state.cancellationFilename;
         NS.state.invoiceInterrupted = false;
         NS.releasePdfDownload();
         NS.clear(NS.inputArea());
