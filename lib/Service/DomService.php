@@ -131,7 +131,7 @@ class DomService {
     *
     * Verwendet für:
     * - draft.xml (vorbereiteter Entwurfszustand)
-    * - en16931.xml (fertige Rechnung)
+    * - tmp.xml (fertige Rechnung)
     *
     * Der Aufrufer entscheidet:
     * - welche XML gespeichert wird

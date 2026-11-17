@@ -36,7 +36,7 @@ namespace {
         public function getParam($key) { return $this->params[$key] ?? null; }
     };
     $storage = new class implements \OCP\Files\IAppData {
-        public array $files = ['en16931.xml' => '<invoice/>'];
+        public array $files = ['tmp.xml' => '<invoice/>'];
         public function getFolder($name) { return $this; }
         public function fileExists($name) { return isset($this->files[$name]); }
         public function newFile($name, $content) { $this->files[$name] = $content; }
@@ -71,13 +71,13 @@ namespace {
     $users->uid = 'alice';
     $download = $controller->downloadXmlInvoice();
     check($download instanceof \OCP\AppFramework\Http\DataDownloadResponse);
-    check($download->filename === 'en16931.xml' && $download->data === '<invoice/>');
+    check($download->filename === 'tmp.xml' && $download->data === '<invoice/>');
     check($download->headers['Cache-Control'] === 'no-store');
     $request->params['download'] = true;
     check($controller->validateXmlInvoice() instanceof \OCP\AppFramework\Http\DataDownloadResponse);
     check($validator->calls === 1); // Neither download repeats validation.
     $request->params['download'] = false;
-    $storage->files['en16931.xml'] = '<changed/>';
+    $storage->files['tmp.xml'] = '<changed/>';
     $request->params['xmlHash'] = hash('sha256', '<changed/>');
     check($controller->downloadXmlInvoice()->status === 409); // Even a fresh client hash cannot replace proof.
     $validator->valid = false;

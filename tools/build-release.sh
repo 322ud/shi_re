@@ -59,7 +59,7 @@ while IFS= read -r -d '' entry; do
     mkdir -p "$package_root/$(dirname "$entry")"
     cp -- "$project_root/$entry" "$package_root/$entry"
 done < <(git -C "$project_root" ls-files -z)
-for required in appinfo/info.xml config/X-Rechnung.odt config/en16931.xml config/mapping.tsv img/app.svg tools/pdf-metadata/ShiRePdfMetadata.class tools/pdf-metadata/ShiRePdfMetadata.java README.md; do
+for required in appinfo/info.xml config/XRechnung.odt config/XRechnung.xml config/XRechnung.tsv img/app.svg tools/pdf-metadata/ShiRePdfMetadata.class tools/pdf-metadata/ShiRePdfMetadata.java README.md; do
     test -s "$package_root/$required" || { echo "Missing release file: $required" >&2; exit 1; }
 done
 # Build in isolation: do not modify the checkout's generated files or node_modules.

@@ -38,9 +38,9 @@ Der Webserver-Benutzer benötigt ein beschreibbares Nextcloud-Tempverzeichnis un
 
 Standarddateien:
 
-- `config/X-Rechnung.odt`
-- `config/en16931.xml`
-- `config/mapping.tsv`
+- `config/XRechnung.odt`
+- `config/XRechnung.xml`
+- `config/XRechnung.tsv`
 
 In der Administration lassen sich einzelne oder alle drei Dateien zusammen hochladen. Nicht ausgewählte Dateien stammen aus dem bisher gültigen Satz. Die App prüft den vollständigen Satz und übernimmt ihn erst nach erfolgreicher Prüfung. Die eigenen Vorlagen liegen unveränderlich und versioniert in AppData; ein Konfigurationszeiger bestimmt den aktiven Satz. Die Dateien im App-Verzeichnis bleiben unverändert.
 
@@ -170,3 +170,13 @@ lizenziert. Der vollständige Text steht in [LICENSE](LICENSE).
 Die gebündelten Fremdkomponenten behalten ihre jeweiligen Lizenzen;
 Versionen, Copyright-Hinweise und Lizenztexte sind in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) und [LICENSES/](LICENSES/) dokumentiert.
+
+## Name der temporären Rechnungs-XML
+
+Die Arbeitsdatei im AppData-Hauptverzeichnis heißt `tmp.xml`. Erzeugung,
+Validierung, direkter Arbeits-XML-Download und Bereinigung verwenden diesen Namen.
+Archivierte Rechnungen behalten ihre Rechnungsnummer als Dateinamen.
+Vor dem Einspielen dieser Umbenennung laufende Rechnungsvorgänge abschließen
+oder abbrechen, damit die bisherige Arbeitsdatei `en16931.xml` regulär entfernt
+wird. Bereits vorhandene Dateien dieses alten Namens werden nicht automatisch
+migriert; sie werden vom neuen Code nicht mehr als Arbeitsdatei verwendet.

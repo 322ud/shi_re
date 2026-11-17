@@ -34,7 +34,7 @@ const path = require('node:path');
                     ns.route = path => path;
                     ns.post = async (path, body) => {
                         calls.push({path, body});
-                        if (path.endsWith('/createXmlInvoice')) return {xmlInvoiceFile: 'en16931.xml', xmlHash: 'hash', ramID: '26 200'};
+                        if (path.endsWith('/createXmlInvoice')) return {xmlInvoiceFile: 'tmp.xml', xmlHash: 'hash', ramID: '26 200'};
                         if (path.endsWith('/validateXmlInvoice')) return {skipped: true, valid: null, validationToken: 'token', xmlHash: 'hash'};
                         if (path.endsWith('/review')) return {filename: '26 200.xml'};
                         if (path === '/pdf/status') return {status: {enabled: pdfEnabled, templateVersion: 'v1'}};

@@ -11,7 +11,7 @@ use OCP\IConfig;
 /** Unveränderliche Vorlagensätze; erst nach vollständigem Schreiben den Zeiger umschalten. */
 class InvoiceTemplateService {
     private ?array $snapshot = null;
-    private const FILES = ['xml' => 'en16931.xml', 'odt' => 'X-Rechnung.odt', 'mapping' => 'mapping.tsv'];
+    private const FILES = ['xml' => 'XRechnung.xml', 'odt' => 'XRechnung.odt', 'mapping' => 'XRechnung.tsv'];
 
     public function __construct(
         private IAppData $appData,

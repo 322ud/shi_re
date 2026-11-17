@@ -6,12 +6,12 @@ final class AppFiles {
     public const ConfigDir = 'config';
 
     // Read-only Templates im App-Verzeichnis config/.
-    public const XmlTemplate = 'en16931.xml';
-    public const OdtTemplate = 'X-Rechnung.odt';
+    public const XmlTemplate = 'XRechnung.xml';
+    public const OdtTemplate = 'XRechnung.odt';
 
     // Temporäre Prüf-XML in AppData; nach Annahme oder Verwerfen löschen.
     // Angenommene Rechnungen liegen separat als <Rechnungsnummer>.xml/.pdf vor.
-    public const XmlWorkFile = 'en16931.xml';
+    public const XmlWorkFile = 'tmp.xml';
     public const PdfWorkFile = 'X-Rechnung.pdf';
 
     // Persistenter Entwurfszustand in AppData. Enthält ramID, windowId,

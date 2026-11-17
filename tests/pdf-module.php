@@ -55,8 +55,8 @@ namespace {
     $workspace = new PdfWorkspace($temp);
     $renderer = new OdtInvoiceRenderer($workspace);
     $consistency = new TemplateConsistencyService($renderer);
-    $bundle = ['odt' => file_get_contents(__DIR__ . '/../config/X-Rechnung.odt'),
-        'mapping' => file_get_contents(__DIR__ . '/../config/mapping.tsv'), 'xml' => file_get_contents(__DIR__ . '/../config/en16931.xml')];
+    $bundle = ['odt' => file_get_contents(__DIR__ . '/../config/XRechnung.odt'),
+        'mapping' => file_get_contents(__DIR__ . '/../config/XRechnung.tsv'), 'xml' => file_get_contents(__DIR__ . '/../config/XRechnung.xml')];
     // Explicit invoice fixture: bundled configuration is an editable blank template.
     $bundle['xml'] = str_replace(['26 000', 'DEXX XXXX XXXX XXXX XX'], ['26 200', 'DE62390500001077247615'], $bundle['xml']);
     $original = hash('sha256', $bundle['odt']);
@@ -152,8 +152,8 @@ namespace {
     check($storedInvalid['mapping'] === '{{broken}}', 'Inconsistent first upload is persisted');
     $templates->discard();
     $templates->setCustomTemplates(true);
-    $saved = $templates->upload(['xml' => file_get_contents(__DIR__ . '/../config/en16931.xml')], ['xml' => 'eigene-rechnung.xml']);
-    check($templates->customStatus()['files']['mapping'] === ['name' => 'mapping.tsv', 'source' => 'default'], 'Default mapping is identified');
+    $saved = $templates->upload(['xml' => file_get_contents(__DIR__ . '/../config/XRechnung.xml')], ['xml' => 'eigene-rechnung.xml']);
+    check($templates->customStatus()['files']['mapping'] === ['name' => 'XRechnung.tsv', 'source' => 'default'], 'Default mapping is identified');
     $metadata = $templates->customStatus()['files'];
     check($metadata['xml']['name'] === 'eigene-rechnung.xml' && $metadata['xml']['date'] !== '', 'Upload stores filename and date');
     check($templates->current()['version'] !== $defaultVersion, 'Own bundle selected');
@@ -166,7 +166,7 @@ namespace {
     $storedInvalid = json_decode($storage->getFolder('pdf-templates')->getFile($invalidVersion . '.json')->getContent(), true);
     check($storedInvalid['mapping'] === '{{broken}}' && $storedInvalid['xml'] === $saved['xml'], 'Invalid replacement is saved alongside unchanged files');
     check($templates->customStatus()['files']['xml'] === $metadata['xml'], 'Unchanged file metadata is preserved');
-    check($templates->customStatus()['files']['mapping']['name'] === 'mapping.tsv', 'Invalid file metadata is displayed');
+    check($templates->customStatus()['files']['mapping']['name'] === 'XRechnung.tsv', 'Invalid file metadata is displayed');
     $templates = new InvoiceTemplateService($storage, $config, $apps, $consistency);
     check($templates->current()['version'] === $defaultVersion, 'Inactive state survives a new request');
     rejects(fn () => $templates->upload(['xml' => $saved['xml']], ['xml' => 'korrigiert.xml']), 'Mapping');
@@ -359,10 +359,10 @@ namespace {
         $request->params['windowId'] = 'window';
     };
     $controller = new \OCA\ShiRE\Controller\PdfInvoiceController('shi_re', $request, $storage, $proof, $fakeDependencies, $templates, $pdf, $logger, $locking, $users, $progress);
-    $storage->files['en16931.xml'] = $bundle['xml'];
+    $storage->files['tmp.xml'] = $bundle['xml'];
     check($controller->download()->status === 400 && $validator->calls === 0, 'Temporary XML cannot generate PDF');
     $storage->files['26 200.xml'] = $bundle['xml'];
-    $storage->files['en16931.xml'] = '<unrelated-temporary-xml/>';
+    $storage->files['tmp.xml'] = '<unrelated-temporary-xml/>';
     $request->params = ['filename' => '26 200.xml', 'xmlHash' => hash('sha256', $bundle['xml']), 'templateVersion' => $saved['version']];
     check($controller->download()->status === 409, 'Archive alone does not authorize PDF');
     $authorizePdf($bundle['xml']);
@@ -391,7 +391,7 @@ namespace {
     $request->params['filename'] = '26 200.xml';
     $xmlDownload = $controller->saved();
     check($xmlDownload->data === $bundle['xml'] && $xmlDownload->type === 'application/xml', 'Archived XML downloadable');
-    foreach (['en16931.xml', 'draft.xml', '../26 200.pdf', 'folder\\invoice.pdf', "bad\0.pdf", 'draft.json', ['bad']] as $bad) {
+    foreach (['tmp.xml', 'draft.xml', '../26 200.pdf', 'folder\\invoice.pdf', "bad\0.pdf", 'draft.json', ['bad']] as $bad) {
         $request->params['filename'] = $bad;
         check($controller->saved()->status === 400, 'Unsafe filename rejected');
     }
@@ -404,7 +404,7 @@ namespace {
     $unsupportedResponse = $controller->download();
     check($unsupportedResponse->status === 422 && $unsupportedResponse->data['error'] === $unsupportedMessage,
         'Unsupported TypeCode message returned to browser');
-    $storage->files['en16931.xml'] = $bundle['xml'];
+    $storage->files['tmp.xml'] = $bundle['xml'];
     $storage->files['26 200.xml'] = $bundle['xml'];
     $request->params['xmlHash'] = hash('sha256', $bundle['xml']);
     $validator->valid = false;
@@ -416,7 +416,7 @@ namespace {
     $unvalidatedDrafts = new \OCA\ShiRE\Service\DraftService($storage, $proof);
     $unvalidatedReview = new \OCA\ShiRE\Service\InvoiceReviewService($storage, $unvalidatedDrafts, $proof);
     $unvalidatedDrafts->create('window', '26 200');
-    $storage->files['en16931.xml'] = $bundle['xml'];
+    $storage->files['tmp.xml'] = $bundle['xml'];
     $unvalidatedToken = $proof->remember($bundle['xml'], 'window', [], false);
     $unvalidatedReview->finish('window', hash('sha256', $bundle['xml']), true, $unvalidatedToken, true);
     $request->params = ['filename' => '26 200.xml', 'xmlHash' => hash('sha256', $bundle['xml']),
@@ -433,7 +433,7 @@ namespace {
     $drafts = new \OCA\ShiRE\Service\DraftService($storage, $proof);
     $review = new \OCA\ShiRE\Service\InvoiceReviewService($storage, $drafts, $proof);
     $drafts->create('window', '26 200');
-    $storage->files['en16931.xml'] = $bundle['xml'];
+    $storage->files['tmp.xml'] = $bundle['xml'];
     $storage->files['draft.xml'] = 'temporary';
     $hash = hash('sha256', $bundle['xml']);
     rejects(fn () => $review->finish('other-window', $hash, true));
@@ -445,7 +445,7 @@ namespace {
     check($storage->files === [], 'Discard removes all temporary invoice data without archiving');
     $validator->valid = true;
     $drafts->create('window', '26 200');
-    $storage->files['en16931.xml'] = $bundle['xml'];
+    $storage->files['tmp.xml'] = $bundle['xml'];
     $token = $proof->remember($bundle['xml'], 'window', $validator->versions());
     $users->uid = 'bob';
     rejects(fn () => $review->finish('window', $hash, true, $token), 'Validierungsnachweis');
@@ -454,14 +454,14 @@ namespace {
     check($review->finish('window', $hash, true, $token) === '26 200.xml', 'Explicit acceptance archives XML');
     check($storage->files === ['26 200.xml' => $bundle['xml']], 'Only exact accepted XML remains');
     $drafts->create('window', '26 200');
-    $storage->files['en16931.xml'] = $bundle['xml'];
+    $storage->files['tmp.xml'] = $bundle['xml'];
     $token = $proof->remember($bundle['xml'], 'window', $validator->versions());
     rejects(fn () => $review->finish('window', $hash, true, $token), 'überschrieben');
     check($storage->files['26 200.xml'] === $bundle['xml'], 'Accepted XML never overwritten');
     $review->finish('window', $hash, false);
     $drafts->create('window', '26 201');
     $nextXml = str_replace('26 200', '26 201', $bundle['xml']);
-    $storage->files['en16931.xml'] = $nextXml;
+    $storage->files['tmp.xml'] = $nextXml;
     $token = $proof->remember($nextXml, 'window', $validator->versions());
     $review->finish('window', hash('sha256', $nextXml), true, $token, true);
     $proof->requireProof($nextXml, $token, 'window', 'pdf', '26 201.xml');
@@ -475,13 +475,13 @@ namespace {
     $drafts->cancel('window');
     check(!array_key_exists('draft.xml', $storage->files)
         && !array_key_exists('draft.json', $storage->files)
-        && !array_key_exists('en16931.xml', $storage->files), 'Cancel removes draft XML, JSON and work XML');
+        && !array_key_exists('tmp.xml', $storage->files), 'Cancel removes draft XML, JSON and work XML');
     unset($storage->files['26 201.xml']);
     $domService = new \OCA\ShiRE\Service\DomService('shi_re', $logger, $storage, $apps, $templates);
     check($domService->nextInvoiceNumber() === '26 201', 'Number advances from archive after temporary XML deletion');
     $storage->files['26 202.pdf'] = '%PDF archived';
     check($domService->nextInvoiceNumber() === '26 203', 'Archived PDF also reserves its number');
-    $storage->files['en16931.xml'] = str_replace('26 200', '26 250', $bundle['xml']);
+    $storage->files['tmp.xml'] = str_replace('26 200', '26 250', $bundle['xml']);
     check($domService->nextInvoiceNumber() === '26 203', 'Unaccepted work XML does not advance archived number');
     unset($storage->files['26 200.xml'], $storage->files['26 202.pdf']);
     check($domService->nextInvoiceNumber() === '26 001', 'Without archives, template number advances and work XML is ignored');

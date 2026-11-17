@@ -18,7 +18,7 @@ namespace {
         public function getParam($key) { return $key === 'action' ? 'clear_archive' : $this->confirmation; }
     };
     $storage = new class implements \OCP\Files\IAppData {
-        public array $names = ['26 121.xml', '26 121.pdf', 'draft.xml', 'draft.json', 'en16931.xml', 'legacy.pdf', 'validation-proof.json'];
+        public array $names = ['26 121.xml', '26 121.pdf', 'draft.xml', 'draft.json', 'tmp.xml', 'legacy.pdf', 'validation-proof.json'];
         public function getFolder($name) { return $this; }
         public function getDirectoryListing() {
             return array_map(fn ($name) => new class($this, $name) {
@@ -50,7 +50,7 @@ namespace {
     }
     $request->confirmation = 'ja';
     if (!$controller->saveSettings()->data['success'] || $locking->locked
-        || $storage->names !== ['draft.xml', 'draft.json', 'en16931.xml', 'validation-proof.json']) {
+        || $storage->names !== ['draft.xml', 'draft.json', 'tmp.xml', 'validation-proof.json']) {
         throw new \RuntimeException('Archive deletion or preservation failed');
     }
     if (!$controller->saveSettings()->data['success']) throw new \RuntimeException('Empty archive failed');

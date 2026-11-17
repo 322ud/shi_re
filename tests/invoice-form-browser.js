@@ -74,7 +74,7 @@ const fs = require('node:fs');
             await page.keyboard.press('Shift+Tab');
             assert.equal(await page.evaluate(() => document.activeElement.name), name);
         }
-        const xml = fs.readFileSync(path.resolve('config/en16931.xml'), 'utf8');
+        const xml = fs.readFileSync(path.resolve('config/XRechnung.xml'), 'utf8');
         const vatId = await page.evaluate(xml => window.ShiRE.parseArchivedInvoice(xml).seller.vatId, xml);
         assert.ok(vatId && xml.includes(vatId), 'Archive reads VAT registration with VA scheme');
         assert.deepEqual(errors, []);
