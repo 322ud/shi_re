@@ -1,5 +1,7 @@
 # ShiRE
 
+Die [Administrationsanleitung](docs/admin.md) beschreibt Installation, Systemvoraussetzungen, Einstellungen und eigene Vorlagen.
+
 Nextcloud-App zur Erstellung und Validierung einer EN16931-CII-Rechnung mit einer Rechnungsposition. Nach XML-Annahme erzeugt das PDF-Modul auf Wunsch eine PDF/A-3b-Rechnung aus einer ODT-Vorlage und bettet dieselbe XML mit Mustangproject ein.
 
 Die Dokumentation ist auf den Rechnungsseiten über das Info-Symbol rechts oben (Mouseover „Readme“) in einem überlagernden Fenster erreichbar.

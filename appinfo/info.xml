@@ -11,7 +11,7 @@
     <namespace>ShiRE</namespace>
     <documentation>
         <user>https://github.com/322ud/shi_re/blob/HEAD/README.md</user>
-        <admin>https://github.com/322ud/shi_re/blob/HEAD/README.md#pdf-modul-einrichten</admin>
+        <admin>https://github.com/322ud/shi_re/blob/HEAD/docs/admin.md</admin>
         <developer>https://github.com/322ud/shi_re/blob/HEAD/README.md#tests</developer>
     </documentation>
     <category>tools</category>
