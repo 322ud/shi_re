@@ -19,13 +19,15 @@ const path = require('node:path');
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
         await page.route('http://shire.test/**', route => route.fulfill({body: '<html></html>', contentType: 'text/html'}));
+        await page.route('http://shire.test/nextcloud/apps/shi_re/img/*.png', route =>
+            route.fulfill({path: path.resolve('img', new URL(route.request().url()).pathname.split('/').pop()), contentType: 'image/png'}));
         await page.goto('http://shire.test/nextcloud/index.php/settings/admin/shi_re');
         await page.setContent(html);
         assert.equal(await page.locator('#myx-clear-archive + .shire-admin-help').getAttribute('href'),
             '/nextcloud/index.php/apps/shi_re/readme?document=admin#optionen-f%C3%BCr-die-nutzung');
         await page.addStyleTag({path: path.resolve('css/admin.css')});
         await page.evaluate(() => {
-            window.OC = {generateUrl: path => path, requestToken: 'test'};
+            window.OC = {generateUrl: path => path, imagePath: (app, file) => '/nextcloud/apps/' + app + '/img/' + file, requestToken: 'test'};
             window.calls = [];
             window.fail = false;
             window.fetch = async (url, options) => {
@@ -42,6 +44,12 @@ const path = require('node:path');
                 const heading = document.createElement('h1');
                 heading.textContent = 'ShiRE';
                 options.el.append(heading);
+                for (const [, alt, href] of options.content.matchAll(/\[([^\]]*)\]\((#shire-document-image-\d+)\)/g)) {
+                    const link = document.createElement('a');
+                    link.setAttribute('href', href);
+                    link.textContent = alt;
+                    options.el.append(link);
+                }
                 const section = document.createElement('h2');
                 section.textContent = 'Vorlagen und Mapping';
                 const decoration = document.createElement('button');
@@ -68,6 +76,10 @@ const path = require('node:path');
         }
         assert.ok(editorMarkdown.includes('(https://github.com/322ud/shi_re/blob/HEAD/LICENSE)'));
         assert.ok(!editorMarkdown.includes('(./docs/'));
+        assert.ok(!editorMarkdown.includes('!['), 'App screenshots bypass Text attachment loading');
+        assert.equal(await page.locator('.shire-document-image').count(), 2);
+        await page.waitForFunction(() => [...document.querySelectorAll('.shire-document-image')].every(img => img.complete && img.naturalWidth > 0));
+        assert.equal(await page.locator('.shire-document-image').first().getAttribute('src'), '/nextcloud/apps/shi_re/img/eingabemaske.png');
         for (const answer of [null, 'nein', 'JA', 'ja']) {
             const before = await page.evaluate(() => calls.length);
             page.once('dialog', dialog => answer === null ? dialog.dismiss() : dialog.accept(answer));

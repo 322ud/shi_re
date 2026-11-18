@@ -16,8 +16,8 @@ ShiRE berechnet automatisch:
 
 Mit **Rechnung erstellen** wird die Rechnung erzeugt. Die fertige Rechnung wird automatisch im Archiv gespeichert und heruntergeladen.
 
-- **neue RE** beginnt die nächste Rechnung.
-- **app schließen** beendet ShiRE.
+- **erstelle neue Rechnung** beginnt die nächste Rechnung.
+- **ShiRE schließen** beendet ShiRE.
 
 ## Rechnungsarchiv
 

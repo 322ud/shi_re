@@ -41,7 +41,6 @@
 
         const parties = NS.make('div', { class: 'myx-parties' });
         const buyer = NS.make('section', { class: 'myx-buyer' });
-        buyer.appendChild(NS.make('h2', {}, 'Rechnungsempfänger'));
         buyer.appendChild(NS.field('Name', 'buyer.name', NS.state.invoiceData.buyer.name));
         buyer.appendChild(NS.field('Hausadresse', 'buyer.street', NS.state.invoiceData.buyer.street));
 
@@ -55,17 +54,6 @@
         buyer.querySelectorAll('input').forEach(field => field.setAttribute('autocomplete', 'off'));
         parties.appendChild(buyer);
 
-        const seller = NS.state.seller || {};
-        const issuer = NS.make('section', { class: 'myx-seller' });
-        issuer.appendChild(NS.make('h2', {}, 'Rechnungssteller'));
-        [seller.name, seller.address, seller.address2, seller.address3,
-            [seller.postcode, seller.city].filter(Boolean).join(' ') + (seller.country ? '/' + seller.country : ''),
-            [seller.iban ? 'IBAN: ' + seller.iban : '',
-                seller.vatId ? 'USt-ID: ' + seller.vatId : ''].filter(Boolean).join(', '),
-        ].filter(Boolean).forEach(function (line) {
-            issuer.appendChild(NS.make('div', {}, line));
-        });
-        parties.appendChild(issuer);
         form.appendChild(parties);
 
         const referenceLine = NS.make('div', { class: 'myx-reference-line' });
@@ -180,7 +168,7 @@
         button.setAttribute('aria-controls', menu.id);
         let pending = false;
         const choices = [];
-        for (const [label, startNew] of [['neue Rechnung erstellen', true], ['ShiRE schließen', false]]) {
+        for (const [label, startNew] of [['erstelle neue Rechnung', true], ['ShiRE schließen', false]]) {
             const choice = NS.button(label, async () => {
                 if (pending) return;
                 pending = true;

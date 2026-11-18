@@ -57,10 +57,10 @@ const path = require('node:path');
                 } else {
                     await page.waitForFunction(() => window.downloaded === '26 200.xml');
                 }
-                await page.getByRole('button', {name: 'neue RE', exact: true}).waitFor();
-                assert.deepEqual(await page.locator('.myx-review-actions button').allTextContents(), ['neue RE', 'app schließen']);
+                await page.getByRole('button', {name: 'erstelle neue Rechnung', exact: true}).waitFor();
+                assert.deepEqual(await page.locator('.myx-review-actions button').allTextContents(), ['erstelle neue Rechnung', 'ShiRE schließen']);
                 assert.equal(await page.evaluate(() => window.destination), undefined);
-                await page.getByRole('button', {name: choice.endsWith('new') ? 'neue RE' : 'app schließen', exact: true}).click();
+                await page.getByRole('button', {name: choice.endsWith('new') ? 'erstelle neue Rechnung' : 'ShiRE schließen', exact: true}).click();
                 await page.waitForFunction(() => window.destination);
                 const calls = await page.evaluate(() => window.calls);
                 if (choice.startsWith('cancel-')) assert.deepEqual(calls.map(call => call.path), ['/en16931/cancel']);

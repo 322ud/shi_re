@@ -1,12 +1,19 @@
 (() => {
     const editors = new WeakMap();
     const pending = new WeakMap();
+    const documentImages = new WeakMap();
 
     const slug = text => text.toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu, '').replace(/ /g, '-');
     const localLink = (viewer, href) => {
         if (!href || /^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#)/i.test(href)) return href;
         const source = new URL(viewer.dataset.document || 'README.md', 'https://documentation.invalid/');
         const target = new URL(href, source);
+        if (target.pathname.startsWith('/img/')) {
+            const imagePath = target.pathname.slice('/img/'.length);
+            return typeof window.OC?.imagePath === 'function'
+                ? window.OC.imagePath('shi_re', imagePath)
+                : 'https://raw.githubusercontent.com/322ud/shi_re/HEAD' + target.pathname;
+        }
         const documents = {'/README.md': 'readme', '/docs/admin.md': 'admin', '/docs/user.md': 'user', '/docs/developer.md': 'developer'};
         if (!documents[target.pathname]) {
             return 'https://github.com/322ud/shi_re/blob/HEAD' + target.pathname + target.search + target.hash;
@@ -49,6 +56,19 @@
         const update = () => {
             rich?.querySelectorAll('a[href]').forEach(link => {
                 const href = link.getAttribute('href');
+                const picture = documentImages.get(viewer)?.get(href);
+                if (picture) {
+                    const img = document.createElement('img');
+                    img.src = picture.src;
+                    img.alt = picture.alt;
+                    img.className = 'shire-document-image';
+                    img.addEventListener('error', () => {
+                        link.textContent = picture.alt + ' – Bild konnte nicht geladen werden (öffnen)';
+                    }, {once: true});
+                    link.href = picture.src;
+                    link.replaceChildren(img);
+                    return;
+                }
                 const local = localLink(viewer, href);
                 if (local !== href) link.setAttribute('href', local);
             });
@@ -131,12 +151,24 @@
             attributeFilter: ['role'],
         });
 
+        // Text's attachment loader needs a file context. App screenshots are
+        // static assets, so render them as native images via temporary links.
+        const pictures = new Map();
+        documentImages.set(viewer, pictures);
+        const markdown = fallback.textContent.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, href) => {
+            const source = new URL(viewer.dataset.document || 'README.md', 'https://documentation.invalid/');
+            const target = new URL(href, source);
+            if (target.origin !== source.origin || !/^\/img\/[^/]+\.png$/i.test(target.pathname)) return match;
+            const marker = '#shire-document-image-' + pictures.size;
+            pictures.set(marker, {alt, src: localLink(viewer, href)});
+            return '[' + alt + '](' + marker + ')';
+        });
         try {
             const editor = await createEditor({
                 el: richContent,
                 // Resolve against the Markdown document before Text can resolve links
                 // against the administration page's URL.
-                content: fallback.textContent.replace(/(\[[^\]]+\]\()([^)]+)(\))/g,
+                content: markdown.replace(/(\[[^\]]+\]\()([^)]+)(\))/g,
                     (_, start, href, end) => start + localLink(viewer, href) + end),
                 readOnly: true,
                 autofocus: false,

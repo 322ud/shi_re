@@ -3,14 +3,14 @@
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
     <id>shi_re</id>
     <name>ShiRE</name>
-    <summary>erstellt neue X-Rechnung</summary>
-    <description>fragt Parameter in GUI ab, setzt diese in XML- und ODT-Templates, druckt in PDF und bindet XML ein</description>
+    <summary>Erstellt ZUGFeRD-Rechnungen</summary>
+    <description>fragt Parameter in GUI ab, setzt diese in XML- und ODT-Templates, exportiert ODT in PDF und bindet XML darin ein</description>
     <version>0.3.0</version>
     <licence>AGPL-3.0-or-later</licence>
     <author>Frank Busse</author>
     <namespace>ShiRE</namespace>
     <documentation>
-        <user>https://github.com/322ud/shi_re/blob/HEAD/README.md</user>
+        <user>https://github.com/322ud/shi_re/blob/HEAD/docs/user.md</user>
         <admin>https://github.com/322ud/shi_re/blob/HEAD/docs/admin.md</admin>
         <developer>https://github.com/322ud/shi_re/blob/HEAD/docs/developer.md</developer>
     </documentation>
