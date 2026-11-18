@@ -12,8 +12,6 @@ Installation, Admin-Schalter und optionale Komponenten sind in der [Administrati
 
 Während der Verarbeitung fragt der Browser den Serverfortschritt alle 500 ms ab. Der Schalter speichert über die bestehende Admin-Route `/admin/validator/settings`; die Fortschrittsabfrage verwendet `/validator/status` mit `action: progress`. Dadurch benötigen diese Funktionen keine neuen Routeneinträge in einer bereits installierten Nextcloud. Nach dem Einspielen der geänderten Dateien die Admin- und Rechnungsseite neu laden, damit die aktualisierten JavaScript-Dateien verwendet werden. Die neueren separaten Routen bleiben als kompatible Aliase erhalten. Der Server gibt die PHP-Sitzungssperre frei, damit die Abfragen während laufender Konvertierungen beantwortet werden können. Ein begrenzter Fortschrittsstand pro Benutzer wird in den Nextcloud-Benutzereinstellungen gespeichert, beim nächsten Vorgang ersetzt und nach einer Stunde nicht mehr ausgeliefert. Abfragen sind zusätzlich an Fenster und zufällige Vorgangskennung gebunden. Es entsteht kein dauerhaft wachsendes Protokoll; bei ausgeschalteter Option werden weder Fortschrittsstände geschrieben noch abgefragt.
 
-Unter der README kann die Administration mit „Archiv leeren“ alle archivierten XML-Rechnungen und PDFs appweit löschen. Die Eingabe `ja` bestätigt das Löschen. Entwürfe und Vorlagen bleiben erhalten. Ohne Archiv richtet sich die nächste Rechnungsnummer wieder nach der aktiven Vorlage; ein bestehender Entwurf behält seine Nummer.
-
 ## PDF-Modul einrichten
 
 Systemvoraussetzungen, Programmpfade und Einrichtung stehen in der [Administrationsanleitung](./docs/admin.md).

@@ -1,6 +1,13 @@
 <?php
 /** @var array $_ */
 $status = $_['status'];
+$adminHelp = static function (string $section, string $label): void {
+    $url = 'https://github.com/322ud/shi_re/blob/HEAD/docs/admin.md#' . $section;
+    $description = 'Hilfe zu „' . $label . '“ (öffnet ein neues Fenster)';
+    ?>
+    <a class="shire-admin-help" href="<?php p($url); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php p($description); ?>" title="<?php p($description); ?>"><span aria-hidden="true">i</span></a>
+    <?php
+};
 ?>
 <div id="myx-admin" class="section">
     <h2>ShiRE</h2>
@@ -18,6 +25,7 @@ $status = $_['status'];
             || ($id === 'myx-auto-update' && (empty($status['installed']) || !$status['enabled'] || !$status['validation_enabled']))) { print_unescaped(' hidden'); } ?>>
             <input id="<?php p($id); ?>" type="checkbox" role="switch" aria-labelledby="<?php p($id); ?>-label" <?php if ($checked) { print_unescaped('checked'); } ?>>
             <span id="<?php p($id); ?>-label"><?php p($label); ?></span>
+            <?php $adminHelp('xml-validierung-mit-invalidator', $label); ?>
         </div>
         <?php endforeach; ?>
         </div>
@@ -26,6 +34,7 @@ $status = $_['status'];
         <div class="shire-switch">
             <input id="myx-custom-templates" type="checkbox" role="switch" aria-labelledby="myx-custom-templates-label" <?php if ($_['customTemplates']) { print_unescaped('checked'); } ?>>
             <span id="myx-custom-templates-label">eigene Vorlagen</span>
+            <?php $adminHelp('eigene-vorlagen', 'eigene Vorlagen'); ?>
         </div>
     <form id="myx-pdf-templates"<?php if (!$_['customTemplates']) { print_unescaped(' hidden'); } ?>>
         <input type="hidden" name="templatesCheck" value="yes">
@@ -63,6 +72,7 @@ $status = $_['status'];
             Zuordnung zwischen ODT, Mapping und XML geprüft. Bei inkonsistenten Vorlagen werden für XML- und PDF-Rechnungen die Standardvorlagen verwendet; eigene Vorlagen sind dann inaktiv.</p>
         <button id="myx-discard-templates" type="button">eigene Vorlagen verwerfen</button>
         <button id="myx-pdf-upload" type="submit">neue Vorlagen prüfen</button>
+    <?php $adminHelp('struktur-und-übernahme', 'eigene Vorlagen verwerfen / neue Vorlagen prüfen'); ?>
         </details>
     </form>
         </div>
@@ -71,12 +81,15 @@ $status = $_['status'];
         <div class="shire-switch">
             <input id="myx-allow-draft-deletion" type="checkbox" role="switch" aria-labelledby="myx-allow-draft-deletion-label" <?php if ($_['allowDraftDeletion']) { print_unescaped('checked'); } ?>>
             <span id="myx-allow-draft-deletion-label">zeige Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt</span>
+            <?php $adminHelp('optionen-für-die-nutzung', 'zeige Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt'); ?>
         </div>
         <div class="shire-switch">
             <input id="myx-detailed-progress" type="checkbox" role="switch" aria-labelledby="myx-detailed-progress-label" <?php if ($_['detailedProgress'] ?? false) { print_unescaped('checked'); } ?>>
             <span id="myx-detailed-progress-label">ausführliche Ablaufdokumentation</span>
+            <?php $adminHelp('optionen-für-die-nutzung', 'ausführliche Ablaufdokumentation'); ?>
         </div>
         <button id="myx-clear-archive" type="button">Archiv leeren</button>
+    <?php $adminHelp('optionen-für-die-nutzung', 'Archiv leeren'); ?>
         <p id="myx-clear-archive-result" role="status" aria-live="polite"></p>
         </div>
         <p id="myx-admin-result" role="status" aria-live="polite"></p>
@@ -84,6 +97,7 @@ $status = $_['status'];
     <section aria-labelledby="shire-system-title">
     <h3 id="shire-system-title">System</h3>
     <button id="myx-check-system" type="button">Systemprüfung wiederholen</button>
+    <?php $adminHelp('systemvoraussetzungen', 'Systemprüfung wiederholen'); ?>
     <?php
     $validatorReady = !empty($status['installed']) && $status['enabled'] && $status['validation_enabled'] && empty($status['check_error']);
     $checks = ['validator' => ['ok' => $validatorReady,

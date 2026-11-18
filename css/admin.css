@@ -68,3 +68,32 @@ transition: transform 0.15s;
 
 .shire-template-uploads { width: 100%; border-collapse: collapse; }
 .shire-template-uploads th, .shire-template-uploads td { padding: 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--color-border); }
+
+#myx-admin .shire-admin-help {
+    display: inline-flex;
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-main-text);
+    text-decoration: none;
+}
+#myx-admin .shire-admin-help span {
+    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 1;
+}
+#myx-admin .shire-admin-help:hover { color: var(--color-primary-element); }
+#myx-admin .shire-admin-help:focus-visible {
+    outline: 2px solid var(--color-main-text);
+    outline-offset: 2px;
+    border-radius: 50%;
+}

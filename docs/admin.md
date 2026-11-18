@@ -55,6 +55,7 @@ Unter **Einstellungen → andere**:
 | --- | --- | --- |
 | ausführliche Ablaufdokumentation | Zeigt den laufenden Verarbeitungsschritt und abgeschlossene Schritte mit Uhrzeit im Meldungsfenster der Nutzer. Übersprungene Prüfungen werden benannt; Zeitzone ist Europe/Berlin. | aus |
 | zeige Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt | Nutzer können den blockierenden aktiven Entwurf nach Bestätigung löschen und neu beginnen. Dabei gehen die bisherigen Entwurfsdaten verloren. Diese Option darf bei mehreren (gleichzeitigen) Nutzern nicht gesetzt sein.| aus |
+| Archiv leeren (Button) | Löscht nach Bestätigung durch Eingabe von `ja` alle archivierten XML-Rechnungen und PDFs appweit. Entwürfe und Vorlagen bleiben erhalten. Die nächste Rechnungsnummer richtet sich anschließend wieder nach der aktiven Vorlage; ein bestehender Entwurf behält seine Nummer. | — |
 
 ## Optionale Komponenten
 
