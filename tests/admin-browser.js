@@ -204,23 +204,38 @@ const path = require('node:path');
             echo '<input id="invoice-value" value="Entwurf bleibt erhalten">';
         `], {encoding: 'utf8'});
         await page.setContent('<div id=content><div id=app-content>' + appHtml + '</div></div>');
-        // Reproduce host layout rules overriding the browser's closed-dialog default.
-        await page.addStyleTag({content: '#app-content > * { display: block; }'});
-        await page.addStyleTag({path: path.resolve('css/readme.css')});
         await page.addScriptTag({path: path.resolve('js/readme.js')});
-        assert.equal(await page.locator('#shire-readme-dialog').isVisible(), false, 'README stays hidden on startup despite host CSS');
-        assert.equal(await page.locator('#shire-readme-dialog').count(), 1);
-        const originalUrl = page.url();
-        for (const action of ['button', 'escape', 'backdrop']) {
-            await page.locator('.shire-readme-link').click();
-            assert.equal(await page.locator('#shire-readme-dialog').isVisible(), true);
-            assert.equal(page.url(), originalUrl);
-            if (action === 'button') await page.locator('#shire-readme-close').click();
-            else if (action === 'escape') await page.keyboard.press('Escape');
-            else await page.mouse.click(2, 2);
-            assert.equal(await page.locator('#shire-readme-dialog').isVisible(), false);
-            assert.equal(await page.locator('#invoice-value').inputValue(), 'Entwurf bleibt erhalten');
-            assert.equal(await page.locator('.shire-readme-link').evaluate(node => node === document.activeElement), true);
+        assert.equal(await page.locator('#shire-readme-dialog').count(), 0);
+        assert.equal(await page.locator('.shire-readme-link').getAttribute('href'),
+            '/apps/shi_re/readme?document=user#rechnung-erstellen');
+        assert.equal(await page.locator('.shire-readme-link').getAttribute('target'), '_blank');
+        await page.evaluate(() => { window.open = (...args) => { window.helpWindow = args; }; });
+        await page.locator('.shire-readme-link').click();
+        assert.deepEqual(await page.evaluate(() => window.helpWindow), [
+            'http://shire.test/apps/shi_re/readme?document=user#rechnung-erstellen',
+            '_blank', 'popup,width=960,height=800,noopener,noreferrer',
+        ]);
+        assert.equal(await page.locator('#invoice-value').inputValue(), 'Entwurf bleibt erhalten');
+        const userDoc = execFileSync('php', ['-r', `
+            function p($value) { echo htmlspecialchars((string)$value, ENT_QUOTES); }
+            function print_unescaped($value) { echo $value; }
+            $_ = ['document' => 'user', 'readmeUrl' => '/apps/shi_re/readme', 'appUrl' => '/apps/shi_re/'];
+            require 'templates/readme.php';
+        `], {encoding: 'utf8'});
+        for (const section of ['rechnung-erstellen', 'rechnungsarchiv', 'storno-rechnung']) {
+            await page.goto('http://shire.test/apps/shi_re/readme?document=user#' + section);
+            await page.setContent(userDoc);
+            await page.evaluate(() => {
+                Element.prototype.scrollIntoView = function () { window.helpHeading = this.textContent; };
+            });
+            await page.addScriptTag({path: path.resolve('js/readme.js')});
+            await page.waitForFunction(() => Boolean(window.helpHeading));
+            assert.equal(await page.evaluate(() => window.helpHeading), {
+                'rechnung-erstellen': '## Rechnung erstellen',
+                'rechnungsarchiv': '## Rechnungsarchiv',
+                'storno-rechnung': '## Storno-Rechnung',
+            }[section]);
+            assert.ok(await page.locator('.shire-readme-fallback a[href="#rechnung-erstellen"]').count());
         }
         const adminDoc = execFileSync('php', ['-r', `
             function p($value) { echo htmlspecialchars((string)$value, ENT_QUOTES); }

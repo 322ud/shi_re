@@ -7,7 +7,7 @@
         if (!href || /^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#)/i.test(href)) return href;
         const source = new URL(viewer.dataset.document || 'README.md', 'https://documentation.invalid/');
         const target = new URL(href, source);
-        const documents = {'/README.md': 'readme', '/docs/admin.md': 'admin'};
+        const documents = {'/README.md': 'readme', '/docs/admin.md': 'admin', '/docs/user.md': 'user'};
         if (!documents[target.pathname] || !viewer.dataset.documentUrl) return href;
         const destination = new URL(viewer.dataset.documentUrl, window.location.href);
         destination.searchParams.set('document', documents[target.pathname]);
@@ -29,7 +29,7 @@
                 const fragment = document.createDocumentFragment();
                 while ((match = pattern.exec(node.data))) {
                     const href = localLink(viewer, match[2]);
-                    if (href === match[2]) continue;
+                    if (href === match[2] && !href.startsWith('#')) continue;
                     fragment.append(node.data.slice(offset, match.index));
                     const link = document.createElement('a');
                     link.href = href;
@@ -169,40 +169,11 @@
             if (!viewer.closest('.shire-readme-modal')) initializeReadme(viewer);
         });
         const open = document.querySelector('.shire-readme-link');
-        const dialog = document.getElementById('shire-readme-dialog');
-        const close = document.getElementById('shire-readme-close');
-        if (!open || !dialog || !close) return;
-        // Keep the overlay outside Nextcloud's app content layout and stacking context.
-        document.body.append(dialog);
-        const closeReadme = () => {
-            dialog.hidden = true;
-            open.focus();
-        };
+        if (!open) return;
         open.addEventListener('click', event => {
+            if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
             event.preventDefault();
-            dialog.hidden = false;
-            close.focus();
-            initializeReadme(dialog.querySelector('[data-shire-readme]'));
-        });
-        close.addEventListener('click', closeReadme);
-        dialog.addEventListener('click', event => {
-            if (event.target === dialog) closeReadme();
-        });
-        document.addEventListener('keydown', event => {
-            if (dialog.hidden) return;
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                closeReadme();
-            } else if (event.key === 'Tab') {
-                const controls = [...dialog.querySelectorAll('button, a[href], input, [tabindex="0"]')]
-                    .filter(node => node.getClientRects().length && !node.disabled);
-                const first = controls[0], last = controls[controls.length - 1];
-                if (event.shiftKey && document.activeElement === first) {
-                    event.preventDefault(); last.focus();
-                } else if (!event.shiftKey && document.activeElement === last) {
-                    event.preventDefault(); first.focus();
-                }
-            }
+            window.open(open.href, '_blank', 'popup,width=960,height=800,noopener,noreferrer');
         });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once: true});

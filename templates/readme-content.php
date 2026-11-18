@@ -1,6 +1,6 @@
 <?php
-$document = ($_['document'] ?? 'readme') === 'admin' ? 'admin' : 'readme';
-$documentPath = $document === 'admin' ? 'docs/admin.md' : 'README.md';
+$document = in_array($_['document'] ?? '', ['admin', 'user'], true) ? $_['document'] : 'readme';
+$documentPath = $document === 'readme' ? 'README.md' : 'docs/' . $document . '.md';
 ?>
 <div class="shire-readme-viewer" data-shire-readme data-document="<?php p($documentPath); ?>" data-document-url="<?php p($_['readmeUrl']); ?>">
     <div class="shire-readme-rich" aria-label="Formatierte Dokumentation" hidden></div>

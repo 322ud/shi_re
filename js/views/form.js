@@ -16,6 +16,12 @@
 
         const archived = !!NS.state.archiveDraft;
         const cancellation = Boolean(NS.state.cancellationFilename);
+        const help = document.querySelector('.shire-readme-link');
+        if (help) {
+            const url = new URL(help.href, window.location.href);
+            url.hash = archived ? 'rechnungsarchiv' : cancellation ? 'storno-rechnung' : 'rechnung-erstellen';
+            help.href = url.href;
+        }
         const supportedType = NS.state.typeCode === '380' || cancellation;
         if (!supportedType) {
             NS.log('Typecode [' + NS.state.typeCode + '] kann (noch) nicht verarbeitet werden.');
