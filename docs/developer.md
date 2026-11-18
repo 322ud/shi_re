@@ -60,6 +60,46 @@ Der Java-Quellcode und die für Java 11 kompilierte Klasse liegen in `tools/pdf-
 
 Während der KoSIT-Prüfung und PDF-Erzeugung wird der Nextcloud-Ladeindikator mit Statustext angezeigt. Die Entscheidungsmenüs sind während der Annahme bzw. des Verwerfens gesperrt; während der PDF-Erzeugung zeigt die Folgeseite den Ladeindikator. Historische PDFs ohne archivierte XML bleiben einzeln abrufbar.
 
+## Paketprüfung auf Nextcloud 34
+
+Am 18. November 2026 wurde der Stand `4db5c01` als unsigniertes Release-Paket
+`shi_re-0.3.0.tar.gz` in einer isolierten Nextcloud 34.0.3 mit PHP 8.4.27 und
+MariaDB geprüft. SHA-256 des geprüften Archivs:
+`af37cacb9cb3d15e0dd7dbd1cc11b274836efb19ee2da0a1ed33181fba46440f`.
+Diese Prüfsumme bezeichnet den damaligen Paketstand vor Ergänzung dieses Berichts.
+
+Folgende Prüfungen waren erfolgreich:
+
+- Installation und Aktivierung des gebauten Pakets über `occ`.
+- Authentifizierter Browserzugriff auf die App und Administrationsseite.
+- Entwurf, XML-Erzeugung als `tmp.xml`, Annahme, Archivabruf und Abbruch mit Bereinigung der Arbeitsdateien.
+- XML-only-Betrieb ohne Validator sowie echte KoSIT-Validierung von Rechnung und Storno (Typ 384) mit INValidator 1.0.1, KoSIT 1.6.2 und XRechnung-Konfiguration vom 31. Januar 2026.
+- PDF-Erzeugung für Rechnung und Storno mit LibreOffice und MustangCLI 2.26.0; Download als PDF sowie die im Erzeugungsablauf enthaltenen XML- und Mustang-Prüfungen.
+- Archivierte XML war bytegleich mit der zuvor heruntergeladenen Arbeits-XML.
+- Tatsächliche JSON-Endpunkte über `/index.php/apps/shi_re/` mit Sitzung und CSRF-Token: HTTP-Status, Inhaltstyp und Antwortinhalt geprüft. Fehlender CSRF-Token wurde mit HTTP 412 abgewiesen.
+- Ein normaler Benutzer konnte das Archiv abrufen; administrative Validator-Einstellungen und Installation wurden mit HTTP 403 abgewiesen.
+- Alle vier Dokumentationsansichten antworteten authentifiziert mit HTTP 200 und HTML.
+- Paketwechsel vom Tag `v0.3.1` zurück zum geprüften Paket bei bestehendem Datenbestand und Routencache: App und Archiv blieben erreichbar, der Archivbestand unverändert.
+
+Der Paketwechsel war **kein Versionsupgrade**: Beide Stände deklarieren intern
+`0.3.0`, daher meldete `occ upgrade` „No upgrade required“. Ein tatsächlicher
+Versionsupgrade einschließlich Update-Hooks bleibt nach Festlegung der
+Release-Version zu prüfen. Die getestete Installation verwendete `index.php`
+ohne Installationsunterverzeichnis; andere URL-Konfigurationen wurden nicht geprüft.
+Der Abruf der Dokumentationsansichten ersetzt keinen vollständigen Klicktest
+aller Links im Text-Editor.
+
+Offen bleiben außerdem die Signierung und Integritätsprüfung mit dem noch zu
+beantragenden Nextcloud-Zertifikat sowie eine unabhängige PDF/A-Prüfung mit
+veraPDF. Das unsignierte Testpaket ist kein einreichbares Store-Paket.
+
+Die Testumgebung lag ausschließlich unter `/tmp`; die bestehende
+Nextcloud-Installation wurde nicht verändert. Bei Wiederaufnahme waren die
+temporären Artefakte und Protokolle nicht mehr vorhanden. Dieser Bericht hält
+die zuvor beobachteten Testergebnisse fest; er dokumentiert keinen erneuten
+Testlauf. Für eine Wiederholungsprüfung müssen Umgebung und Paket neu erstellt
+werden.
+
 ## Frontend bauen
 
 Die Nextcloud-Menükomponenten werden lokal gebündelt; es gibt keine CDN-Abhängigkeit. Mit Node.js 22 und npm: `npm ci && npm run build`. Die erzeugten Dateien `js/validation-actions.js` und `css/validation-actions.css` werden mit ausgeliefert. `node_modules` gehört nicht ins Deployment. Quellcode: `frontend/actions.js`.
