@@ -1,8 +1,9 @@
 <?php
 /** @var array $_ */
 $status = $_['status'];
-$adminHelp = static function (string $section, string $label): void {
-    $url = 'https://github.com/322ud/shi_re/blob/HEAD/docs/admin.md#' . $section;
+$adminHelp = static function (string $section, string $label) use ($_): void {
+    $base = $_['readmeUrl'];
+    $url = $base . (str_contains($base, '?') ? '&' : '?') . 'document=admin#' . rawurlencode($section);
     $description = 'Hilfe zu „' . $label . '“ (öffnet ein neues Fenster)';
     ?>
     <a class="shire-admin-help" href="<?php p($url); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php p($description); ?>" title="<?php p($description); ?>"><span aria-hidden="true">i</span></a>

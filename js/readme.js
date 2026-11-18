@@ -2,11 +2,88 @@
     const editors = new WeakMap();
     const pending = new WeakMap();
 
+    const slug = text => text.toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu, '').replace(/ /g, '-');
+    const localLink = (viewer, href) => {
+        if (!href || /^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#)/i.test(href)) return href;
+        const source = new URL(viewer.dataset.document || 'README.md', 'https://documentation.invalid/');
+        const target = new URL(href, source);
+        const documents = {'/README.md': 'readme', '/docs/admin.md': 'admin'};
+        if (!documents[target.pathname] || !viewer.dataset.documentUrl) return href;
+        const destination = new URL(viewer.dataset.documentUrl, window.location.href);
+        destination.searchParams.set('document', documents[target.pathname]);
+        destination.hash = target.hash;
+        return destination.pathname + destination.search + destination.hash;
+    };
+    const prepareNavigation = viewer => {
+        const rich = viewer.querySelector('.shire-readme-rich');
+        const fallback = viewer.querySelector('.shire-readme-fallback');
+        // Keep Markdown source intact for Text while making fallback links usable.
+        if (fallback && !fallback.dataset.linked) {
+            fallback.dataset.linked = 'true';
+            const walker = document.createTreeWalker(fallback, NodeFilter.SHOW_TEXT);
+            const nodes = [];
+            while (walker.nextNode()) nodes.push(walker.currentNode);
+            for (const node of nodes) {
+                const pattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+                let match, offset = 0;
+                const fragment = document.createDocumentFragment();
+                while ((match = pattern.exec(node.data))) {
+                    const href = localLink(viewer, match[2]);
+                    if (href === match[2]) continue;
+                    fragment.append(node.data.slice(offset, match.index));
+                    const link = document.createElement('a');
+                    link.href = href;
+                    link.textContent = match[0];
+                    fragment.append(link);
+                    offset = pattern.lastIndex;
+                }
+                if (offset) {
+                    fragment.append(node.data.slice(offset));
+                    node.replaceWith(fragment);
+                }
+            }
+        }
+        const update = () => {
+            rich?.querySelectorAll('a[href]').forEach(link => {
+                const href = link.getAttribute('href');
+                const local = localLink(viewer, href);
+                if (local !== href) link.setAttribute('href', local);
+            });
+        };
+        const scroll = () => {
+            let hash;
+            try { hash = decodeURIComponent(window.location.hash.slice(1)); } catch { return; }
+            if (!hash || viewer.closest('.shire-readme-modal')) return;
+            const root = rich && !rich.hidden ? rich : fallback;
+            const headings = root?.querySelectorAll('h1,h2,h3,h4,h5,h6,[data-readme-heading]') || [];
+            const counts = new Map();
+            for (const heading of headings) {
+                const copy = heading.cloneNode(true);
+                copy.querySelectorAll('button,a').forEach(node => node.remove());
+                const base = slug(heading.dataset.readmeHeading || copy.textContent.trim());
+                const count = counts.get(base) || 0;
+                counts.set(base, count + 1);
+                if ((count ? `${base}-${count}` : base) === hash) {
+                    heading.scrollIntoView({block: 'start'});
+                    break;
+                }
+            }
+        };
+        update();
+        scroll();
+        if (!viewer.navigationObserver) {
+            viewer.navigationObserver = new MutationObserver(() => { update(); scroll(); });
+            viewer.navigationObserver.observe(rich, {childList: true, subtree: true});
+            window.addEventListener('hashchange', scroll);
+        }
+    };
+
     const mountReadme = async (viewer) => {
         if (!viewer || editors.has(viewer)) {
             return editors.get(viewer) || null;
         }
 
+        prepareNavigation(viewer);
         const richContent = viewer.querySelector('.shire-readme-rich');
         const fallback = viewer.querySelector('.shire-readme-fallback');
         // Text may register its editor after this script (deferred app assets).
@@ -68,6 +145,7 @@
             editors.set(viewer, editor);
             richContent.hidden = false;
             fallback.hidden = true;
+            prepareNavigation(viewer);
             return editor;
         } catch {
             editorInputObserver.disconnect();

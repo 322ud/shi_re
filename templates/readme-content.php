@@ -1,7 +1,11 @@
-<div class="shire-readme-viewer" data-shire-readme>
-    <div class="shire-readme-rich" aria-label="Formatierter Inhalt der README" hidden></div>
-    <pre class="shire-readme-fallback" tabindex="0" aria-label="Inhalt der README"><?php
-        $readme = file_get_contents(dirname(__DIR__) . '/README.md') ?: 'README konnte nicht geladen werden.';
+<?php
+$document = ($_['document'] ?? 'readme') === 'admin' ? 'admin' : 'readme';
+$documentPath = $document === 'admin' ? 'docs/admin.md' : 'README.md';
+?>
+<div class="shire-readme-viewer" data-shire-readme data-document="<?php p($documentPath); ?>" data-document-url="<?php p($_['readmeUrl']); ?>">
+    <div class="shire-readme-rich" aria-label="Formatierte Dokumentation" hidden></div>
+    <pre class="shire-readme-fallback" tabindex="0" aria-label="Dokumentation"><?php
+        $readme = file_get_contents(dirname(__DIR__) . '/' . $documentPath) ?: 'README konnte nicht geladen werden.';
         foreach (explode("\n", $readme) as $line) {
             if (preg_match('/^#{1,6}\s+(.+)$/', $line, $heading)) {
                 print_unescaped('<span data-readme-heading="');

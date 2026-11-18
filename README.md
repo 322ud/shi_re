@@ -10,33 +10,15 @@ Die Dokumentation ist auf den Rechnungsseiten über das Info-Symbol rechts oben 
 
 Installation, Admin-Schalter und optionale Komponenten sind in der [Administrationsanleitung](./docs/admin.md) beschrieben.
 
-Während der Verarbeitung fragt der Browser den Serverfortschritt alle 500 ms ab. Der Schalter speichert über die bestehende Admin-Route `/admin/validator/settings`; die Fortschrittsabfrage verwendet `/validator/status` mit `action: progress`. Dadurch benötigen diese Funktionen keine neuen Routeneinträge in einer bereits installierten Nextcloud. Nach dem Einspielen der geänderten Dateien die Admin- und Rechnungsseite neu laden, damit die aktualisierten JavaScript-Dateien verwendet werden. Die neueren separaten Routen bleiben als kompatible Aliase erhalten. Der Server gibt die PHP-Sitzungssperre frei, damit die Abfragen während laufender Konvertierungen beantwortet werden können. Ein begrenzter Fortschrittsstand pro Benutzer wird in den Nextcloud-Benutzereinstellungen gespeichert, beim nächsten Vorgang ersetzt und nach einer Stunde nicht mehr ausgeliefert. Abfragen sind zusätzlich an Fenster und zufällige Vorgangskennung gebunden. Es entsteht kein dauerhaft wachsendes Protokoll; bei ausgeschalteter Option werden weder Fortschrittsstände geschrieben noch abgefragt.
+Während der Verarbeitung fragt der Browser den Serverfortschritt alle 500 ms ab. Der Schalter speichert über die bestehende Admin-Route `/admin/validator/settings`; die Fortschrittsabfrage verwendet `/validator/status` mit `action: progress`. Die neueren separaten Routen bleiben als kompatible Aliase erhalten. Der Server gibt die PHP-Sitzungssperre frei, damit die Abfragen während laufender Konvertierungen beantwortet werden können. Ein begrenzter Fortschrittsstand pro Benutzer wird in den Nextcloud-Benutzereinstellungen gespeichert, beim nächsten Vorgang ersetzt und nach einer Stunde nicht mehr ausgeliefert. Abfragen sind zusätzlich an Fenster und zufällige Vorgangskennung gebunden. Es entsteht kein dauerhaft wachsendes Protokoll; bei ausgeschalteter Option werden weder Fortschrittsstände geschrieben noch abgefragt.
 
 ## PDF-Modul einrichten
 
 Systemvoraussetzungen, Programmpfade und Einrichtung stehen in der [Administrationsanleitung](./docs/admin.md).
 
-LibreOffice verwendet ein eigenes Profil pro Vorgang. Dateien liegen in privaten, von Nextcloud verwalteten temporären Verzeichnissen; sie werden bei Erfolg und Fehler sofort gelöscht. Bei einem harten Prozessabbruch greift Nextclouds Tempbereinigung.
-
 ## Vorlagen und Mapping
 
 Upload, Struktur und formale Anforderungen an eigene Vorlagen beschreibt die [Administrationsanleitung](./docs/admin.md).
-
-Für die Darstellung gelten:
-
-- `{{Currency}}`: `EUR` → `€`; andere Währungen bleiben erhalten.
-- `{{TaxRate}}`: `19.00` → `19`. Gebrochene Steuersätze werden mit Fehler abgewiesen, um keine falsche Prozentzahl darzustellen.
-- `{{IBAN}}`: Vierergruppen von links, getrennt durch geschützte Leerzeichen U+00A0.
-- `{{UnitPrice}}`, `{{BasisTotal}}`, `{{TaxTotal}}`, `{{GrandTotal}}`: zwei Nachkommastellen mit Komma, ohne Gleitkommarundung.
-- Mengen und weitere XML-Felder mit Namen `…Amount`, `…Quantity`, `…Percent`: Dezimalpunkt wird zum Komma.
-- XML-Datumsfelder im Format `102`: `YYYYMMDD` → `DD.MM.YYYY`.
-- Namen, Kennungen, Adressen und Freitexte bleiben inhaltlich erhalten; XML-Sonderzeichen werden sicher eingesetzt. Zeilenumbrüche und Tabulatoren werden in ODF-Elemente umgewandelt.
-
-Ein neuer Rechnungsentwurf lädt die aktive XML-Vorlage. PDF-Erzeugung verwendet den bei ihrer Anforderung aktuellen vollständigen Vorlagensatz; eine Änderung während einer Anforderung wird anhand der Vorlagenversion erkannt.
-
-Bei der XML-Erstellung wird `{{UserID}}` (Notiz mit SubjectCode `ABN`) mit den kleingeschriebenen Initialen des angemeldeten Nextcloud-Nutzers befüllt: „Frank Busse“ wird zu `fb`. Grundlage ist der Anzeigename, bei leerem Anzeigenamen der Benutzername. Leerzeichen und Bindestriche trennen Namensbestandteile. Eigene Vorlagen ohne diese Notiz bleiben verwendbar.
-
-Die nächste Rechnungsnummer wird aus der höchsten Nummer der aktiven XML-Vorlage (`ExchangedDocument/ram:ID`) und der archivierten Dateinamen im Format `JJ NNN.xml` bzw. `JJ NNN.pdf` im AppData-Hauptverzeichnis berechnet. Die Vorlagennummer gilt als vorherige Nummer: Ohne Archiv ergibt beispielsweise `26 200` im Jahr 2026 die erste Rechnungsnummer `26 201`. Liegt das Jahr der höchsten Nummer vor dem aktuellen Serverjahr, beginnt die Nummerierung bei `JJ 000` des aktuellen Jahres. Auch bei vorhandenem Archiv bleibt die Vorlagennummer als Untergrenze berücksichtigt.
 
 ## PDF-Erzeugung und Download
 
@@ -44,7 +26,7 @@ Bei valider XML und aktivem PDF-Modul wird die XML automatisch angenommen und un
 
 Bei deaktiviertem oder für den Benutzer nicht verfügbarem INValidator ersetzt ein Menü den Button „Rechnung erstellen“. Es bietet „XML speichern und ShiRE schließen“ und „XML speichern und neue Rechnung starten“; bei aktivem PDF-Modul zusätzlich „PDF-Rechnung erstellen“. Das Menü „abbrechen“ bietet „ShiRE schließen“ und „neue Rechnung starten“. Die XML wird dabei ohne INValidator-Prüfung erzeugt; ein Prüfbericht wird nicht angeboten. Die PDF-Prüfung durch Mustang und gegebenenfalls veraPDF bleibt aktiv.
 
-Nur bei Annahme wird die erzeugte XML-Datei dauerhaft als `<Rechnungsnummer>.xml` archiviert. „speichern und …“ lädt diese Datei herunter und schließt die App oder beginnt eine neue Rechnung. „in PDF einbinden“ verlässt das Menü und erzeugt aus dieser Archivdatei die PDF-Rechnung. Ein PDF-Fehler lässt die bereits angenommene XML unverändert im Archiv. Abbrechen verwirft die Rechnung ohne Archivierung. Nach Annahme oder Abbruch werden Arbeits-XML und Entwurfsdaten entfernt; der Entwurf bleibt bis dahin gesperrt und per Heartbeat aktiv.
+Nur bei Annahme wird die erzeugte XML-Datei dauerhaft als `<Rechnungsnummer>.xml` archiviert. „speichern und …“ lädt diese Datei herunter und schließt die App oder beginnt eine neue Rechnung. „in PDF einbinden“ verlässt das Menü und erzeugt aus dieser Archivdatei die PDF-Rechnung. Abbrechen verwirft die Rechnung ohne Archivierung. Nach Annahme oder Abbruch werden Arbeits-XML und Entwurfsdaten entfernt; der Entwurf bleibt bis dahin gesperrt und per Heartbeat aktiv.
 
 Nach erfolgreicher KoSIT-Prüfung speichert die App den SHA-256-Hash der XML, den Benutzer, die Fensterkennung und die verwendeten Validator-Versionen in `validation-proof.json` im AppData-Hauptverzeichnis. Eine zufällige Vorgangskennung bleibt ausschließlich im Browser-Arbeitsspeicher; auf dem Server wird nur ihr Hash abgelegt. XML-Annahme und direkter Arbeits-XML-Download verlangen diesen Nachweis und identische XML-Bytes, ohne INValidator erneut aufzurufen. Bei inaktivem INValidator wird stattdessen eine ausdrücklich als ungeprüft markierte Vorgangsfreigabe mit denselben Bindungen und ohne Validator-Versionen gespeichert. Wird die XML-Prüfung vor Annahme oder PDF-Erzeugung aktiviert, reicht diese Freigabe nicht mehr aus.
 
@@ -52,15 +34,13 @@ Die PDF-Route akzeptiert ausschließlich die für diesen Vorgang angenommene Arc
 
 LibreOffice exportiert mit `SelectPdfVersion=3` (PDF/A-3b). Mustang kombiniert PDF und XML im Factur-X-Format, Version 1, mit Profil EN16931 oder XRECHNUNG entsprechend der XML-Guideline. Andere Guidelines und mehrere Rechnungspositionen werden abgewiesen. Anschließend ergänzt der Java-Helfer die Metadaten. Erst danach extrahiert Mustang den XML-Anhang; sein SHA-256-Hash muss mit der validierten XML übereinstimmen. Außerdem muss Mustangs Validierung des fertigen PDFs erfolgreich sein. Falls konfiguriert, muss auch veraPDF die PDF/A-3b-Konformität bestätigen. Ohne veraPDF gibt es keinen zusätzlichen unabhängigen PDF/A-Konformitätsnachweis.
 
-Der PDF-Autor (Author und XMP `dc:creator`) wird als `initialen@domain` vollständig in Kleinbuchstaben gesetzt. Die Initialen stammen aus dem Anzeigenamen des angemeldeten Nextcloud-Nutzers (ersatzweise der Benutzerkennung), die Domain aus dem von Nextcloud ermittelten Anfragehost ohne Port und ohne führendes `cloud.` (z. B. `cloud.my_domain.de` → `my_domain.de`).
-
 Die Standardfelder stehen synchron im PDF-Info-Dictionary und in XMP: Titel (`dc:title`) ist „Rechnung“, abgeleitet aus dem XML-TypeCode 380; Creator (`xmp:CreatorTool`) ist App-Name und Version aus `appinfo/info.xml`; Producer (`pdf:Producer`) ist `MustangCLI <JAR-Version>`. Die JAR-Version stammt aus den JAR-Metadaten, nicht aus Formatversionen im Hilfetext oder aus dem Dateinamen.
 
 Das zusätzliche XMP-Feld `shi_re:libreOfficeVersion` dokumentiert den PDF-Export. Nur bei aktiver XML-Prüfung und vorliegenden INValidator-Prüfdaten kommen `shi_re:INValidatorVersion`, `inv_validator:kositValidatorVersion` und `inv_validator:xrechnungSzenarioVersion` hinzu. Bei Verwendung von veraPDF kommt `shi_re:veraPDFVersion` hinzu. INValidator liefert die installierten Versionen über seine lokale Status-API ohne Update-Abfrage; die Szenarioversion ist die konkrete Releasekennung, nicht die XRechnung-Standardversion der XML. Nicht ermittelbare Versionen werden als `unbekannt` ausgewiesen. Die Versionsangaben sind kein eigenständiger Validierungsnachweis.
 
 Die Namespace-URIs sind `https://github.com/322ud/shi_re/ns/metadata/1.0/` und `https://github.com/322ud/inv_validator/ns/metadata/1.0/`. Sie sind stabile Bezeichner und werden nicht abgerufen. Nur verwendete Namensräume erhalten eingebettete PDF/A-Erweiterungsschemas mit Text-Eigenschaften. Beim erneuten Schreiben werden Angaben und Schemas inaktiver Prüfungen entfernt. Bestehende Factur-X-Metadaten und deren Schema bleiben erhalten. Nach der abschließenden Validierung wird die PDF nicht mehr verändert.
 
-Erst dann liefert die authentifizierte, CSRF-geschützte POST-Route `/en16931/downloadPdfInvoice` das PDF mit `Cache-Control: no-store`. Die geprüfte PDF wird dauerhaft im AppData-Hauptverzeichnis neben der zuvor angenommenen XML als `<Rechnungsnummer>.pdf` gespeichert (mit bereinigten Dateinamenzeichen); eine bestehende Datei gleichen Namens wird niemals ersetzt. Ein erneuter Speicherversuch wird mit HTTP 409 abgelehnt; die vorhandene PDF bleibt unverändert. Prüfung und Neuanlage verwenden gemeinsam eine exklusive Nextcloud-Sperre. Der Browser öffnet die Antwort als Blob zur Ansicht. Im Eingabeformular bietet „Archiv“ neben „Rechnung erstellen“ die gespeicherten PDFs und XML-Dateien zum Download an, nach letztem Speicherzeitpunkt absteigend sortiert. Liste und Download verwenden authentifizierte, CSRF-geschützte POST-Routen (`/pdf/invoices`, `/pdf/saved`). Die Ablage ist wie die Arbeits-XML appweit gemeinsam. Es gibt keinen öffentlichen Download-Link. Beim Wechsel zur nächsten Rechnung oder Verlassen der Seite wird die Blob-URL freigegeben.
+Erst dann liefert die authentifizierte, CSRF-geschützte POST-Route `/en16931/downloadPdfInvoice` das PDF mit `Cache-Control: no-store`. Die Dateinamenzeichen werden für die PDF-Ablage bereinigt. Ein erneuter Speicherversuch wird mit HTTP 409 abgelehnt; die vorhandene PDF bleibt unverändert. Prüfung und Neuanlage verwenden gemeinsam eine exklusive Nextcloud-Sperre. Der Browser öffnet die Antwort als Blob zur Ansicht. Im Eingabeformular bietet „Archiv“ neben „Rechnung erstellen“ die gespeicherten PDFs und XML-Dateien zum Download an, nach letztem Speicherzeitpunkt absteigend sortiert. Liste und Download verwenden authentifizierte, CSRF-geschützte POST-Routen (`/pdf/invoices`, `/pdf/saved`). Beim Wechsel zur nächsten Rechnung oder Verlassen der Seite wird die Blob-URL freigegeben.
 
 ## Tests
 
@@ -131,16 +111,14 @@ Die gebündelten Fremdkomponenten behalten ihre jeweiligen Lizenzen;
 Versionen, Copyright-Hinweise und Lizenztexte sind in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) und [LICENSES/](LICENSES/) dokumentiert.
 
-## Name der temporären Rechnungs-XML
-
-Die Arbeitsdatei im AppData-Hauptverzeichnis heißt `tmp.xml`. Erzeugung,
-Validierung, direkter Arbeits-XML-Download und Bereinigung verwenden diesen Namen.
-Archivierte Rechnungen behalten ihre Rechnungsnummer als Dateinamen.
-Vor dem Einspielen dieser Umbenennung laufende Rechnungsvorgänge abschließen
-oder abbrechen, damit die bisherige Arbeitsdatei `en16931.xml` regulär entfernt
-wird. Bereits vorhandene Dateien dieses alten Namens werden nicht automatisch
-migriert; sie werden vom neuen Code nicht mehr als Arbeitsdatei verwendet.
+## Storno-Rechnungen
 
 In der Ansicht „archivierte Rechnung“ öffnet „als Vorlage verwenden… → für Storno-Rechnung“ die schreibgeschützte Ansicht „neue Storno-Rechnung“. Sie verwendet die reservierte neue Rechnungsnummer und das aktuelle Serverdatum (Europe/Berlin), übernimmt den Empfänger aus dem Archiv und ergänzt den Text der Storno-Vorlage um „zu <alte Rechnungsnummer>“. „Storno-Rechnung erstellen“ startet den bestehenden Erstellungs- und Prüfablauf; Das Menü „abbrechen“ verwirft den Entwurf und bietet „neue Rechnung erstellen“ oder „ShiRE schließen“. Der Titel enthält keine Leistungsbeschreibung; die Menge wird ausgeblendet. Ein Archiv-Button wird hier nicht angezeigt. Die ABN-Notiz und der PDF-Platzhalter `{{UserID}}` enthalten wie bei neuen Rechnungen die Initialen des aktuell angemeldeten Nutzers. Die archivierte Ausgangsrechnung bleibt unverändert. Die Storno-XML verweist auf sie und kehrt ihre Beträge um; für PDF werden Storno-ODT und Storno-Mapping verwendet. Unterstützt werden archivierte Rechnungen vom Typ 380 mit einer Position und einem Steuersatz.
 
-Die Storno-Vorschau verwendet die bereits registrierte POST-Route `/en16931/draft` mit `action=cancellation`, die Erstellung die bestehende Route `/en16931/createXmlInvoice`. Authentifizierung, CSRF-Prüfung und Entwurfsbesitz bleiben erforderlich. Es werden keine neuen Routen registriert; bestehende Routencaches benötigen dafür keine Aktualisierung. Beim Ausrollen müssen die geänderten PHP-/JavaScript-Dateien einschließlich `CancellationInvoiceService.php` übernommen werden. Der authentifizierte HTTP-Test in einer laufenden Nextcloud und die vollständige Storno-PDF-Prüfung mit LibreOffice/Mustang stehen noch aus.
+Die Storno-Vorschau verwendet die bereits registrierte POST-Route `/en16931/draft` mit `action=cancellation`, die Erstellung die bestehende Route `/en16931/createXmlInvoice`. Authentifizierung, CSRF-Prüfung und Entwurfsbesitz bleiben erforderlich. Der authentifizierte HTTP-Test in einer laufenden Nextcloud und die vollständige Storno-PDF-Prüfung mit LibreOffice/Mustang stehen noch aus.
+
+## Lokale Dokumentationsansicht
+
+Die bestehende Route `/readme` zeigt die README; `?document=admin` zeigt die mitgelieferte `docs/admin.md`. Relative Links zwischen diesen Dokumenten werden in der lokalen Ansicht auf Nextcloud-Adressen umgesetzt; auf GitHub bleiben die Markdown-Links unverändert nutzbar. Abschnittsanker werden nach dem Laden der formatierten Ansicht angesprungen, auch in der Text-Fallbackansicht. Andere Dokumentnamen laden die README; freie Dateipfade werden nicht akzeptiert.
+
+Ein authentifizierter HTTP-Test über den tatsächlichen Nextcloud-Installationspfad steht noch aus.

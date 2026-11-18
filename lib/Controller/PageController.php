@@ -55,13 +55,14 @@ class PageController extends Controller {
     #[NoAdminRequired]
     #[NoCSRFRequired]
     #[Route(Route::TYPE_FRONTPAGE, verb: 'GET', url: '/readme')]
-    public function readme(): TemplateResponse {
+    public function readme(string $document = 'readme'): TemplateResponse {
         $this->textEditorLoader->load();
         Util::addStyle('shi_re', 'readme');
         Util::addScript('shi_re', 'readme');
         return new TemplateResponse('shi_re', 'readme', [
             'readmeUrl' => $this->urls->linkToRoute('shi_re.page.readme'),
             'appUrl' => $this->urls->linkToRoute('shi_re.page.index'),
+            'document' => $document === 'admin' ? 'admin' : 'readme',
         ]);
     }
 }

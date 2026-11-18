@@ -81,6 +81,12 @@ Es gibt hierfür **keinen eigenen Schalter**: Sind Werkzeuge und Vorlagen bereit
 
 Installation und Verwendung: [LibreOffice im Kommandozeilenbetrieb](https://help.libreoffice.org/latest/de/text/shared/guide/start_parameters.html), [Mustangproject mit CLI und Releases](https://github.com/ZUGFeRD/mustangproject).
 
+#### PDF-Metadaten
+
+Der PDF-Autor (Author und XMP `dc:creator`) wird als `initialen@domain` vollständig in Kleinbuchstaben gesetzt. Die Initialen stammen aus dem Anzeigenamen des angemeldeten Nextcloud-Nutzers (ersatzweise der Benutzerkennung), die Domain aus dem von Nextcloud ermittelten Anfragehost ohne Port und ohne führendes `cloud.` (z. B. `cloud.my_domain.de` → `my_domain.de`).
+
+Das PDF enthält die Versionen von ShiRE, MustangCLI und LibreOffice sowie bei aktiver Prüfung die verfügbaren Versionen von INValidator, KoSIT-Validator, XRechnung-Prüfszenario und veraPDF. Nicht ermittelbare Versionen erscheinen als `unbekannt`. Die Szenarioversion bezeichnet das konkrete Prüfrelease; die Versionsangaben sind kein eigenständiger Validierungsnachweis.
+
 ### PDF-Validierung mit veraPDF
 
 [veraPDF installieren](https://docs.verapdf.org/install/) und `shi_re_verapdf` auf das ausführbare CLI-Programm setzen. Damit wird die zusätzliche Prüfung des fertigen Dokuments auf **PDF/A-3b** aktiviert; einen Admin-Schalter gibt es nicht. **System → veraPDF** zeigt die Verfügbarkeit. Ohne Pfadeintrag entfällt diese Zusatzprüfung; ein eingetragener, aber ungültiger Pfad verhindert die PDF-Bereitschaft.
@@ -107,6 +113,8 @@ ODT und TSV dienen der optionalen PDF-Ausgabe. **Die aktuelle Vorlagenprüfung v
 
 Fehlerhafte Uploads bleiben gespeichert, werden aber als **inaktiv** angezeigt; ShiRE verwendet dann die Standardvorlagen. Weitere Uploads können den gespeicherten Satz korrigieren. Ausschalten von **eigene Vorlagen** erhält die Dateien; **eigene Vorlagen verwerfen** entfernt deren Auswahl. Die mitgelieferten Dateien bleiben unverändert.
 
+Ein neuer Rechnungsentwurflädt die aktive XML-Vorlage. PDF-Erzeugung verwendet den bei ihrer Anforderung aktuellen vollständigen Vorlagensatz; eine Änderung während einer Anforderung wird anhand der Vorlagenversion erkannt.
+
 #### Formale Voraussetzungen für die Verarbeitung
 
 Die XML-Struktur der mitgelieferten Vorlagen beibehalten und feste Angaben wie Aussteller, Anschrift, Steuerdaten und Bankverbindung anpassen. ShiRE befüllt vorhandene Felder; fehlende oder mehrdeutige Elemente können die Erstellung abbrechen lassen.
@@ -128,6 +136,24 @@ Für ODT und TSV gelten zusätzlich:
 - Platzhalter dürfen innerhalb eines Absatzes formatiert sein und in Kopf-/Fußzeilen stehen, aber nicht über Absatzgrenzen reichen. Makros, extern eingebundene Ressourcen, verschlüsselte und signierte ODT-Dateien werden abgewiesen; entpackt sind höchstens 50 MiB zulässig.
 - `{{UnitPrice}}`, `{{BasisTotal}}`, `{{TaxTotal}}` und `{{GrandTotal}}` müssen ohne Rundung mit zwei Nachkommastellen darstellbar sein. `{{TaxRate}}` muss ganzzahlig darstellbar sein, etwa `19.00`. `{{DocumentType}}` unterstützt `380` und `384`.
 
+#### Darstellung und Nutzerinitialen
+
+Für die Darstellung gelten:
+
+- `{{Currency}}`: `EUR` → `€`; andere Währungen bleiben erhalten.
+- `{{TaxRate}}`: `19.00` → `19`. Gebrochene Steuersätze werden mit Fehler abgewiesen, um keine falsche Prozentzahl darzustellen.
+- `{{IBAN}}`: Vierergruppen von links, getrennt durch geschützte Leerzeichen U+00A0.
+- `{{UnitPrice}}`, `{{BasisTotal}}`, `{{TaxTotal}}`, `{{GrandTotal}}`: zwei Nachkommastellen mit Komma, ohne Gleitkommarundung.
+- Mengen und weitere XML-Felder mit Namen `…Amount`, `…Quantity`, `…Percent`: Dezimalpunkt wird zum Komma.
+- XML-Datumsfelder im Format `102`: `YYYYMMDD` → `DD.MM.YYYY`.
+- Namen, Kennungen, Adressen und Freitexte bleiben inhaltlich erhalten; XML-Sonderzeichen werden sicher eingesetzt. Zeilenumbrüche und Tabulatoren werden in ODF-Elemente umgewandelt.
+
+Bei der XML-Erstellung wird `{{UserID}}` (Notiz mit SubjectCode `ABN`) mit den kleingeschriebenen Initialen des angemeldeten Nextcloud-Nutzers befüllt: „Frank Busse“ wird zu `fb`. Grundlage ist der Anzeigename, bei leerem Anzeigenamen der Benutzername. Leerzeichen und Bindestriche trennen Namensbestandteile. Eigene Vorlagen ohne diese Notiz bleiben verwendbar.
+
+#### Rechnungsnummerierung
+
+Die nächste Rechnungsnummer wird aus der höchsten Nummer der aktiven XML-Vorlage (`ExchangedDocument/ram:ID`) und der archivierten Dateinamen im Format `JJ NNN.xml` bzw. `JJ NNN.pdf` im AppData-Hauptverzeichnis berechnet. Die Vorlagennummer gilt als vorherige Nummer: Ohne Archiv ergibt beispielsweise `26 200` im Jahr 2026 die erste Rechnungsnummer `26 201`. Liegt das Jahr der höchsten Nummer vor dem aktuellen Serverjahr, beginnt die Nummerierung bei `JJ 000` des aktuellen Jahres. Auch bei vorhandenem Archiv bleibt die Vorlagennummer als Untergrenze berücksichtigt.
+
 #### Voraussetzungen für standardkonforme Rechnungen
 
 **XRechnung:** Die Vorlagenprüfung kontrolliert die Verarbeitbarkeit und Zuordnung der Dateien, nicht sämtliche Regeln des Standards. Auch ein erfolgreicher Upload ist deshalb kein Nachweis einer gültigen XRechnung. Maßgeblich sind die [XRechnung-Spezifikation und technischen Prüfarbeitsmittel der KoSIT](https://xeinkauf.de/xrechnung/).
@@ -135,3 +161,11 @@ Für ODT und TSV gelten zusätzlich:
 Die mitgelieferte XML bezeichnet ihr Profil derzeit mit `urn:cen.eu:en16931:2017`. Der Dateiname „XRechnung“ allein bestätigt daher keine XRechnung-Konformität. Für XRechnung müssen unter anderem Profil-/Prozesskennungen, Verkäufer- und Käuferdaten, elektronische Adressen, Steuer-/Zahlungsangaben und die geforderte Käuferreferenz zum gewählten Standard und Empfänger passen. Die vollständigen Pflichtfelder und Geschäftsregeln stehen in den [Versionen und Bundles](https://xeinkauf.de/xrechnung/versionen-und-bundles/). Die fertig befüllte Rechnung mit dem passenden INValidator-Prüfszenario prüfen.
 
 **PDF/A:** Ziel ist PDF/A-3b nach [ISO 19005-3](https://www.iso.org/standard/57229.html). Dazu müssen unter anderem Schriften eingebettet, Metadaten und Farbinformationen passend sowie Anhänge korrekt eingebunden sein. Auf dem Server verfügbare, einbettbare Schriften verwenden und nach Änderungen an Layout oder Schriften das fertige PDF mit veraPDF prüfen. Ein erfolgreich verarbeitbares ODT allein garantiert keine PDF/A-Konformität. Zusätzlich die sichtbaren Rechnungsangaben mit der eingebetteten XML abgleichen.
+
+## Betrieb und Archiv
+
+LibreOffice verwendet ein eigenes Profil pro Vorgang. Dateien liegen in privaten, von Nextcloud verwalteten temporären Verzeichnissen; sie werden bei Erfolg und Fehler sofort gelöscht. Bei einem harten Prozessabbruch greift Nextclouds Tempbereinigung.
+
+Die Arbeitsdatei im AppData-Hauptverzeichnis heißt `tmp.xml`; sie wird für Erzeugung, Validierung und Arbeits-XML-Download verwendet und nach Annahme oder Abbruch zusammen mit den Entwurfsdaten entfernt.
+
+Angenommene XML-Rechnungen und erfolgreich geprüfte PDFs liegen dauerhaft als `<Rechnungsnummer>.xml` beziehungsweise `<Rechnungsnummer>.pdf` im AppData-Hauptverzeichnis. Das Archiv ist appweit gemeinsam. Vorhandene PDFs werden nicht überschrieben; ein erneuter Speicherversuch unter demselben Namen wird abgelehnt. Bei einem PDF-Fehler bleibt die bereits angenommene XML im Archiv erhalten. Downloads erfordern eine Anmeldung; öffentliche Download-Links gibt es nicht.

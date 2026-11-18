@@ -7,7 +7,7 @@ const path = require('node:path');
     const html = execFileSync('php', ['-r', `
         function p($value) { echo htmlspecialchars((string)$value, ENT_QUOTES); }
         function print_unescaped($value) { echo $value; }
-        $_ = ['status' => ['validation_enabled' => true, 'auto_update' => false, 'hide_navigation' => true, 'installed' => '1.0', 'enabled' => true, 'navigation_supported' => true],
+        $_ = ['readmeUrl' => '/nextcloud/index.php/apps/shi_re/readme', 'status' => ['validation_enabled' => true, 'auto_update' => false, 'hide_navigation' => true, 'installed' => '1.0', 'enabled' => true, 'navigation_supported' => true],
             'allowDraftDeletion' => false, 'customTemplates' => false,
             'pdfStatus' => ['enabled' => true, 'errors' => [], 'versions' => [], 'checks' => array_fill_keys(['libreoffice', 'mustang', 'verapdf', 'templates'], ['ok' => false, 'version' => '', 'detail' => 'Nicht eingerichtet'])]];
         $_['pdfStatus']['checks']['templates'] = ['ok' => true, 'version' => 'abc123', 'detail' => 'geprüft'];
@@ -18,7 +18,11 @@ const path = require('node:path');
         const page = await browser.newPage();
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
+        await page.route('http://shire.test/**', route => route.fulfill({body: '<html></html>', contentType: 'text/html'}));
+        await page.goto('http://shire.test/nextcloud/index.php/settings/admin/shi_re');
         await page.setContent(html);
+        assert.equal(await page.locator('#myx-clear-archive + .shire-admin-help').getAttribute('href'),
+            '/nextcloud/index.php/apps/shi_re/readme?document=admin#optionen-f%C3%BCr-die-nutzung');
         await page.addStyleTag({path: path.resolve('css/admin.css')});
         await page.evaluate(() => {
             window.OC = {generateUrl: path => path, requestToken: 'test'};
@@ -55,6 +59,9 @@ const path = require('node:path');
             setTimeout(() => { window.OCA.Text = text; }, 150);
         });
         await page.addScriptTag({path: path.resolve('js/readme.js')});
+        await page.waitForSelector('.shire-readme-rich:not([hidden])');
+        assert.equal(await page.locator('.shire-readme-fallback a').first().getAttribute('href'),
+            '/nextcloud/index.php/apps/shi_re/readme?document=admin');
         for (const answer of [null, 'nein', 'JA', 'ja']) {
             const before = await page.evaluate(() => calls.length);
             page.once('dialog', dialog => answer === null ? dialog.dismiss() : dialog.accept(answer));
@@ -215,6 +222,26 @@ const path = require('node:path');
             assert.equal(await page.locator('#invoice-value').inputValue(), 'Entwurf bleibt erhalten');
             assert.equal(await page.locator('.shire-readme-link').evaluate(node => node === document.activeElement), true);
         }
+        const adminDoc = execFileSync('php', ['-r', `
+            function p($value) { echo htmlspecialchars((string)$value, ENT_QUOTES); }
+            function print_unescaped($value) { echo $value; }
+            $_ = ['document' => 'admin', 'readmeUrl' => '/nextcloud/index.php/apps/shi_re/readme', 'appUrl' => '/nextcloud/index.php/apps/shi_re/'];
+            require 'templates/readme.php';
+        `], {encoding: 'utf8'});
+        await page.goto('http://shire.test/nextcloud/index.php/apps/shi_re/readme?document=admin#systemvoraussetzungen');
+        await page.setContent(adminDoc);
+        await page.evaluate(() => {
+            window.OCA = {Text: {async createEditor({el}) {
+                el.innerHTML = '<h2>Systemvoraussetzungen</h2><a href="../README.md#tests">README</a>';
+                el.querySelector('h2').scrollIntoView = () => { window.anchorReached = true; };
+                return {setReadOnly() {}};
+            }}};
+        });
+        await page.addScriptTag({path: path.resolve('js/readme.js')});
+        await page.waitForFunction(() => window.anchorReached === true);
+        assert.equal(await page.locator('.shire-readme-rich a').getAttribute('href'),
+            '/nextcloud/index.php/apps/shi_re/readme?document=readme#tests');
+        assert.match(await page.locator('.shire-readme-fallback').textContent(), /ShiRE administrieren/);
         assert.deepEqual(errors, []);
         console.log('Admin browser: defaults, immediate saves, failure rollback, conditional uploads system check rows and Nextcloud Text viewer integration passed.');
     } finally { await browser.close(); }
