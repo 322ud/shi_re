@@ -54,7 +54,7 @@ Unter **Einstellungen → andere**:
 | Auswahl | Wirkung | Standard |
 | --- | --- | --- |
 | ausführliche Ablaufdokumentation | Zeigt den laufenden Verarbeitungsschritt und abgeschlossene Schritte mit Uhrzeit im Meldungsfenster der Nutzer. Übersprungene Prüfungen werden benannt; Zeitzone ist Europe/Berlin. | aus |
-| zeige Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt | Nutzer können den blockierenden aktiven Entwurf nach Bestätigung löschen und neu beginnen. Dabei gehen die bisherigen Entwurfsdaten verloren. | aus |
+| zeige Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt | Nutzer können den blockierenden aktiven Entwurf nach Bestätigung löschen und neu beginnen. Dabei gehen die bisherigen Entwurfsdaten verloren. Diese Option darf bei mehreren (gleichzeitigen) Nutzern nicht gesetzt sein.| aus |
 
 ## Optionale Komponenten
 

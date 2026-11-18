@@ -1,6 +1,6 @@
 # ShiRE
 
-Die [Administrationsanleitung](docs/admin.md) beschreibt Installation, Systemvoraussetzungen, Einstellungen und eigene Vorlagen.
+Die [Administrationsanleitung](./docs/admin.md) beschreibt Installation, Systemvoraussetzungen, Einstellungen und eigene Vorlagen.
 
 Nextcloud-App zur Erstellung und Validierung einer EN16931-CII-Rechnung mit einer Rechnungsposition. Nach XML-Annahme erzeugt das PDF-Modul auf Wunsch eine PDF/A-3b-Rechnung aus einer ODT-Vorlage und bettet dieselbe XML mit Mustangproject ein.
 
@@ -8,61 +8,21 @@ Die Dokumentation ist auf den Rechnungsseiten über das Info-Symbol rechts oben 
 
 ## Einstellungen
 
-Die Schalter in der Administration speichern Änderungen sofort. Fehlt INValidator, erscheint ein Hinweis zur administrativen Installation. ShiRE verwendet ausschließlich öffentliche Nextcloud-APIs; diese bieten keine Erstinstallation anderer Apps an. INValidator muss daher separat installiert und aktiviert werden. Bei manueller Bereitstellung eines geprüften Release-Pakets im Nextcloud-App-Verzeichnis erfolgt die Registrierung und Aktivierung durch die Administration mit `occ app:enable inv_validator` unter dem Webserver-Benutzer. Anschließend die ShiRE-Administration neu laden. Die bestehenden ShiRE-Routen bleiben unverändert; für diese Umstellung ist keine neue Routenregistrierung erforderlich. Bei installierter App erscheint „XML-Rechnung mit INValidator prüfen“ (Standard **ja**). Nur bei aktiver Prüfung erscheint „beim App-Start INValidator automatisch updaten“ (Standard **ja**). Bestehende Einstellungen bleiben erhalten. Automatische Updates erfolgen nur beim Start durch einen Administrator. Weitere Standardwerte: INValidator für normale Nutzer ausblenden **ja**, Button zum Löschen bei Entwurfskonflikt **nein**, eigene Vorlagen **nein**.
-
-Die Option „ausführliche Ablaufdokumentation“ unter „andere“ ist standardmäßig **nein**. Bei Aktivierung zeigt die Fortschrittsanzeige den laufenden Schritt mit dessen Startzeit als `[hh:mm:ss] `; abgeschlossene Schritte erscheinen mit ihrer Fertigstellungszeit im Meldungsbereich. Zeitangaben verwenden Europe/Berlin. Erfasst werden Datenprüfung, XML-Erzeugung und -Prüfung, Archivierung sowie die einzelnen PDF-Schritte (Vorlage, LibreOffice, XML-Einbettung, Metadaten, XML-Abgleich, Mustang, gegebenenfalls veraPDF und Bereinigung). Übersprungene Prüfungen werden ausdrücklich benannt. Fehlgeschlagene Schritte erhalten keine Erfolgsmeldung. Beim lokalen Speichern wird nur der gestartete Download bestätigt.
+Installation, Admin-Schalter und optionale Komponenten sind in der [Administrationsanleitung](./docs/admin.md) beschrieben.
 
 Während der Verarbeitung fragt der Browser den Serverfortschritt alle 500 ms ab. Der Schalter speichert über die bestehende Admin-Route `/admin/validator/settings`; die Fortschrittsabfrage verwendet `/validator/status` mit `action: progress`. Dadurch benötigen diese Funktionen keine neuen Routeneinträge in einer bereits installierten Nextcloud. Nach dem Einspielen der geänderten Dateien die Admin- und Rechnungsseite neu laden, damit die aktualisierten JavaScript-Dateien verwendet werden. Die neueren separaten Routen bleiben als kompatible Aliase erhalten. Der Server gibt die PHP-Sitzungssperre frei, damit die Abfragen während laufender Konvertierungen beantwortet werden können. Ein begrenzter Fortschrittsstand pro Benutzer wird in den Nextcloud-Benutzereinstellungen gespeichert, beim nächsten Vorgang ersetzt und nach einer Stunde nicht mehr ausgeliefert. Abfragen sind zusätzlich an Fenster und zufällige Vorgangskennung gebunden. Es entsteht kein dauerhaft wachsendes Protokoll; bei ausgeschalteter Option werden weder Fortschrittsstände geschrieben noch abgefragt.
-
-Bei „eigene Vorlagen: nein“ verwendet ShiRE die mitgelieferten Standardvorlagen. Gespeicherte eigene Vorlagen bleiben erhalten und werden beim Einschalten wieder verwendet. Nur bei aktivierter Option erscheinen Dateiauswahl und „Vorlagen prüfen“.
 
 Unter der README kann die Administration mit „Archiv leeren“ alle archivierten XML-Rechnungen und PDFs appweit löschen. Die Eingabe `ja` bestätigt das Löschen. Entwürfe und Vorlagen bleiben erhalten. Ohne Archiv richtet sich die nächste Rechnungsnummer wieder nach der aktiven Vorlage; ein bestehender Entwurf behält seine Nummer.
 
 ## PDF-Modul einrichten
 
-Auf dem Nextcloud-Server werden LibreOffice Writer, Java ab Version 11, die Mustang-CLI sowie PHP DOM, ZIP, mbstring und `proc_open` benötigt. Getestet wurde Mustang-CLI **2.26.0**. Die JAR muss aus einem vertrauenswürdigen Release installiert und für den Webserver lesbar sein; die App installiert keine ausführbaren Programme automatisch. Der mitgelieferte Metadaten-Helfer verwendet PDFBox 3 aus dieser JAR. Die Systemprüfung prüft auch seine Verfügbarkeit. Auf dem Server ist kein Java-Compiler erforderlich.
+Systemvoraussetzungen, Programmpfade und Einrichtung stehen in der [Administrationsanleitung](./docs/admin.md).
 
-In Nextclouds `config.php` konfigurieren (absolute Pfade):
-
-```php
-'shi_re_libreoffice' => '/usr/bin/libreoffice',
-'shi_re_java' => '/usr/bin/java',
-'shi_re_mustang_jar' => '/opt/mustang/Mustang-CLI-2.26.0.jar',
-// Optional: zusätzliche unabhängige PDF/A-3b-Prüfung des fertigen Dokuments.
-'shi_re_verapdf' => '/opt/verapdf/verapdf',
-```
-
-Die Einträge `shi_re_libreoffice` und `shi_re_java` sind nur bei abweichenden Programmpfaden nötig. Ohne Konfiguration gelten die oben gezeigten Standardpfade. Für Mustang gibt es keinen Standardpfad. In **Administration → ShiRE → System** zeigt „Systemprüfung wiederholen“ fehlende Abhängigkeiten und Vorlagenfehler. Dieselbe Prüfung erfolgt beim App-Start und vor jeder PDF-Erzeugung. Bei deaktiviertem PDF-Modul wir nur eine XML-Rechnung erstellt und zum Download bereitgestellt.
-
-Der Webserver-Benutzer benötigt ein beschreibbares Nextcloud-Tempverzeichnis und Zugriff auf die Programme und die verwendeten Schriften. HTTP-/Proxy-Zeitlimits müssen die Konvertierung und die Validierung zulassen. Jeder externe Aufruf hat ein Zeitlimit von 60 Sekunden (Verfügbarkeitsprüfungen 10–15 Sekunden). LibreOffice verwendet ein eigenes Profil pro Vorgang. Dateien liegen in privaten, von Nextcloud verwalteten temporären Verzeichnissen; sie werden bei Erfolg und Fehler sofort gelöscht. Bei einem harten Prozessabbruch greift Nextclouds Tempbereinigung.
+LibreOffice verwendet ein eigenes Profil pro Vorgang. Dateien liegen in privaten, von Nextcloud verwalteten temporären Verzeichnissen; sie werden bei Erfolg und Fehler sofort gelöscht. Bei einem harten Prozessabbruch greift Nextclouds Tempbereinigung.
 
 ## Vorlagen und Mapping
 
-Standarddateien:
-
-- `config/XRechnung.odt`
-- `config/XRechnung.xml`
-- `config/XRechnung.tsv`
-
-In der Administration lassen sich einzelne oder alle drei Dateien zusammen hochladen. Nicht ausgewählte Dateien stammen aus dem bisher gültigen Satz. Die App prüft den vollständigen Satz und übernimmt ihn erst nach erfolgreicher Prüfung. Die eigenen Vorlagen liegen unveränderlich und versioniert in AppData; ein Konfigurationszeiger bestimmt den aktiven Satz. Die Dateien im App-Verzeichnis bleiben unverändert.
-
-Die Prüfung verlangt:
-
-1. Jeder ODT-Platzhalter besitzt genau einen Mapping-Eintrag.
-2. Jeder Mapping-Platzhalter kommt im ODT vor (mehrfaches Vorkommen ist erlaubt).
-3. Jeder XPath findet genau ein XML-Blattelement. Die Vorlage enthält genau eine Rechnungsposition.
-
-Bei inkonsistenten eigenen Vorlagen verwenden XML- und PDF-Erzeugung wieder die Standardvorlagen. Die Systemprüfung markiert eigene Vorlagen mit einem roten Kreuz und „inaktiv“. Auch ein inkonsistenter Upload bleibt mit Dateinamen und Upload-Datum gespeichert, wird aber nicht für Rechnungen verwendet. Weitere Uploads ersetzen nur die ausgewählten Dateien dieses gespeicherten Satzes. Erst wenn der gesamte Satz erfolgreich geprüft wurde, wird er wieder aktiv. „eigene Vorlagen verwerfen“ entfernt die Auswahl des gespeicherten Satzes und schaltet auf Standardvorlagen zurück. Prüfen ohne Dateiauswahl reaktiviert keinen alten Satz.
-
-TSV ohne Kopfzeile, UTF-8, zwei oder drei Spalten:
-
-```text
-{{ID}}	/rsm:CrossIndustryInvoice/rsm:ExchangedDocument/ram:ID	26 200
-```
-
-Die Trennzeichen sind echte Tabulatoren. Spalte 3 kann Beispiele enthalten, dient aber niemals als Ersatz für fehlende Rechnungsdaten. CSV-konforme Anführungszeichen innerhalb einer TSV-Zelle werden unterstützt. Die Namespace-Präfixe `rsm`, `ram`, `qdt` und `udt` sind fest den CII-Namespaces zugeordnet. `{{ID}}` ist erforderlich.
-
-Platzhalter werden in `content.xml` und `styles.xml` ersetzt, einschließlich Kopf-/Fußzeilen und über mehrere Formatierungs-Textknoten verteilter Platzhalter innerhalb eines Absatzes. Absatzübergreifende Platzhalter werden nicht unterstützt. ODT-Makros, externe eingebundene Ressourcen, verschlüsselte und signierte Vorlagen werden zurückgewiesen. Normale Text-Hyperlinks sind erlaubt. ODT maximal 10 MiB, XML maximal 2 MiB, Mapping maximal 256 KiB; entpackter ODT-Inhalt maximal 50 MiB.
+Upload, Struktur und formale Anforderungen an eigene Vorlagen beschreibt die [Administrationsanleitung](./docs/admin.md).
 
 Für die Darstellung gelten:
 
@@ -94,7 +54,7 @@ Die PDF-Route akzeptiert ausschließlich die für diesen Vorgang angenommene Arc
 
 LibreOffice exportiert mit `SelectPdfVersion=3` (PDF/A-3b). Mustang kombiniert PDF und XML im Factur-X-Format, Version 1, mit Profil EN16931 oder XRECHNUNG entsprechend der XML-Guideline. Andere Guidelines und mehrere Rechnungspositionen werden abgewiesen. Anschließend ergänzt der Java-Helfer die Metadaten. Erst danach extrahiert Mustang den XML-Anhang; sein SHA-256-Hash muss mit der validierten XML übereinstimmen. Außerdem muss Mustangs Validierung des fertigen PDFs erfolgreich sein. Falls konfiguriert, muss auch veraPDF die PDF/A-3b-Konformität bestätigen. Ohne veraPDF gibt es keinen zusätzlichen unabhängigen PDF/A-Konformitätsnachweis.
 
-Der PDF-Autor (Author und XMP `dc:creator`) wird als `initialen@domain` vollständig in Kleinbuchstaben gesetzt. Die Initialen stammen aus dem Anzeigenamen des angemeldeten Nextcloud-Nutzers (ersatzweise der Benutzerkennung), die Domain aus dem von Nextcloud ermittelten Anfragehost ohne Port und ohne führendes `cloud.` (z. B. `cloud.322ud.de` → `322ud.de`).
+Der PDF-Autor (Author und XMP `dc:creator`) wird als `initialen@domain` vollständig in Kleinbuchstaben gesetzt. Die Initialen stammen aus dem Anzeigenamen des angemeldeten Nextcloud-Nutzers (ersatzweise der Benutzerkennung), die Domain aus dem von Nextcloud ermittelten Anfragehost ohne Port und ohne führendes `cloud.` (z. B. `cloud.my_domain.de` → `my_domain.de`).
 
 Die Standardfelder stehen synchron im PDF-Info-Dictionary und in XMP: Titel (`dc:title`) ist „Rechnung“, abgeleitet aus dem XML-TypeCode 380; Creator (`xmp:CreatorTool`) ist App-Name und Version aus `appinfo/info.xml`; Producer (`pdf:Producer`) ist `MustangCLI <JAR-Version>`. Die JAR-Version stammt aus den JAR-Metadaten, nicht aus Formatversionen im Hilfetext oder aus dem Dateinamen.
 
@@ -182,8 +142,6 @@ Vor dem Einspielen dieser Umbenennung laufende Rechnungsvorgänge abschließen
 oder abbrechen, damit die bisherige Arbeitsdatei `en16931.xml` regulär entfernt
 wird. Bereits vorhandene Dateien dieses alten Namens werden nicht automatisch
 migriert; sie werden vom neuen Code nicht mehr als Arbeitsdatei verwendet.
-
-Die Vorlagenverwaltung bietet für XRechnung und Storno jeweils ODT, XML und Mapping (TSV) in einer Upload-Tabelle. Dateiname und Upload-Datum erscheinen nur für eigene Uploads. Sobald eine eigene Storno-Datei vorliegt, prüft „neue Vorlagen prüfen“ auch den vollständigen Storno-Satz; fehlende Uploads werden durch gespeicherte Dateien bzw. die mitgelieferten Storno-Vorlagen ergänzt. Fehler werden mit „Storno:“ gekennzeichnet und deaktivieren den eigenen Vorlagensatz. Die Konsistenzprüfung prüft Platzhalter, Mapping und XML-Werte; sie bestätigt keine Unterstützung des Storno-Dokumenttyps durch die PDF-Erzeugung.
 
 In der Ansicht „archivierte Rechnung“ öffnet „als Vorlage verwenden… → für Storno-Rechnung“ die schreibgeschützte Ansicht „neue Storno-Rechnung“. Sie verwendet die reservierte neue Rechnungsnummer und das aktuelle Serverdatum (Europe/Berlin), übernimmt den Empfänger aus dem Archiv und ergänzt den Text der Storno-Vorlage um „zu <alte Rechnungsnummer>“. „Storno-Rechnung erstellen“ startet den bestehenden Erstellungs- und Prüfablauf; Das Menü „abbrechen“ verwirft den Entwurf und bietet „neue Rechnung erstellen“ oder „ShiRE schließen“. Der Titel enthält keine Leistungsbeschreibung; die Menge wird ausgeblendet. Ein Archiv-Button wird hier nicht angezeigt. Die ABN-Notiz und der PDF-Platzhalter `{{UserID}}` enthalten wie bei neuen Rechnungen die Initialen des aktuell angemeldeten Nutzers. Die archivierte Ausgangsrechnung bleibt unverändert. Die Storno-XML verweist auf sie und kehrt ihre Beträge um; für PDF werden Storno-ODT und Storno-Mapping verwendet. Unterstützt werden archivierte Rechnungen vom Typ 380 mit einer Position und einem Steuersatz.
 
