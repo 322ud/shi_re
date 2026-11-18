@@ -2,9 +2,9 @@
 
 Nextcloud-App zur Erstellung und Validierung einer EN16931-CII-Rechnung mit einer Rechnungsposition. Nach XML-Annahme erzeugt das PDF-Modul auf Wunsch eine PDF/A-3b-Rechnung aus einer ODT-Vorlage und bettet dieselbe XML mit Mustangproject ein.
 
-Die [Administrationsanleitung](./docs/admin.md) beschreibt Installation, Systemvoraussetzungen, Einstellungen und die Nutzung eigener Vorlagen.
+Die [Benutzeranleitung](./docs/user.md) beschreibt das [Erstellen einer Rechnung](./docs/user.md#rechnung-erstellen), das [Rechnungsarchiv](./docs/user.md#rechnungsarchiv) und [Storno-Rechnungen](./docs/user.md#storno-rechnung). Das Info-Symbol rechts oben in den Rechnungsansichten öffnet den passenden Abschnitt in einem separaten Browserfenster.
 
-Die Dokumentation ist auf den Rechnungsseiten über das Info-Symbol rechts oben (Mouseover „Readme“) in einem überlagernden Fenster erreichbar.
+Die [Administrationsanleitung](./docs/admin.md) beschreibt Installation, Systemvoraussetzungen, Einstellungen und die Nutzung eigener Vorlagen.
 
 ## Einstellungen
 
@@ -12,11 +12,9 @@ Während der Verarbeitung fragt der Browser den Serverfortschritt alle 500 ms ab
 
 ## PDF-Erzeugung und Download
 
-Bei valider XML und aktivem PDF-Modul wird die XML automatisch angenommen und unmittelbar die PDF-Rechnung erzeugt. Andernfalls erscheinen nach der KoSIT-Prüfung: links bei valider XML „XML annehmen“, daneben „abbrechen“, rechts „Bericht als PDF speichern“. Der Prüfbericht wird im Ablauf nicht angezeigt. Wenn ein Bericht vorliegt, öffnet der Bericht-Button den Browser-Druckdialog; dort „Als PDF speichern“ auswählen. Nach der PDF-Erzeugung bleibt der Bericht-Button neben „PDF-Rechnung speichern“ verfügbar.
+Der KoSIT-Prüfbericht wird im Ablauf nicht angezeigt. Wenn ein Bericht vorliegt, öffnet „Bericht als PDF speichern“ den Browser-Druckdialog. Ohne verfügbaren und aktivierten INValidator entfällt der XML-Prüfbericht; die PDF-Prüfung durch Mustang und gegebenenfalls veraPDF bleibt aktiv.
 
-Bei deaktiviertem oder für den Benutzer nicht verfügbarem INValidator ersetzt ein Menü den Button „Rechnung erstellen“. Es bietet „XML speichern und ShiRE schließen“ und „XML speichern und neue Rechnung starten“; bei aktivem PDF-Modul zusätzlich „PDF-Rechnung erstellen“. Das Menü „abbrechen“ bietet „ShiRE schließen“ und „neue Rechnung starten“. Die XML wird dabei ohne INValidator-Prüfung erzeugt; ein Prüfbericht wird nicht angeboten. Die PDF-Prüfung durch Mustang und gegebenenfalls veraPDF bleibt aktiv.
-
-Nur bei Annahme wird die erzeugte XML-Datei dauerhaft als `<Rechnungsnummer>.xml` archiviert. „speichern und …“ lädt diese Datei herunter und schließt die App oder beginnt eine neue Rechnung. „in PDF einbinden“ verlässt das Menü und erzeugt aus dieser Archivdatei die PDF-Rechnung. Abbrechen verwirft die Rechnung ohne Archivierung. Nach Annahme oder Abbruch werden Arbeits-XML und Entwurfsdaten entfernt; der Entwurf bleibt bis dahin gesperrt und per Heartbeat aktiv.
+Angenommene XML-Dateien werden dauerhaft als `<Rechnungsnummer>.xml` archiviert. Nach Annahme oder Abbruch werden Arbeits-XML und Entwurfsdaten entfernt; der Entwurf bleibt bis dahin gesperrt und per Heartbeat aktiv.
 
 Nach erfolgreicher KoSIT-Prüfung speichert die App den SHA-256-Hash der XML, den Benutzer, die Fensterkennung und die verwendeten Validator-Versionen in `validation-proof.json` im AppData-Hauptverzeichnis. Eine zufällige Vorgangskennung bleibt ausschließlich im Browser-Arbeitsspeicher; auf dem Server wird nur ihr Hash abgelegt. XML-Annahme und direkter Arbeits-XML-Download verlangen diesen Nachweis und identische XML-Bytes, ohne INValidator erneut aufzurufen. Bei inaktivem INValidator wird stattdessen eine ausdrücklich als ungeprüft markierte Vorgangsfreigabe mit denselben Bindungen und ohne Validator-Versionen gespeichert. Wird die XML-Prüfung vor Annahme oder PDF-Erzeugung aktiviert, reicht diese Freigabe nicht mehr aus.
 
@@ -30,13 +28,13 @@ Das zusätzliche XMP-Feld `shi_re:libreOfficeVersion` dokumentiert den PDF-Expor
 
 Die Namespace-URIs sind `https://github.com/322ud/shi_re/ns/metadata/1.0/` und `https://github.com/322ud/inv_validator/ns/metadata/1.0/`. Sie sind stabile Bezeichner und werden nicht abgerufen. Nur verwendete Namensräume erhalten eingebettete PDF/A-Erweiterungsschemas mit Text-Eigenschaften. Beim erneuten Schreiben werden Angaben und Schemas inaktiver Prüfungen entfernt. Bestehende Factur-X-Metadaten und deren Schema bleiben erhalten. Nach der abschließenden Validierung wird die PDF nicht mehr verändert.
 
-Erst dann liefert die authentifizierte, CSRF-geschützte POST-Route `/en16931/downloadPdfInvoice` das PDF mit `Cache-Control: no-store`. Die Dateinamenzeichen werden für die PDF-Ablage bereinigt. Ein erneuter Speicherversuch wird mit HTTP 409 abgelehnt; die vorhandene PDF bleibt unverändert. Prüfung und Neuanlage verwenden gemeinsam eine exklusive Nextcloud-Sperre. Der Browser öffnet die Antwort als Blob zur Ansicht. Im Eingabeformular bietet „Archiv“ neben „Rechnung erstellen“ die gespeicherten PDFs und XML-Dateien zum Download an, nach letztem Speicherzeitpunkt absteigend sortiert. Liste und Download verwenden authentifizierte, CSRF-geschützte POST-Routen (`/pdf/invoices`, `/pdf/saved`). Beim Wechsel zur nächsten Rechnung oder Verlassen der Seite wird die Blob-URL freigegeben.
+Erst dann liefert die authentifizierte, CSRF-geschützte POST-Route `/en16931/downloadPdfInvoice` das PDF mit `Cache-Control: no-store`. Die Dateinamenzeichen werden für die PDF-Ablage bereinigt. Ein erneuter Speicherversuch wird mit HTTP 409 abgelehnt; die vorhandene PDF bleibt unverändert. Prüfung und Neuanlage verwenden gemeinsam eine exklusive Nextcloud-Sperre. Der Browser öffnet die Antwort als Blob zur Ansicht. Die Archivliste ist nach letztem Speicherzeitpunkt absteigend sortiert. Liste und Download verwenden authentifizierte, CSRF-geschützte POST-Routen (`/pdf/invoices`, `/pdf/saved`). Beim Wechsel zur nächsten Rechnung oder Verlassen der Seite wird die Blob-URL freigegeben.
 
 ## Storno-Rechnungen
 
-In der Ansicht „archivierte Rechnung“ öffnet „als Vorlage verwenden… → für Storno-Rechnung“ die schreibgeschützte Ansicht „neue Storno-Rechnung“. Sie verwendet die reservierte neue Rechnungsnummer und das aktuelle Serverdatum (Europe/Berlin), übernimmt den Empfänger aus dem Archiv und ergänzt den Text der Storno-Vorlage um „zu <alte Rechnungsnummer>“. „Storno-Rechnung erstellen“ startet den bestehenden Erstellungs- und Prüfablauf; Das Menü „abbrechen“ verwirft den Entwurf und bietet „neue Rechnung erstellen“ oder „ShiRE schließen“. Der Titel enthält keine Leistungsbeschreibung; die Menge wird ausgeblendet. Ein Archiv-Button wird hier nicht angezeigt. Die ABN-Notiz und der PDF-Platzhalter `{{UserID}}` enthalten wie bei neuen Rechnungen die Initialen des aktuell angemeldeten Nutzers. Die archivierte Ausgangsrechnung bleibt unverändert. Die Storno-XML verweist auf sie und kehrt ihre Beträge um; für PDF werden Storno-ODT und Storno-Mapping verwendet. Unterstützt werden archivierte Rechnungen vom Typ 380 mit einer Position und einem Steuersatz.
+Für Storno-PDFs werden Storno-ODT und Storno-Mapping verwendet. Die ABN-Notiz und der PDF-Platzhalter `{{UserID}}` enthalten die Initialen des aktuell angemeldeten Nutzers. Unterstützt werden archivierte Rechnungen vom Typ 380 mit einer Position und einem Steuersatz.
 
-Die Storno-Vorschau verwendet die bereits registrierte POST-Route `/en16931/draft` mit `action=cancellation`, die Erstellung die bestehende Route `/en16931/createXmlInvoice`. Authentifizierung, CSRF-Prüfung und Entwurfsbesitz bleiben erforderlich. Der authentifizierte HTTP-Test in einer laufenden Nextcloud und die vollständige Storno-PDF-Prüfung mit LibreOffice/
+Die Storno-Vorschau verwendet die bereits registrierte POST-Route `/en16931/draft` mit `action=cancellation`, die Erstellung die bestehende Route `/en16931/createXmlInvoice`. Authentifizierung, CSRF-Prüfung und Entwurfsbesitz bleiben erforderlich. Der authentifizierte HTTP-Test in einer laufenden Nextcloud und die vollständige Storno-PDF-Prüfung mit LibreOffice/Mustang stehen noch aus.
 
 ## Tests
 
