@@ -24,8 +24,10 @@ Der aktuelle Stand ist eine Machbarkeitsstudie für Rechnungen eines einzelnen R
 
 Zukünftige Weiterentwicklungen sind angedacht, aber bisher nicht konkret geplant:
 
+- Rechnungsempfänger aus der Kontakte-App,
 - getrennte Bereiche für mehrere Benutzer,
 - Unterstützung mehrerer Rechnungssteller,
+- Unterstützung anderer Rechnungsnummernformate,
 - Unterstützung mehrerer Rechnungspositionen.
 
 ## Dokumentation
