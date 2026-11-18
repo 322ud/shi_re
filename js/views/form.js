@@ -107,35 +107,6 @@
             actions.appendChild(NS.archiveTemplateDropdown());
             actions.appendChild(NS.button('zurück', () => NS.leaveArchive(false)));
             form.querySelectorAll('input, textarea').forEach(field => { field.readOnly = true; });
-        } else if (NS.state.validationActive === false && !cancellation) {
-            const host = NS.make('div', {class: 'myx-create-menu'});
-            actions.appendChild(host);
-            actions.appendChild(NS.savedInvoiceDropdown());
-            let pending = false;
-            // Mount after the form is attached so Vue's root remains inside the form.
-            queueMicrotask(() => {
-                if (!host.isConnected) return;
-                NS.creationActions = NS.mountReviewActions(host, true, async choice => {
-                    if (pending) return;
-                    pending = true;
-                    NS.creationActions.setBusy(true);
-                    try {
-                        if (choice.startsWith('cancel-')) {
-                            await NS.post('/en16931/cancel');
-                            NS.stopHeartbeat();
-                            if (choice === 'cancel-new') await NS.startInvoice();
-                            else NS.closeApp();
-                        } else {
-                            await NS.createXmlInvoice(choice);
-                        }
-                    } catch (error) {
-                        NS.log('Fehler: ' + error.message);
-                    } finally {
-                        pending = false;
-                        if (NS.creationActions) NS.creationActions.setBusy(false);
-                    }
-                }, null, {unvalidated: true, pdfEnabled: Boolean(NS.state.pdfStatus?.enabled), createDisabled: !supportedType});
-            });
         } else {
             const createButton = NS.button(cancellation ? 'Storno-Rechnung erstellen' : 'Rechnung erstellen', NS.createXmlInvoice, 'myx-primary');
             createButton.disabled = !supportedType;

@@ -15,10 +15,10 @@ window.ShiRE.mountReviewActions = function (element, valid, choose, report, opti
                 props: {menuName: label, forceMenu: true, disabled: this.busy},
             }, children)
             return h('div', {class: 'myx-review-actions'}, [
-                valid ? menu(options.unvalidated ? 'Rechnung erstellen' : 'XML annehmen', [
-                    (!options.unvalidated || options.pdfEnabled) ? action(options.unvalidated ? 'PDF-Rechnung erstellen' : 'in PDF einbinden', 'pdf') : null,
-                    action((options.unvalidated ? 'XML speichern und ' : 'speichern und ') + appName + ' schließen', 'accept-close'),
-                    action(options.unvalidated ? 'XML speichern und neue Rechnung starten' : 'speichern und neue Rechnung starten', 'accept-new'),
+                valid && options.pdfEnabled ? h(NcButton, {props: {disabled: this.busy}, on: {click: () => choose('pdf')}}, ['PDF-Erstellung erneut starten']) : null,
+                valid ? menu('speichern…', [
+                    action('… und ' + appName + ' schließen', 'accept-close'),
+                    action('… und neue RE starten', 'accept-new'),
                 ]) : null,
                 menu('abbrechen', [
                     action(appName + ' schließen', 'cancel-close'),
@@ -31,14 +31,12 @@ window.ShiRE.mountReviewActions = function (element, valid, choose, report, opti
     return {setBusy: value => { vm.busy = value }, destroy: () => { vm.$destroy(); vm.$el.remove() }}
 }
 
-window.ShiRE.mountFinishedActions = function (element, start, close, savePdf, report) {
+window.ShiRE.mountFinishedActions = function (element, start, close) {
     return new Vue({
         render(h) {
             return h('div', {class: 'myx-review-actions'}, [
-                savePdf ? h(NcButton, {on: {click: savePdf}}, ['PDF-Rechnung speichern']) : null,
-                report ? h(NcButton, {on: {click: report}}, ['Bericht als PDF speichern']) : null,
-                h(NcButton, {on: {click: start}}, ['neue Rechnung starten']),
-                h(NcButton, {on: {click: close}}, ['ShiRE schließen']),
+                h(NcButton, {on: {click: start}}, ['neue RE']),
+                h(NcButton, {on: {click: close}}, ['app schließen']),
             ])
         },
     }).$mount(element)

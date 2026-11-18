@@ -22,10 +22,9 @@ const path = require('node:path');
         await page.evaluate(() => {
             window.choices = [];
             window.controls = window.ShiRE.mountReviewActions(document.getElementById('mount'), true,
-                choice => window.choices.push(choice), () => window.choices.push('report'));
+                choice => window.choices.push(choice), () => window.choices.push('report'), {pdfEnabled: true});
         });
-        await page.getByRole('button', {name: 'XML annehmen', exact: true}).click();
-        await page.getByRole('menuitem', {name: 'in PDF einbinden', exact: true}).click();
+        await page.getByRole('button', {name: 'PDF-Erstellung erneut starten', exact: true}).click();
         assert.deepEqual(await page.evaluate(() => window.choices), ['pdf']);
         await page.keyboard.press('Escape');
         await page.getByRole('button', {name: 'abbrechen', exact: true}).click();
@@ -40,7 +39,7 @@ const path = require('node:path');
             const mount = document.createElement('div'); document.body.appendChild(mount);
             window.ShiRE.mountReviewActions(mount, false, choice => window.choices.push(choice), () => {});
         });
-        assert.equal(await page.getByRole('button', {name: 'XML annehmen', exact: true}).count(), 0);
+        assert.equal(await page.getByRole('button', {name: 'speichern…', exact: true}).count(), 0);
         assert.equal(await page.getByRole('button', {name: 'abbrechen', exact: true}).count(), 1);
         await page.getByRole('button', {name: 'abbrechen', exact: true}).click();
         await page.getByRole('menuitem', {name: 'ShiRE schließen', exact: true}).waitFor({state: 'visible'});
@@ -55,18 +54,22 @@ const path = require('node:path');
         await page.evaluate(() => {
             document.body.replaceChildren();
             const mount = document.createElement('div'); document.body.appendChild(mount);
-            window.ShiRE.mountFinishedActions(mount, () => {}, () => {},
-                () => window.choices.push('save-pdf'), () => window.choices.push('save-report'));
+            window.ShiRE.mountReviewActions(mount, true, () => {}, null, {pdfEnabled: false});
         });
-        await page.getByRole('button', {name: 'PDF-Rechnung speichern', exact: true}).click();
-        await page.getByRole('button', {name: 'Bericht als PDF speichern', exact: true}).click();
-        assert.deepEqual(await page.evaluate(() => window.choices.slice(-2)), ['save-pdf', 'save-report']);
+        await page.getByRole('button', {name: 'speichern…', exact: true}).click();
+        await page.getByRole('menuitem', {name: '… und ShiRE schließen', exact: true}).waitFor();
+        assert.equal(await page.getByRole('menuitem', {name: 'in PDF einbinden', exact: true}).count(), 0);
+        await page.keyboard.press('Escape');
+
         await page.evaluate(() => {
             document.body.replaceChildren();
             const mount = document.createElement('div'); document.body.appendChild(mount);
-            window.ShiRE.mountFinishedActions(mount, () => {}, () => {}, () => {}, null);
+            window.ShiRE.mountFinishedActions(mount, () => window.choices.push('new'), () => window.choices.push('close'));
         });
-        assert.equal(await page.getByRole('button', {name: 'Bericht als PDF speichern', exact: true}).count(), 0);
+        assert.deepEqual(await page.locator('button').allTextContents(), ['neue RE', 'app schließen']);
+        await page.getByRole('button', {name: 'neue RE', exact: true}).click();
+        await page.getByRole('button', {name: 'app schließen', exact: true}).click();
+        assert.deepEqual(await page.evaluate(() => window.choices.slice(-2)), ['new', 'close']);
         assert.deepEqual(errors, []);
         console.log('Real Chromium NcActions test passed: menus, actions, disabled state and invalid XML.');
     } finally { await browser.close(); }

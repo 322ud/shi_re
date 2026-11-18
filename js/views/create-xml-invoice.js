@@ -5,7 +5,7 @@
     const progressLabel = text => NS.state.detailedProgress && NS.progressTime
         ? '[' + NS.progressTime() + '] ' + text : text;
 
-    NS.createXmlInvoice = async function (choice) {
+    NS.createXmlInvoice = async function () {
         const invoiceData = NS.collectFormData();
 
         const data = await NS.post('/en16931/createXmlInvoice', {
@@ -27,10 +27,10 @@
             NS.state.ramID
         );
 
-        await NS.showXmlValidation(choice);
+        await NS.showXmlValidation();
     };
 
-    NS.showXmlValidation = async function (requestedChoice) {
+    NS.showXmlValidation = async function () {
         NS.state.validationToken = null;
         NS.releasePdfDownload();
         const input = NS.inputArea();
@@ -88,7 +88,8 @@
                 } else {
                     NS.state.validationToken = null;
                     if (accepted) await NS.downloadSavedInvoice(result.filename);
-                    if (choice.endsWith('-new')) await NS.startInvoice();
+                    if (choice === 'accept-stay') NS.showFinishedInvoice();
+                    else if (choice.endsWith('-new')) await NS.startInvoice();
                     else NS.closeApp();
                 }
             } catch (error) {
@@ -101,11 +102,11 @@
             }
             return finished;
         }
-        if (data.skipped && NS.state.validationToken && ['pdf', 'accept-close', 'accept-new'].includes(requestedChoice)) {
-            if (await choose(requestedChoice)) return;
+        if ((data.valid === true || data.skipped === true) && !NS.state.pdfStatus?.enabled && NS.state.validationToken) {
+            if (await choose('accept-stay')) return;
             if (NS.state.invoiceInterrupted) return;
         }
-        if (data.valid === true && NS.state.pdfStatus?.enabled && NS.state.validationToken) {
+        if ((data.valid === true || data.skipped === true) && NS.state.pdfStatus?.enabled && NS.state.validationToken) {
             if (await choose('pdf')) return;
             if (NS.state.invoiceInterrupted) return;
         }
@@ -133,13 +134,12 @@
         window.location.assign(OC.generateUrl('/'));
     };
 
-    NS.showFinishedInvoice = function (savePdf) {
+    NS.showFinishedInvoice = function () {
         const input = NS.inputArea();
         NS.clear(input);
         const host = NS.make('div');
         input.appendChild(host);
-        NS.finishedActions = NS.mountFinishedActions(host, NS.startInvoice, NS.closeApp, savePdf,
-            NS.validationReportFrame ? NS.saveValidationReport : null);
+        NS.finishedActions = NS.mountFinishedActions(host, NS.startInvoice, NS.closeApp);
     };
 
     NS.showAcceptedPdf = async function (filename, xmlHash) {
@@ -181,13 +181,17 @@
                 NS.log('PDF-Rechnung erstellt');
                 NS.log('PDF-Rechnung archiviert');
             }
-            NS.showFinishedInvoice(function () {
-                const link = NS.make('a', {href: NS.state.pdfDownloadUrl, download: filename.replace(/\.xml$/, '.pdf')});
+            {
+                // Keep the download alive when the preview is released by navigation.
+                const downloadUrl = URL.createObjectURL(pdfBlob);
+                const link = NS.make('a', {href: downloadUrl, download: filename.replace(/\.xml$/, '.pdf')});
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
+                window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
                 if (NS.state.detailedProgress) NS.log('PDF-Download gestartet.');
-            });
+            }
+            NS.showFinishedInvoice();
             const preview = NS.make('iframe', {src: NS.state.pdfDownloadUrl, title: 'PDF-Rechnung', class: 'myx-validation-frame'});
             if (NS.state.detailedProgress) {
                 const loading = NS.make('p', {role: 'status'}, '[' + NS.progressTime() + '] PDF-Rechnung wird zur Anzeige geladen …');
