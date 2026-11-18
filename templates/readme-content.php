@@ -1,5 +1,5 @@
 <?php
-$document = in_array($_['document'] ?? '', ['admin', 'user'], true) ? $_['document'] : 'readme';
+$document = in_array($_['document'] ?? '', ['admin', 'user', 'developer'], true) ? $_['document'] : 'readme';
 $documentPath = $document === 'readme' ? 'README.md' : 'docs/' . $document . '.md';
 ?>
 <div class="shire-readme-viewer" data-shire-readme data-document="<?php p($documentPath); ?>" data-document-url="<?php p($_['readmeUrl']); ?>">

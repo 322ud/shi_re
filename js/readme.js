@@ -7,8 +7,11 @@
         if (!href || /^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#)/i.test(href)) return href;
         const source = new URL(viewer.dataset.document || 'README.md', 'https://documentation.invalid/');
         const target = new URL(href, source);
-        const documents = {'/README.md': 'readme', '/docs/admin.md': 'admin', '/docs/user.md': 'user'};
-        if (!documents[target.pathname] || !viewer.dataset.documentUrl) return href;
+        const documents = {'/README.md': 'readme', '/docs/admin.md': 'admin', '/docs/user.md': 'user', '/docs/developer.md': 'developer'};
+        if (!documents[target.pathname]) {
+            return 'https://github.com/322ud/shi_re/blob/HEAD' + target.pathname + target.search + target.hash;
+        }
+        if (!viewer.dataset.documentUrl) return href;
         const destination = new URL(viewer.dataset.documentUrl, window.location.href);
         destination.searchParams.set('document', documents[target.pathname]);
         destination.hash = target.hash;
@@ -131,7 +134,10 @@
         try {
             const editor = await createEditor({
                 el: richContent,
-                content: fallback.textContent,
+                // Resolve against the Markdown document before Text can resolve links
+                // against the administration page's URL.
+                content: fallback.textContent.replace(/(\[[^\]]+\]\()([^)]+)(\))/g,
+                    (_, start, href, end) => start + localLink(viewer, href) + end),
                 readOnly: true,
                 autofocus: false,
             });

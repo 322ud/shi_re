@@ -62,7 +62,7 @@ class PageController extends Controller {
         return new TemplateResponse('shi_re', 'readme', [
             'readmeUrl' => $this->urls->linkToRoute('shi_re.page.readme'),
             'appUrl' => $this->urls->linkToRoute('shi_re.page.index'),
-            'document' => in_array($document, ['admin', 'user'], true) ? $document : 'readme',
+            'document' => in_array($document, ['admin', 'user', 'developer'], true) ? $document : 'readme',
         ]);
     }
 }

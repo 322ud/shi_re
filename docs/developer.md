@@ -99,3 +99,9 @@ Prüfsummen prüfen: im Ausgabeverzeichnis `sha256sum --check --strict shi_re-0.
 ## Lizenzdateien im Release
 
 Die Projektlizenz steht in [LICENSE](../LICENSE). Hinweise zu gebündelten Fremdkomponenten stehen in [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md), deren Lizenztexte in [LICENSES/](../LICENSES/). Bei Änderungen an gebündelten Abhängigkeiten diese Angaben mitpflegen und die zugehörigen Lizenzdateien im Release-Paket erhalten.
+
+## Dokumentationsanzeige und Links
+
+Die eingebettete README und die Anleitungen verwenden die bestehende GET-Route `/readme` mit `document=readme`, `admin`, `user` oder `developer`. Die Auswahl ist auf diese Dokumente begrenzt. Relative Markdown-Links werden vor Übergabe an Nextcloud Text anhand der Quelldatei aufgelöst. Anleitungen führen zur von Nextcloud erzeugten Dokumentations-URL einschließlich Installationsunterverzeichnis und gegebenenfalls `index.php`; weitere Repository-Dateien wie Lizenztexte führen zu GitHub.
+
+Für diese Anpassung sind keine neuen Routen und keine Routencache-Aktualisierung erforderlich. Beim Ausrollen die geänderten Controller-, Template- und JavaScript-Dateien sowie die Dokumentation übernehmen und die Administrationsseite neu laden. Der lokale Browsertest prüft die Linkauflösung mit einem simulierten Text-Editor; eine authentifizierte Prüfung in einer laufenden Nextcloud steht noch aus.

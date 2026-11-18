@@ -60,8 +60,14 @@ const path = require('node:path');
         });
         await page.addScriptTag({path: path.resolve('js/readme.js')});
         await page.waitForSelector('.shire-readme-rich:not([hidden])');
-        assert.equal(await page.locator('.shire-readme-fallback a').first().getAttribute('href'),
+        assert.equal(await page.locator('.shire-readme-fallback a').filter({hasText: 'Administrationsanleitung'}).getAttribute('href'),
             '/nextcloud/index.php/apps/shi_re/readme?document=admin');
+        const editorMarkdown = await page.evaluate(() => window.editorOptions.content);
+        for (const doc of ['user', 'admin', 'developer']) {
+            assert.ok(editorMarkdown.includes('(/nextcloud/index.php/apps/shi_re/readme?document=' + doc + ')'));
+        }
+        assert.ok(editorMarkdown.includes('(https://github.com/322ud/shi_re/blob/HEAD/LICENSE)'));
+        assert.ok(!editorMarkdown.includes('(./docs/'));
         for (const answer of [null, 'nein', 'JA', 'ja']) {
             const before = await page.evaluate(() => calls.length);
             page.once('dialog', dialog => answer === null ? dialog.dismiss() : dialog.accept(answer));
