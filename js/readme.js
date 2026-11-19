@@ -206,12 +206,12 @@
         document.querySelectorAll('[data-shire-readme]').forEach(viewer => {
             if (!viewer.closest('.shire-readme-modal')) initializeReadme(viewer);
         });
-        const open = document.querySelector('.shire-readme-link');
-        if (!open) return;
-        open.addEventListener('click', event => {
-            if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-            event.preventDefault();
-            window.open(open.href, '_blank', 'popup,width=960,height=800,noopener,noreferrer');
+        document.querySelectorAll('[data-shire-help]').forEach(link => {
+            link.addEventListener('click', event => {
+                if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                window.open(link.href, '_blank', 'popup,width=960,height=800,noopener,noreferrer');
+            });
         });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once: true});

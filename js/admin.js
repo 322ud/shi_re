@@ -144,50 +144,6 @@
             const failures = results.filter(result => result.status === 'rejected');
             output.textContent = failures.length ? failures.map(result => result.reason.message).join(' ') : 'Systemprüfung abgeschlossen.';
         });
-        root.addEventListener('click', async event => {
-            const help = event.target.closest('[data-readme-help]');
-            if (!help) return;
-            event.preventDefault();
-            await window.OCA?.ShiRE?.initializeReadme(root.querySelector('[data-shire-readme]'));
-            const rich = root.querySelector('.shire-readme-rich');
-            if (rich.hidden) {
-                const target = [...root.querySelectorAll('[data-readme-heading]')]
-                    .find(node => node.dataset.readmeHeading === help.dataset.readmeHelp);
-                (target || document.getElementById('shire-admin-readme-title')).scrollIntoView({block: 'center'});
-                return;
-            }
-            const normalize = (text) => text.replace(/[\u200B-\u200D\uFEFF]/g, '')
-                .replace(/^\s*#{1,6}\s*/, '').replace(/\s+/g, ' ').trim();
-            const findHeading = () => {
-                const content = rich.querySelector('.ProseMirror') || rich;
-                return [...content.querySelectorAll('h1, h2, h3, h4, h5, h6')].find((element) => {
-                    const heading = element.cloneNode(true);
-                    heading.querySelectorAll('button, [aria-hidden="true"]').forEach((decoration) => decoration.remove());
-                    return normalize(heading.textContent) === normalize(help.dataset.readmeHelp);
-                });
-            };
-            let heading = findHeading();
-            if (!heading) {
-                // Nextcloud Text can mount its headings after createEditor has resolved.
-                heading = await new Promise((resolve) => {
-                    const finish = (element) => {
-                        observer.disconnect();
-                        clearTimeout(timeout);
-                        resolve(element);
-                    };
-                    const observer = new MutationObserver(() => {
-                        const element = findHeading();
-                        if (element) {
-                            finish(element);
-                        }
-                    });
-                    const timeout = setTimeout(() => finish(null), 2000);
-                    observer.observe(rich, { childList: true, subtree: true, characterData: true });
-                });
-            }
-            // A missing anchor must never replace the rendered Markdown with raw source.
-            (heading || rich).scrollIntoView({ block: 'center' });
-        });
         document.getElementById('myx-pdf-templates').addEventListener('submit', async function (event) {
             event.preventDefault();
             const button = document.getElementById('myx-pdf-upload');

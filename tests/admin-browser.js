@@ -209,8 +209,25 @@ const path = require('node:path');
         assert.equal(await page.locator('#myx-hide-validator').isChecked(), true, 'Failed save restores switch');
         await page.waitForSelector('.shire-readme-rich:not([hidden]) h1');
         assert.equal(await page.locator('.shire-readme-rich h1').textContent(), 'ShiRE');
-        await page.locator('[data-check=templates] [data-readme-help]').click();
-        assert.equal(await page.evaluate(() => window.helpHeadingScrolled), true);
+        await page.evaluate(() => { window.open = (...args) => { window.helpWindow = args; }; });
+        const adminHelpLinks = page.locator('[data-shire-help]');
+        assert.equal(await page.locator('[data-readme-help]').count(), 0);
+        const headings = require('fs').readFileSync('docs/admin.md', 'utf8').split('\n')
+            .filter(line => /^#{1,6} /.test(line))
+            .map(line => line.replace(/^#+ /, '').toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu, '').replace(/ /g, '-'));
+        for (const link of await adminHelpLinks.all()) {
+            const href = await link.getAttribute('href');
+            const section = decodeURIComponent(href.split('#')[1]);
+            assert.ok(headings.includes(section), 'Help section exists: ' + section);
+            await link.evaluate(node => node.click());
+            assert.deepEqual(await page.evaluate(() => window.helpWindow), [
+                'http://shire.test' + href, '_blank', 'popup,width=960,height=800,noopener,noreferrer',
+            ]);
+        }
+        await page.locator('[data-check=templates] [data-shire-help]').focus();
+        await page.evaluate(() => { window.helpWindow = null; });
+        await page.keyboard.press('Enter');
+        assert.ok((await page.evaluate(() => window.helpWindow[0])).endsWith('#eigene-vorlagen'));
         assert.equal(await page.locator('.shire-readme-fallback').isVisible(), false);
         assert.equal(await page.evaluate(() => editorOptions.readOnly && editorReadOnly), true);
         assert.ok(await page.evaluate(() => editorOptions.content.startsWith('# ShiRE')));

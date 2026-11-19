@@ -6,7 +6,7 @@ $adminHelp = static function (string $section, string $label) use ($_): void {
     $url = $base . (str_contains($base, '?') ? '&' : '?') . 'document=admin#' . rawurlencode($section);
     $description = 'Hilfe zu „' . $label . '“ (öffnet ein neues Fenster)';
     ?>
-    <a class="shire-admin-help" href="<?php p($url); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php p($description); ?>" title="<?php p($description); ?>"><span aria-hidden="true">i</span></a>
+    <a class="shire-admin-help" data-shire-help href="<?php p($url); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php p($description); ?>" title="<?php p($description); ?>"><span aria-hidden="true">i</span></a>
     <?php
 };
 ?>
@@ -121,7 +121,13 @@ $adminHelp = static function (string $section, string $label) use ($_): void {
                     <td data-version><?php p($key === 'templates' ? '—' : ($check['version'] ?: '—')); ?></td>
                     <td data-detail><?php p($check['detail']); ?></td>
                     <td class="shire-system-actions">
-                        <a href="#shire-admin-readme-title" data-readme-help="<?php p($key === 'templates' ? 'Vorlagen und Mapping' : ($key === 'validator' ? 'Einstellungen' : 'PDF-Modul einrichten')); ?>">Info ↗</a>
+                        <?php $adminHelp([
+                            'templates' => 'eigene-vorlagen',
+                            'validator' => 'xml-validierung-mit-invalidator',
+                            'libreoffice' => 'pdf-erzeugung-mit-libreoffice-und-mustangcli',
+                            'mustang' => 'pdf-erzeugung-mit-libreoffice-und-mustangcli',
+                            'verapdf' => 'pdf-validierung-mit-verapdf',
+                        ][$key], $label); ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

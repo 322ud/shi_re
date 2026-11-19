@@ -60,7 +60,6 @@ transition: transform 0.15s;
 .shire-state--missing { color: #c62828; }
 
 .shire-system [data-version] { overflow-wrap: anywhere; max-width: 220px; }
-.shire-system [data-readme-help] { display: inline-block; margin-left: 8px; text-decoration: underline; }
 
 #myx-admin .shire-switch[hidden] { display: none !important; }
 
