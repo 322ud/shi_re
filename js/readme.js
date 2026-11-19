@@ -219,7 +219,18 @@
 
     function init() {
         const page = document.querySelector('.shire-readme-page[data-document-title]');
-        if (page) document.title = page.dataset.documentTitle;
+        if (page) {
+            const updateTitle = () => {
+                if (page.isConnected && document.title !== page.dataset.documentTitle) {
+                    document.title = page.dataset.documentTitle;
+                }
+            };
+            updateTitle();
+            // Nextcloud may reset the title after the Text viewer has initialized.
+            const titleObserver = new MutationObserver(updateTitle);
+            titleObserver.observe(document.head, {childList: true, subtree: true, characterData: true});
+            window.addEventListener('shire-help-focus', updateTitle);
+        }
         document.querySelectorAll('[data-shire-readme]').forEach(viewer => {
             if (!viewer.closest('.shire-readme-modal')) initializeReadme(viewer);
         });
@@ -235,7 +246,7 @@
                 const name = 'shire-help-' + encodeURIComponent(url.pathname) + '-' + document;
                 let help = helpWindows.get(name);
                 if (!help || help.closed) {
-                    help = window.open(url.href, name, 'popup,width=1100,height=800');
+                    help = window.open(url.href, name, 'popup,width=1024,height=800');
                     if (!help) return;
                     helpWindows.set(name, help);
                 }

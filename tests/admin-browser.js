@@ -221,7 +221,7 @@ const path = require('node:path');
             assert.ok(headings.includes(section.replace(/^h-/, '')), 'Help section exists: ' + section);
             await link.evaluate(node => node.click());
             assert.deepEqual(await page.evaluate(() => window.helpWindow), [
-                'http://shire.test' + href, 'shire-help-%2Fnextcloud%2Findex.php%2Fapps%2Fshi_re%2Freadme-admin', 'popup,width=1100,height=800',
+                'http://shire.test' + href, 'shire-help-%2Fnextcloud%2Findex.php%2Fapps%2Fshi_re%2Freadme-admin', 'popup,width=1024,height=800',
             ]);
         }
         await page.locator('[data-check=templates] [data-shire-help]').focus();
@@ -248,7 +248,7 @@ const path = require('node:path');
         await page.locator('.shire-readme-link').click();
         assert.deepEqual(await page.evaluate(() => window.helpWindow), [
             'http://shire.test/apps/shi_re/readme?document=user#h-rechnung-erstellen',
-            'shire-help-%2Fapps%2Fshi_re%2Freadme-user', 'popup,width=1100,height=800',
+            'shire-help-%2Fapps%2Fshi_re%2Freadme-user', 'popup,width=1024,height=800',
         ]);
         assert.equal(await page.locator('#invoice-value').inputValue(), 'Entwurf bleibt erhalten');
         const userDoc = execFileSync('php', ['-r', `
@@ -292,6 +292,16 @@ const path = require('node:path');
         await page.addScriptTag({path: path.resolve('js/readme.js')});
         await page.waitForFunction(() => window.anchorReached === true);
         assert.equal(await page.title(), 'Administrationsanleitung');
+        // Simulate a late title reset by the surrounding Nextcloud scripts.
+        await page.evaluate(() => { document.title = 'Nextcloud'; });
+        await page.waitForFunction(() => document.title === 'Administrationsanleitung');
+        // Replacing the title element must also keep the document-specific title.
+        await page.evaluate(() => {
+            const title = document.createElement('title');
+            title.textContent = 'Nextcloud';
+            document.querySelector('title').replaceWith(title);
+        });
+        await page.waitForFunction(() => document.title === 'Administrationsanleitung');
         assert.equal(await page.locator('.shire-readme-rich a').getAttribute('href'),
             '/nextcloud/index.php/apps/shi_re/readme?document=readme#tests');
         assert.match(await page.locator('.shire-readme-fallback').textContent(), /ShiRE administrieren/);
