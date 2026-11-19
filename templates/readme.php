@@ -1,5 +1,6 @@
-<div class="shire-readme-page">
-    <a href="<?php p($_['appUrl']); ?>">Zurück zu ShiRE</a>
-    <h2><?php p(['admin' => 'Administrationsanleitung', 'user' => 'Benutzeranleitung', 'developer' => 'Entwicklerdokumentation'][$_['document'] ?? 'readme'] ?? 'README'); ?></h2>
+<?php
+$title = ['admin' => 'Administrationsanleitung', 'user' => 'Benutzeranleitung', 'developer' => 'Entwicklerdokumentation'][$_['document'] ?? 'readme'] ?? 'README';
+?>
+<div class="shire-readme-page" data-document-title="<?php p($title); ?>">
     <?php require __DIR__ . '/readme-content.php'; ?>
 </div>

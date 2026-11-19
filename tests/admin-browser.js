@@ -265,6 +265,8 @@ const path = require('node:path');
             });
             await page.addScriptTag({path: path.resolve('js/readme.js')});
             await page.waitForFunction(() => Boolean(window.helpHeading));
+            assert.equal(await page.title(), 'Benutzeranleitung');
+            assert.equal(await page.locator('.shire-readme-page > a, .shire-readme-page > h2').count(), 0);
             assert.equal(await page.evaluate(() => window.helpHeading), {
                 'rechnung-erstellen': '## Rechnung erstellen',
                 'rechnungsarchiv': '## Rechnungsarchiv',
@@ -289,6 +291,7 @@ const path = require('node:path');
         });
         await page.addScriptTag({path: path.resolve('js/readme.js')});
         await page.waitForFunction(() => window.anchorReached === true);
+        assert.equal(await page.title(), 'Administrationsanleitung');
         assert.equal(await page.locator('.shire-readme-rich a').getAttribute('href'),
             '/nextcloud/index.php/apps/shi_re/readme?document=readme#tests');
         assert.match(await page.locator('.shire-readme-fallback').textContent(), /ShiRE administrieren/);

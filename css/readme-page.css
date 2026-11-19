@@ -25,14 +25,11 @@ body.layout-base .shire-readme-page {
     height: 100%;
     padding: 16px;
 }
-body.layout-base .shire-readme-page > a,
-body.layout-base .shire-readme-page > h2 {
-    flex: 0 0 auto;
-}
 body.layout-base .shire-readme-page > .shire-readme-viewer {
     position: relative;
     flex: 1 1 auto;
     min-height: 0;
     max-height: none;
+    margin-top: 0;
     background: var(--color-main-background);
 }

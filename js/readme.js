@@ -218,6 +218,8 @@
     };
 
     function init() {
+        const page = document.querySelector('.shire-readme-page[data-document-title]');
+        if (page) document.title = page.dataset.documentTitle;
         document.querySelectorAll('[data-shire-readme]').forEach(viewer => {
             if (!viewer.closest('.shire-readme-modal')) initializeReadme(viewer);
         });

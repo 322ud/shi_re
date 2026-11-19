@@ -15,7 +15,6 @@
 .shire-readme-link:hover { background: var(--color-background-hover); }
 .shire-readme-link:focus-visible { outline: 2px solid var(--color-primary-element); outline-offset: 2px; }
 .shire-readme-page { padding: 24px; width: 100%; min-width: 0; box-sizing: border-box; }
-.shire-readme-page h2 { margin: 16px 60px 16px 0; }
 .shire-readme-viewer {
     max-height: 70vh;
     overflow: auto;
