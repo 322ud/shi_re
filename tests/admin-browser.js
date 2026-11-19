@@ -221,7 +221,7 @@ const path = require('node:path');
             assert.ok(headings.includes(section), 'Help section exists: ' + section);
             await link.evaluate(node => node.click());
             assert.deepEqual(await page.evaluate(() => window.helpWindow), [
-                'http://shire.test' + href, '_blank', 'popup,width=960,height=800,noopener,noreferrer',
+                'http://shire.test' + href, 'shire-help-%2Fnextcloud%2Findex.php%2Fapps%2Fshi_re%2Freadme-admin', 'popup,width=960,height=800',
             ]);
         }
         await page.locator('[data-check=templates] [data-shire-help]').focus();
@@ -248,7 +248,7 @@ const path = require('node:path');
         await page.locator('.shire-readme-link').click();
         assert.deepEqual(await page.evaluate(() => window.helpWindow), [
             'http://shire.test/apps/shi_re/readme?document=user#rechnung-erstellen',
-            '_blank', 'popup,width=960,height=800,noopener,noreferrer',
+            'shire-help-%2Fapps%2Fshi_re%2Freadme-user', 'popup,width=960,height=800',
         ]);
         assert.equal(await page.locator('#invoice-value').inputValue(), 'Entwurf bleibt erhalten');
         const userDoc = execFileSync('php', ['-r', `

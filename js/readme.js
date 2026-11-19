@@ -2,6 +2,7 @@
     const editors = new WeakMap();
     const pending = new WeakMap();
     const documentImages = new WeakMap();
+    const helpWindows = new Map();
 
     const slug = text => text.toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu, '').replace(/ /g, '-');
     const localLink = (viewer, href) => {
@@ -98,6 +99,7 @@
             viewer.navigationObserver = new MutationObserver(() => { update(); scroll(); });
             viewer.navigationObserver.observe(rich, {childList: true, subtree: true});
             window.addEventListener('hashchange', scroll);
+            window.addEventListener('shire-help-focus', scroll);
         }
     };
 
@@ -210,7 +212,29 @@
             link.addEventListener('click', event => {
                 if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
                 event.preventDefault();
-                window.open(link.href, '_blank', 'popup,width=960,height=800,noopener,noreferrer');
+                const url = new URL(link.href, window.location.href);
+                if (url.origin !== window.location.origin) return;
+                const document = url.searchParams.get('document');
+                if (!['admin', 'user'].includes(document)) return;
+                // Include the installation path so separate Nextcloud installations do not collide.
+                const name = 'shire-help-' + encodeURIComponent(url.pathname) + '-' + document;
+                let help = helpWindows.get(name);
+                if (!help || help.closed) {
+                    help = window.open(url.href, name, 'popup,width=960,height=800');
+                    if (!help) return;
+                    helpWindows.set(name, help);
+                }
+                try {
+                    // Keep a reference from the GUI, but deny the help page reverse access.
+                    help.opener = null;
+                    if (help.location.href !== url.href) help.location.href = url.href;
+                    // A repeated click on the same chapter must also restore its scroll position.
+                    help.dispatchEvent(new help.Event('shire-help-focus'));
+                } catch {
+                    // The user may have navigated the help window to another origin.
+                    help.location.href = url.href;
+                }
+                help.focus();
             });
         });
     }
