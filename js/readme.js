@@ -86,16 +86,21 @@
                 return;
             }
             // Plain Markdown has no Text-generated anchors; retain legacy links as well.
-            if (root === fallback && hash.startsWith('h-')) hash = hash.slice(2);
+            const viewerAnchor = root === fallback && hash.startsWith('h-');
+            if (viewerAnchor) hash = hash.slice(2);
             const headings = root?.querySelectorAll('h1,h2,h3,h4,h5,h6,[data-readme-heading]') || [];
             const counts = new Map();
             for (const heading of headings) {
                 const copy = heading.cloneNode(true);
                 copy.querySelectorAll('button,a').forEach(node => node.remove());
-                const base = slug(heading.dataset.readmeHeading || copy.textContent.trim());
+                const title = heading.dataset.readmeHeading || copy.textContent.trim();
+                // Text's slugs transliterate German umlauts instead of retaining them.
+                const base = slug(viewerAnchor
+                    ? title.normalize('NFD').replace(/\p{M}/gu, '').replace(/ß/g, 'ss')
+                    : title);
                 const count = counts.get(base) || 0;
                 counts.set(base, count + 1);
-                if ((count ? `${base}-${count}` : base) === hash) {
+                if ((count ? base + (viewerAnchor ? '--' : '-') + count : base) === hash) {
                     heading.scrollIntoView({block: 'start'});
                     break;
                 }
@@ -228,7 +233,7 @@
                 const name = 'shire-help-' + encodeURIComponent(url.pathname) + '-' + document;
                 let help = helpWindows.get(name);
                 if (!help || help.closed) {
-                    help = window.open(url.href, name, 'popup,width=960,height=800');
+                    help = window.open(url.href, name, 'popup,width=1100,height=800');
                     if (!help) return;
                     helpWindows.set(name, help);
                 }

@@ -24,7 +24,7 @@ const path = require('node:path');
         await page.goto('http://shire.test/nextcloud/index.php/settings/admin/shi_re');
         await page.setContent(html);
         assert.equal(await page.locator('#myx-clear-archive + .shire-admin-help').getAttribute('href'),
-            '/nextcloud/index.php/apps/shi_re/readme?document=admin#h-optionen-f%C3%BCr-die-nutzung');
+            '/nextcloud/index.php/apps/shi_re/readme?document=admin#h-optionen-fur-die-nutzung');
         await page.addStyleTag({path: path.resolve('css/admin.css')});
         await page.evaluate(() => {
             window.OC = {generateUrl: path => path, imagePath: (app, file) => '/nextcloud/apps/' + app + '/img/' + file, requestToken: 'test'};
@@ -214,14 +214,14 @@ const path = require('node:path');
         assert.equal(await page.locator('[data-readme-help]').count(), 0);
         const headings = require('fs').readFileSync('docs/admin.md', 'utf8').split('\n')
             .filter(line => /^#{1,6} /.test(line))
-            .map(line => line.replace(/^#+ /, '').toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu, '').replace(/ /g, '-'));
+            .map(line => line.replace(/^#+ /, '').normalize('NFD').replace(/\p{M}/gu, '').replace(/ß/g, 'ss').toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu, '').replace(/ /g, '-'));
         for (const link of await adminHelpLinks.all()) {
             const href = await link.getAttribute('href');
             const section = decodeURIComponent(href.split('#')[1]);
             assert.ok(headings.includes(section.replace(/^h-/, '')), 'Help section exists: ' + section);
             await link.evaluate(node => node.click());
             assert.deepEqual(await page.evaluate(() => window.helpWindow), [
-                'http://shire.test' + href, 'shire-help-%2Fnextcloud%2Findex.php%2Fapps%2Fshi_re%2Freadme-admin', 'popup,width=960,height=800',
+                'http://shire.test' + href, 'shire-help-%2Fnextcloud%2Findex.php%2Fapps%2Fshi_re%2Freadme-admin', 'popup,width=1100,height=800',
             ]);
         }
         await page.locator('[data-check=templates] [data-shire-help]').focus();
@@ -248,7 +248,7 @@ const path = require('node:path');
         await page.locator('.shire-readme-link').click();
         assert.deepEqual(await page.evaluate(() => window.helpWindow), [
             'http://shire.test/apps/shi_re/readme?document=user#h-rechnung-erstellen',
-            'shire-help-%2Fapps%2Fshi_re%2Freadme-user', 'popup,width=960,height=800',
+            'shire-help-%2Fapps%2Fshi_re%2Freadme-user', 'popup,width=1100,height=800',
         ]);
         assert.equal(await page.locator('#invoice-value').inputValue(), 'Entwurf bleibt erhalten');
         const userDoc = execFileSync('php', ['-r', `
@@ -302,6 +302,36 @@ const path = require('node:path');
             window.dispatchEvent(new Event('shire-help-focus'));
         });
         await page.waitForFunction(() => window.anchorReached === true);
+        // Umlaut chapters work with Text's real anchor shape and without Text.
+        for (const [anchor, title] of [
+            ['h-optionen-fur-die-nutzung', 'Optionen für die Nutzung'],
+            ['h-struktur-und-ubernahme', 'Struktur und Übernahme'],
+        ]) {
+            await page.evaluate(({anchor, title}) => {
+                const rich = document.querySelector('.shire-readme-rich');
+                rich.innerHTML = '<h2></h2>';
+                const heading = rich.querySelector('h2');
+                heading.textContent = title;
+                const target = document.createElement('a');
+                target.id = anchor;
+                target.className = 'heading-anchor';
+                target.scrollIntoView = () => { window.umlautAnchorReached = anchor; };
+                heading.prepend(target);
+                window.location.hash = anchor;
+            }, {anchor, title});
+            await page.waitForFunction(anchor => window.umlautAnchorReached === anchor, anchor);
+            await page.evaluate(() => {
+                document.querySelector('.shire-readme-rich').hidden = true;
+                document.querySelector('.shire-readme-fallback').hidden = false;
+                Element.prototype.scrollIntoView = function () { window.fallbackHeading = this.textContent; };
+                window.dispatchEvent(new Event('shire-help-focus'));
+            });
+            assert.equal(await page.evaluate(() => window.fallbackHeading), '##' + (title.startsWith('Struktur') ? '##' : '') + ' ' + title);
+            await page.evaluate(() => {
+                document.querySelector('.shire-readme-rich').hidden = false;
+                document.querySelector('.shire-readme-fallback').hidden = true;
+            });
+        }
         assert.deepEqual(errors, []);
         console.log('Admin browser: defaults, immediate saves, failure rollback, conditional uploads system check rows and Nextcloud Text viewer integration passed.');
     } finally { await browser.close(); }

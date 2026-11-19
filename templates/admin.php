@@ -73,7 +73,7 @@ $adminHelp = static function (string $section, string $label) use ($_): void {
             Zuordnung zwischen ODT, Mapping und XML geprüft. Bei inkonsistenten Vorlagen werden für XML- und PDF-Rechnungen die Standardvorlagen verwendet; eigene Vorlagen sind dann inaktiv.</p>
         <button id="myx-discard-templates" type="button">eigene Vorlagen verwerfen</button>
         <button id="myx-pdf-upload" type="submit">neue Vorlagen prüfen</button>
-    <?php $adminHelp('struktur-und-übernahme', 'eigene Vorlagen verwerfen / neue Vorlagen prüfen'); ?>
+    <?php $adminHelp('struktur-und-ubernahme', 'eigene Vorlagen verwerfen / neue Vorlagen prüfen'); ?>
         </details>
     </form>
         </div>
@@ -82,15 +82,15 @@ $adminHelp = static function (string $section, string $label) use ($_): void {
         <div class="shire-switch">
             <input id="myx-allow-draft-deletion" type="checkbox" role="switch" aria-labelledby="myx-allow-draft-deletion-label" <?php if ($_['allowDraftDeletion']) { print_unescaped('checked'); } ?>>
             <span id="myx-allow-draft-deletion-label">zeige Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt</span>
-            <?php $adminHelp('optionen-für-die-nutzung', 'zeige Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt'); ?>
+            <?php $adminHelp('optionen-fur-die-nutzung', 'zeige Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt'); ?>
         </div>
         <div class="shire-switch">
             <input id="myx-detailed-progress" type="checkbox" role="switch" aria-labelledby="myx-detailed-progress-label" <?php if ($_['detailedProgress'] ?? false) { print_unescaped('checked'); } ?>>
             <span id="myx-detailed-progress-label">ausführliche Ablaufdokumentation</span>
-            <?php $adminHelp('optionen-für-die-nutzung', 'ausführliche Ablaufdokumentation'); ?>
+            <?php $adminHelp('optionen-fur-die-nutzung', 'ausführliche Ablaufdokumentation'); ?>
         </div>
         <button id="myx-clear-archive" type="button">Archiv leeren</button>
-    <?php $adminHelp('optionen-für-die-nutzung', 'Archiv leeren'); ?>
+    <?php $adminHelp('optionen-fur-die-nutzung', 'Archiv leeren'); ?>
         <p id="myx-clear-archive-result" role="status" aria-live="polite"></p>
         </div>
         <p id="myx-admin-result" role="status" aria-live="polite"></p>

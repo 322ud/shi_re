@@ -58,11 +58,12 @@ class PageController extends Controller {
     public function readme(string $document = 'readme'): TemplateResponse {
         $this->textEditorLoader->load();
         Util::addStyle('shi_re', 'readme');
+        Util::addStyle('shi_re', 'readme-page');
         Util::addScript('shi_re', 'readme');
         return new TemplateResponse('shi_re', 'readme', [
             'readmeUrl' => $this->urls->linkToRoute('shi_re.page.readme'),
             'appUrl' => $this->urls->linkToRoute('shi_re.page.index'),
             'document' => in_array($document, ['admin', 'user', 'developer'], true) ? $document : 'readme',
-        ]);
+        ], TemplateResponse::RENDER_AS_BASE);
     }
 }
