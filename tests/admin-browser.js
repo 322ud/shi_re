@@ -24,7 +24,7 @@ const path = require('node:path');
         await page.goto('http://shire.test/nextcloud/index.php/settings/admin/shi_re');
         await page.setContent(html);
         assert.equal(await page.locator('#myx-clear-archive + .shire-admin-help').getAttribute('href'),
-            '/nextcloud/index.php/apps/shi_re/readme?document=admin#optionen-f%C3%BCr-die-nutzung');
+            '/nextcloud/index.php/apps/shi_re/readme?document=admin#h-optionen-f%C3%BCr-die-nutzung');
         await page.addStyleTag({path: path.resolve('css/admin.css')});
         await page.evaluate(() => {
             window.OC = {generateUrl: path => path, imagePath: (app, file) => '/nextcloud/apps/' + app + '/img/' + file, requestToken: 'test'};
@@ -218,7 +218,7 @@ const path = require('node:path');
         for (const link of await adminHelpLinks.all()) {
             const href = await link.getAttribute('href');
             const section = decodeURIComponent(href.split('#')[1]);
-            assert.ok(headings.includes(section), 'Help section exists: ' + section);
+            assert.ok(headings.includes(section.replace(/^h-/, '')), 'Help section exists: ' + section);
             await link.evaluate(node => node.click());
             assert.deepEqual(await page.evaluate(() => window.helpWindow), [
                 'http://shire.test' + href, 'shire-help-%2Fnextcloud%2Findex.php%2Fapps%2Fshi_re%2Freadme-admin', 'popup,width=960,height=800',
@@ -227,7 +227,7 @@ const path = require('node:path');
         await page.locator('[data-check=templates] [data-shire-help]').focus();
         await page.evaluate(() => { window.helpWindow = null; });
         await page.keyboard.press('Enter');
-        assert.ok((await page.evaluate(() => window.helpWindow[0])).endsWith('#eigene-vorlagen'));
+        assert.ok((await page.evaluate(() => window.helpWindow[0])).endsWith('#h-eigene-vorlagen'));
         assert.equal(await page.locator('.shire-readme-fallback').isVisible(), false);
         assert.equal(await page.evaluate(() => editorOptions.readOnly && editorReadOnly), true);
         assert.ok(await page.evaluate(() => editorOptions.content.startsWith('# ShiRE')));
@@ -242,12 +242,12 @@ const path = require('node:path');
         await page.addScriptTag({path: path.resolve('js/readme.js')});
         assert.equal(await page.locator('#shire-readme-dialog').count(), 0);
         assert.equal(await page.locator('.shire-readme-link').getAttribute('href'),
-            '/apps/shi_re/readme?document=user#rechnung-erstellen');
+            '/apps/shi_re/readme?document=user#h-rechnung-erstellen');
         assert.equal(await page.locator('.shire-readme-link').getAttribute('target'), '_blank');
         await page.evaluate(() => { window.open = (...args) => { window.helpWindow = args; }; });
         await page.locator('.shire-readme-link').click();
         assert.deepEqual(await page.evaluate(() => window.helpWindow), [
-            'http://shire.test/apps/shi_re/readme?document=user#rechnung-erstellen',
+            'http://shire.test/apps/shi_re/readme?document=user#h-rechnung-erstellen',
             'shire-help-%2Fapps%2Fshi_re%2Freadme-user', 'popup,width=960,height=800',
         ]);
         assert.equal(await page.locator('#invoice-value').inputValue(), 'Entwurf bleibt erhalten');
@@ -258,7 +258,7 @@ const path = require('node:path');
             require 'templates/readme.php';
         `], {encoding: 'utf8'});
         for (const section of ['rechnung-erstellen', 'rechnungsarchiv', 'storno-rechnung']) {
-            await page.goto('http://shire.test/apps/shi_re/readme?document=user#' + section);
+            await page.goto('http://shire.test/apps/shi_re/readme?document=user#h-' + section);
             await page.setContent(userDoc);
             await page.evaluate(() => {
                 Element.prototype.scrollIntoView = function () { window.helpHeading = this.textContent; };
@@ -282,7 +282,7 @@ const path = require('node:path');
         await page.setContent(adminDoc);
         await page.evaluate(() => {
             window.OCA = {Text: {async createEditor({el}) {
-                el.innerHTML = '<h2>Systemvoraussetzungen</h2><a href="../README.md#tests">README</a>';
+                el.innerHTML = '<h2 id="h-systemvoraussetzungen">Systemvoraussetzungen</h2><a href="../README.md#tests">README</a>';
                 el.querySelector('h2').scrollIntoView = () => { window.anchorReached = true; };
                 return {setReadOnly() {}};
             }}};
@@ -292,6 +292,16 @@ const path = require('node:path');
         assert.equal(await page.locator('.shire-readme-rich a').getAttribute('href'),
             '/nextcloud/index.php/apps/shi_re/readme?document=readme#tests');
         assert.match(await page.locator('.shire-readme-fallback').textContent(), /ShiRE administrieren/);
+        await page.evaluate(() => {
+            window.anchorReached = false;
+            window.location.hash = 'h-systemvoraussetzungen';
+        });
+        await page.waitForFunction(() => window.anchorReached === true);
+        await page.evaluate(() => {
+            window.anchorReached = false;
+            window.dispatchEvent(new Event('shire-help-focus'));
+        });
+        await page.waitForFunction(() => window.anchorReached === true);
         assert.deepEqual(errors, []);
         console.log('Admin browser: defaults, immediate saves, failure rollback, conditional uploads system check rows and Nextcloud Text viewer integration passed.');
     } finally { await browser.close(); }

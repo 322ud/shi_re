@@ -10,7 +10,7 @@ const {chromium} = require('playwright');
         await context.route('http://shire.test/**', route => {
             const url = new URL(route.request().url());
             const body = url.pathname === '/gui'
-                ? '<a data-shire-help id="admin" href="/readme?document=admin#first">Admin</a><a data-shire-help id="user" href="/readme?document=user#first">User</a>'
+                ? '<a data-shire-help id="admin" href="/readme?document=admin#h-first">Admin</a><a data-shire-help id="user" href="/readme?document=user#h-first">User</a>'
                 : '<div data-shire-readme><div class="shire-readme-rich" hidden></div><pre class="shire-readme-fallback"><span data-readme-heading="First">First</span><span data-readme-heading="Second">Second</span></pre></div>';
             return route.fulfill({contentType: 'text/html', body: '<html><body>' + body +
                 '<script>Element.prototype.scrollIntoView = function () { window.lastHeading = this.textContent; window.scrollCalls = (window.scrollCalls || 0) + 1; };</script><script>' + script + '</script></body></html>'});
@@ -26,7 +26,7 @@ const {chromium} = require('playwright');
         await page.locator('#admin').click();
         await admin.waitForFunction(count => window.scrollCalls > count, calls);
         assert.equal(context.pages().length, 2, 'Same chapter reuses its window');
-        await page.locator('#admin').evaluate(link => { link.hash = 'second'; });
+        await page.locator('#admin').evaluate(link => { link.hash = 'h-second'; });
         await page.locator('#admin').click();
         await admin.waitForFunction(() => window.lastHeading === 'Second');
         assert.equal(context.pages().length, 2, 'Chapter change reuses its window');

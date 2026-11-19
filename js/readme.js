@@ -79,6 +79,14 @@
             try { hash = decodeURIComponent(window.location.hash.slice(1)); } catch { return; }
             if (!hash || viewer.closest('.shire-readme-modal')) return;
             const root = rich && !rich.hidden ? rich : fallback;
+            if (root === rich && hash.startsWith('h-')) {
+                // Use Text's actual anchor (and its scroll styling), not our heading slug.
+                const anchor = [...rich.querySelectorAll('[id]')].find(node => node.id === hash);
+                anchor?.scrollIntoView({block: 'start'});
+                return;
+            }
+            // Plain Markdown has no Text-generated anchors; retain legacy links as well.
+            if (root === fallback && hash.startsWith('h-')) hash = hash.slice(2);
             const headings = root?.querySelectorAll('h1,h2,h3,h4,h5,h6,[data-readme-heading]') || [];
             const counts = new Map();
             for (const heading of headings) {
