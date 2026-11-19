@@ -5,7 +5,7 @@
     <name>ShiRE</name>
     <summary>Erstellt ZUGFeRD-Rechnungen</summary>
     <description>fragt Parameter in GUI ab, setzt diese in XML- und ODT-Templates, exportiert ODT in PDF und bindet XML darin ein</description>
-    <version>0.4.0</version>
+    <version>0.4.1</version>
     <licence>AGPL-3.0-or-later</licence>
     <author>Frank Busse</author>
     <namespace>ShiRE</namespace>
