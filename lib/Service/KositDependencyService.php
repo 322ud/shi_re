@@ -22,7 +22,7 @@ class KositDependencyService {
     public function settings(): array {
         $result = [];
         $result['validation_enabled'] = $this->config->getAppValue('shi_re', 'validation_enabled', 'yes') === 'yes';
-        $result['auto_update'] = $this->config->getAppValue('shi_re', 'auto_update_validator', 'yes') === 'yes';
+        $result['auto_update'] = $this->config->getAppValue('shi_re', 'auto_update_validator', 'no') === 'yes';
         if ($this->config->getAppValue('inv_validator', 'hide_navigation', '') === '') {
             $this->config->setAppValue('inv_validator', 'hide_navigation', 'yes');
         }

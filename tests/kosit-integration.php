@@ -170,7 +170,7 @@ namespace {
     file_put_contents($destination . '/obsolete.php', 'old code');
     $apps->versions['inv_validator'] = '0.5.0';
     $apps->enabled = false;
-    check($dependency->settings()['auto_update'] === true, 'Auto update defaults to yes');
+    check($dependency->settings()['auto_update'] === false, 'Auto update defaults to no');
     check($dependency->settings()['validation_enabled'] === true, 'Validation defaults to yes');
     $dependency->save(['validation_enabled' => false, 'auto_update' => false]);
     check($dependency->settings()['validation_enabled'] === false, 'Validation preference persists');

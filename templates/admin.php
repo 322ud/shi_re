@@ -28,7 +28,7 @@ $rows = [
     ['myx-validation-enabled', 'XML-Validierung', !empty($status['installed']), $status['validation_enabled'], false, false],
     ['myx-pdf-enabled', 'PDF-Erzeugung', !empty($checks['libreoffice']['ok']) && !empty($checks['mustang']['ok']), true, false, true],
     ['myx-pdf-validation', 'PDF-Prüfung', !empty($checks['verapdf']['ok']), true, false, true],
-    ['myx-hide-validator', 'INValidator', true, $status['hide_navigation'], true, false],
+    ['myx-hide-validator', 'INValidator', true, !$status['hide_navigation'], true, false],
     ['myx-message-area', 'Meldungsbereich', true, true, true, true],
     ['myx-allow-draft-deletion', 'Button „Entwurf löschen“', true, $_['allowDraftDeletion'], true, false],
 ];
@@ -40,7 +40,7 @@ $rows = [
         <div class="shire-table-scroll">
         <table class="shire-system" aria-labelledby="shire-settings-title"><tbody>
         <?php foreach ($rows as [$id, $label, $installed, $checked, $visibility, $pending]):
-            $visible = $id === 'myx-hide-validator' ? !$checked : $checked;
+            $visible = $checked;
             $state = !$installed ? 'nicht installiert' : ($id === 'myx-custom-templates' ? 'installiert' : ($visibility ? ($visible ? 'eingeblendet' : 'ausgeblendet') : ($checked ? 'aktiv' : 'inaktiv')));
             $action = $visibility ? ($visible ? 'ausblenden' : 'einblenden') : ($checked ? 'deaktivieren' : 'aktivieren'); ?>
             <tr data-setting="<?php p($id); ?>"<?php if ($id === 'myx-hide-validator' && !$validationActive) { print_unescaped(' hidden'); } ?>>
@@ -108,6 +108,15 @@ $rows = [
     <?php $adminHelp('struktur-und-ubernahme', 'eigene Vorlagen verwerfen / neue Vorlagen prüfen'); ?>
     </form>
             </td></tr>
+            <tr data-check="validator">
+                <th scope="row" id="myx-validator-component">INValidator</th>
+                <td data-version><?php p($status['installed'] ?: 'nicht installiert'); ?></td>
+                <td><label class="shire-switch"<?php if (empty($status['installed'])) { print_unescaped(' hidden'); } ?>>
+                    <input id="myx-auto-update" type="checkbox" role="switch" aria-labelledby="myx-validator-component myx-auto-update-label" <?php if ($status['auto_update']) { print_unescaped('checked'); } ?>>
+                    <span id="myx-auto-update-label"><?php p($status['auto_update'] ? 'nicht automatisch aktualisieren' : 'automatisch aktualisieren'); ?></span>
+                </label></td>
+                <td class="shire-help-cell"><?php $adminHelp('xml-validierung-mit-invalidator', 'INValidator'); ?></td>
+            </tr>
             <?php foreach (['libreoffice' => 'LibreOffice', 'mustang' => 'MustangCLI', 'verapdf' => 'veraPDF'] as $key => $label): ?>
             <tr data-check="<?php p($key); ?>">
                 <th scope="row"><?php p($label); ?></th>
@@ -128,7 +137,6 @@ $rows = [
         <?php $adminHelp('systemvoraussetzungen', 'Systemprüfung wiederholen'); ?>
         <p id="myx-pdf-status" data-status="<?php p(json_encode($_['pdfStatus'])); ?>" role="status" aria-live="polite"></p>
         <details><summary>Weitere Einstellungen</summary>
-            <label class="shire-switch"><input id="myx-auto-update" type="checkbox" role="switch" <?php if ($status['auto_update']) { print_unescaped('checked'); } ?>>beim App-Start INValidator automatisch updaten</label>
             <label class="shire-switch"><input id="myx-detailed-progress" type="checkbox" role="switch" <?php if ($_['detailedProgress'] ?? false) { print_unescaped('checked'); } ?>>ausführliche Ablaufdokumentation</label>
 
         </details>

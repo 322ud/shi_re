@@ -51,14 +51,14 @@
                 clearArchive.disabled = false;
             }
         });
-        function bindSwitch(id, path, key, onSaved = () => {}) {
+        function bindSwitch(id, path, key, onSaved = () => {}, toStoredValue = checked => checked) {
             const input = document.getElementById(id);
             input.addEventListener('change', async () => {
                 const checked = input.checked;
                 input.disabled = true;
                 output.textContent = 'Wird gespeichert …';
                 try {
-                    const data = await post(path, {[key]: checked});
+                    const data = await post(path, {[key]: toStoredValue(checked)});
                     onSaved(data);
                     output.textContent = 'Einstellung gespeichert.';
                 } catch (error) {
@@ -72,7 +72,7 @@
         }
         bindSwitch('myx-detailed-progress', '/admin/validator/settings', 'detailed_progress');
         bindSwitch('myx-allow-draft-deletion', '/admin/draft/settings', 'allow_draft_deletion');
-        bindSwitch('myx-hide-validator', '/admin/validator/settings', 'hide_navigation');
+        bindSwitch('myx-hide-validator', '/admin/validator/settings', 'hide_navigation', () => {}, checked => !checked);
         bindSwitch('myx-auto-update', '/admin/validator/settings', 'auto_update', data => showValidatorStatus(data.status));
         bindSwitch('myx-validation-enabled', '/admin/validator/settings', 'validation_enabled', data => showValidatorStatus(data.status));
         bindSwitch('myx-custom-templates', '/admin/pdf/settings', 'custom_templates', data => {
@@ -93,7 +93,7 @@
                 const input = row.querySelector('input');
                 const id = input.id;
                 const visibility = ['myx-hide-validator', 'myx-message-area', 'myx-allow-draft-deletion'].includes(id);
-                const visible = id === 'myx-hide-validator' ? !input.checked : input.checked;
+                const visible = input.checked;
                 if (!input.closest('label').hidden) {
                     row.querySelector('[data-setting-state]').textContent = id === 'myx-custom-templates' ? 'installiert'
                         : visibility ? (visible ? 'eingeblendet' : 'ausgeblendet') : (input.checked ? 'aktiv' : 'inaktiv');
@@ -102,7 +102,10 @@
             });
             const active = validatorStatus.installed && validatorStatus.enabled && document.getElementById('myx-validation-enabled').checked;
             root.querySelector('[data-setting="myx-hide-validator"]').hidden = !active;
-            document.getElementById('myx-auto-update').parentElement.hidden = !active;
+            const autoUpdate = document.getElementById('myx-auto-update');
+            autoUpdate.parentElement.hidden = !validatorStatus.installed;
+            document.getElementById('myx-auto-update-label').textContent = autoUpdate.checked
+                ? 'nicht automatisch aktualisieren' : 'automatisch aktualisieren';
         }
         function setInstalled(id, installed) {
             const input = document.getElementById(id);
@@ -115,6 +118,7 @@
         }
         function showValidatorStatus(status) {
             validatorStatus = status;
+            showCheck('validator', {version: status.installed});
             if (typeof status.validation_enabled === 'boolean') document.getElementById('myx-validation-enabled').checked = status.validation_enabled;
             if (typeof status.auto_update === 'boolean') document.getElementById('myx-auto-update').checked = status.auto_update;
             setInstalled('myx-validation-enabled', Boolean(status.installed));
