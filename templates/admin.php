@@ -14,6 +14,15 @@ $adminHelp = static function (string $section, string $label) use ($_): void {
 $checks = $_['pdfStatus']['checks'];
 $templatesInstalled = !empty($checks['templates']['version']);
 $validationActive = !empty($status['installed']) && !empty($status['enabled']) && !empty($status['validation_enabled']);
+$helpSections = [
+    'myx-custom-templates' => 'eigene-vorlagen',
+    'myx-validation-enabled' => 'xml-validierung-mit-invalidator',
+    'myx-pdf-enabled' => 'pdf-erzeugung-mit-libreoffice-und-mustangcli',
+    'myx-pdf-validation' => 'pdf-validierung-mit-verapdf',
+    'myx-hide-validator' => 'xml-validierung-mit-invalidator',
+    'myx-message-area' => 'optionen-fur-die-nutzung',
+    'myx-allow-draft-deletion' => 'optionen-fur-die-nutzung',
+];
 $rows = [
     ['myx-custom-templates', 'eigene Vorlagen', $templatesInstalled, $_['customTemplates'], false, false],
     ['myx-validation-enabled', 'XML-Validierung', !empty($status['installed']), $status['validation_enabled'], false, false],
@@ -44,6 +53,7 @@ $rows = [
                         <span id="<?php p($id); ?>-label"><?php p($action); ?></span>
                     </label>
                 </td>
+                <td class="shire-help-cell"><?php $adminHelp($helpSections[$id], $label); ?></td>
             </tr>
         <?php endforeach; ?>
         </tbody></table>
@@ -56,22 +66,14 @@ $rows = [
         <div class="shire-table-scroll">
         <table class="shire-system" aria-labelledby="shire-components-title"><tbody>
             <tr data-check="templates"<?php if (!$templatesInstalled) { print_unescaped(' hidden'); } ?>>
-                <th scope="row">eigene Vorlagen</th><td>installiert</td><td id="myx-template-menu-slot"></td>
+                <th scope="row">eigene Vorlagen</th><td id="myx-template-install-state"><?php p($templatesInstalled ? 'installiert' : 'nicht installiert'); ?></td>
+                <td><details id="myx-replace-templates"><summary aria-controls="myx-template-panel"><?php p($templatesInstalled ? 'ersetzen' : 'Vorlagen installieren'); ?></summary></details></td>
+                <td class="shire-help-cell"><?php $adminHelp('eigene-vorlagen', 'eigene Vorlagen'); ?></td>
             </tr>
-            <?php foreach (['libreoffice' => 'LibreOffice', 'mustang' => 'MustangCLI', 'verapdf' => 'veraPDF'] as $key => $label): ?>
-            <tr data-check="<?php p($key); ?>">
-                <th scope="row"><?php p($label); ?></th>
-                <td data-version><?php p($checks[$key]['version'] ?: 'nicht installiert'); ?></td><td></td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody></table>
-        </div>
-        <div id="myx-template-install-slot">
+            <tr id="myx-template-panel" hidden><td colspan="4">
     <form id="myx-pdf-templates">
         <input type="hidden" name="templatesCheck" value="yes">
         <?php $savedTemplates = $_['pdfStatus']['checks']['templates']; ?>
-        <details id="myx-replace-templates">
-        <summary><?php p($templatesInstalled ? 'ersetzen' : 'Vorlagen installieren'); ?></summary>
         <ul id="myx-template-files">
         <?php if (!empty($savedTemplates['version'])): ?>
             <?php foreach (['odt' => 'XRechnung (ODT)', 'xml' => 'XRechnung (XML)', 'mapping' => 'XRechnung (Mapping)', 'storno_odt' => 'Storno (ODT)', 'storno_xml' => 'Storno (XML)', 'storno_mapping' => 'Storno (Mapping)'] as $key => $label):
@@ -104,18 +106,31 @@ $rows = [
         <button id="myx-discard-templates" type="button">eigene Vorlagen verwerfen</button>
         <button id="myx-pdf-upload" type="submit">neue Vorlagen prüfen</button>
     <?php $adminHelp('struktur-und-ubernahme', 'eigene Vorlagen verwerfen / neue Vorlagen prüfen'); ?>
-        </details>
     </form>
+            </td></tr>
+            <?php foreach (['libreoffice' => 'LibreOffice', 'mustang' => 'MustangCLI', 'verapdf' => 'veraPDF'] as $key => $label): ?>
+            <tr data-check="<?php p($key); ?>">
+                <th scope="row"><?php p($label); ?></th>
+                <td data-version><?php p($checks[$key]['version'] ?: 'nicht installiert'); ?></td><td></td>
+                <td class="shire-help-cell"><?php $adminHelp($key === 'verapdf' ? 'pdf-validierung-mit-verapdf' : 'pdf-erzeugung-mit-libreoffice-und-mustangcli', $label); ?></td>
+            </tr>
+            <?php endforeach; ?>
+            <tr data-check="archive"<?php if (($_['archiveStatus'] ?? 'leer') === 'leer') { print_unescaped(' hidden'); } ?>>
+                <th scope="row">Rechnungsarchiv</th>
+                <td id="myx-archive-status"><?php p($_['archiveStatus'] ?? 'leer'); ?></td>
+                <td><button id="myx-clear-archive" type="button">Archiv leeren</button></td>
+                <td class="shire-help-cell"><?php $adminHelp('betrieb-und-archiv', 'Rechnungsarchiv'); ?></td>
+            </tr>
+        </tbody></table>
         </div>
+        <p id="myx-clear-archive-result" role="status" aria-live="polite"></p>
         <button id="myx-check-system" type="button">Systemprüfung wiederholen</button>
         <?php $adminHelp('systemvoraussetzungen', 'Systemprüfung wiederholen'); ?>
         <p id="myx-pdf-status" data-status="<?php p(json_encode($_['pdfStatus'])); ?>" role="status" aria-live="polite"></p>
         <details><summary>Weitere Einstellungen</summary>
             <label class="shire-switch"><input id="myx-auto-update" type="checkbox" role="switch" <?php if ($status['auto_update']) { print_unescaped('checked'); } ?>>beim App-Start INValidator automatisch updaten</label>
             <label class="shire-switch"><input id="myx-detailed-progress" type="checkbox" role="switch" <?php if ($_['detailedProgress'] ?? false) { print_unescaped('checked'); } ?>>ausführliche Ablaufdokumentation</label>
-            <button id="myx-clear-archive" type="button">Archiv leeren</button>
-            <?php $adminHelp('optionen-fur-die-nutzung', 'Archiv leeren'); ?>
-            <p id="myx-clear-archive-result" role="status" aria-live="polite"></p>
+
         </details>
     </section>
     <section aria-labelledby="shire-admin-readme-title">

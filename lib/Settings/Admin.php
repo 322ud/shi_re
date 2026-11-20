@@ -12,7 +12,7 @@ use OCP\Util;
 use OCP\IConfig;
 
 class Admin implements ISettings {
-    public function __construct(private KositDependencyService $dependency, private IConfig $config, private PdfDependencyService $pdf, private \OCP\IURLGenerator $urls, private \OCA\ShiRE\Service\TextEditorLoader $textEditorLoader) {
+    public function __construct(private KositDependencyService $dependency, private IConfig $config, private PdfDependencyService $pdf, private \OCP\IURLGenerator $urls, private \OCA\ShiRE\Service\TextEditorLoader $textEditorLoader, private \OCA\ShiRE\Service\ArchiveStatusService $archive) {
     }
 
     public function getForm(): TemplateResponse {
@@ -27,6 +27,7 @@ class Admin implements ISettings {
             'allowDraftDeletion' => $this->config->getAppValue('shi_re', 'allow_draft_deletion', 'no') === 'yes',
             'detailedProgress' => $this->config->getAppValue('shi_re', 'detailed_progress', 'no') === 'yes',
             'customTemplates' => $this->config->getAppValue('shi_re', 'custom_templates', 'no') === 'yes',
+            'archiveStatus' => $this->archive->summary(),
             'pdfStatus' => $this->pdf->status(),
         ]);
     }

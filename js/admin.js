@@ -43,6 +43,8 @@
             try {
                 await post('/admin/pdf/settings', {action: 'clear_archive', confirmation});
                 result.textContent = 'Archiv geleert.';
+                document.getElementById('myx-archive-status').textContent = 'leer';
+                root.querySelector('[data-check="archive"]').hidden = true;
             } catch (error) {
                 result.textContent = error.message;
             } finally {
@@ -141,16 +143,22 @@
             root.querySelector('[data-check="templates"]').hidden = !installed;
             document.getElementById('myx-install-templates').hidden = installed;
             setInstalled('myx-custom-templates', installed);
-            const form = document.getElementById('myx-pdf-templates');
-            document.getElementById(installed ? 'myx-template-menu-slot' : 'myx-template-install-slot').appendChild(form);
+            document.getElementById('myx-template-install-state').textContent = installed ? 'installiert' : 'nicht installiert';
+            if (!installed) document.getElementById('myx-replace-templates').open = false;
+            document.getElementById('myx-template-panel').hidden = !installed || !document.getElementById('myx-replace-templates').open;
             document.querySelector('#myx-replace-templates summary').textContent = installed ? 'ersetzen' : 'Vorlagen installieren';
             setInstalled('myx-pdf-enabled', Boolean(status.checks?.libreoffice?.ok && status.checks?.mustang?.ok));
             setInstalled('myx-pdf-validation', Boolean(status.checks?.verapdf?.ok));
             pdfOutput.textContent = '';
             refreshSettings();
         }
+        document.getElementById('myx-replace-templates').addEventListener('toggle', event => {
+            document.getElementById('myx-template-panel').hidden = !event.target.open;
+        });
         showPdfStatus(pdfStatus);
         document.getElementById('myx-install-templates').addEventListener('click', () => {
+            root.querySelector('[data-check="templates"]').hidden = false;
+            document.getElementById('myx-template-panel').hidden = false;
             document.getElementById('myx-replace-templates').open = true;
             document.getElementById('shire-components-title').focus();
         });

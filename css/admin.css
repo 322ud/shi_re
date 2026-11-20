@@ -106,3 +106,5 @@ transition: transform 0.15s;
 #myx-admin .shire-system details { margin: 0; }
 #myx-admin .shire-switch input:disabled { cursor: not-allowed; }
 #myx-admin .shire-template-uploads { min-width: 520px; }
+#myx-admin .shire-system > tbody > tr > .shire-help-cell { width: 44px; text-align: center; }
+#myx-admin #myx-template-panel > td { width: auto; }

@@ -8,7 +8,7 @@ const path = require('node:path');
         function p($value) { echo htmlspecialchars((string)$value, ENT_QUOTES); }
         function print_unescaped($value) { echo $value; }
         $_ = ['readmeUrl' => '/nextcloud/index.php/apps/shi_re/readme', 'status' => ['validation_enabled' => true, 'auto_update' => false, 'hide_navigation' => true, 'installed' => '1.0', 'enabled' => true, 'navigation_supported' => true],
-            'allowDraftDeletion' => false, 'customTemplates' => false,
+            'allowDraftDeletion' => false, 'customTemplates' => false, 'archiveStatus' => 'bis 26 121',
             'pdfStatus' => ['enabled' => true, 'errors' => [], 'versions' => [], 'checks' => array_fill_keys(['libreoffice', 'mustang', 'verapdf', 'templates'], ['ok' => false, 'version' => '', 'detail' => 'Nicht eingerichtet'])]];
         $_['pdfStatus']['checks']['templates'] = ['ok' => true, 'version' => 'abc123', 'detail' => 'geprüft'];
         require 'templates/admin.php';
@@ -23,8 +23,8 @@ const path = require('node:path');
             route.fulfill({path: path.resolve('img', new URL(route.request().url()).pathname.split('/').pop()), contentType: 'image/png'}));
         await page.goto('http://shire.test/nextcloud/index.php/settings/admin/shi_re');
         await page.setContent(html);
-        assert.equal(await page.locator('#myx-clear-archive + .shire-admin-help').getAttribute('href'),
-            '/nextcloud/index.php/apps/shi_re/readme?document=admin#h-optionen-fur-die-nutzung');
+        assert.equal(await page.locator('[data-check=archive] .shire-admin-help').getAttribute('href'),
+            '/nextcloud/index.php/apps/shi_re/readme?document=admin#h-betrieb-und-archiv');
         await page.addStyleTag({path: path.resolve('css/admin.css')});
         await page.evaluate(() => {
             window.OC = {generateUrl: path => path, imagePath: (app, file) => '/nextcloud/apps/' + app + '/img/' + file, requestToken: 'test'};
@@ -81,22 +81,25 @@ const path = require('node:path');
         await page.waitForFunction(() => [...document.querySelectorAll('.shire-document-image')].every(img => img.complete && img.naturalWidth > 0));
         assert.equal(await page.locator('.shire-document-image').first().getAttribute('src'), '/nextcloud/apps/shi_re/img/eingabemaske.png');
         await page.locator('summary').filter({hasText: 'Weitere Einstellungen'}).click();
+        assert.equal(await page.locator('#myx-archive-status').textContent(), 'bis 26 121');
         for (const answer of [null, 'nein', 'JA', 'ja']) {
             const before = await page.evaluate(() => calls.length);
             page.once('dialog', dialog => answer === null ? dialog.dismiss() : dialog.accept(answer));
             await page.locator('#myx-clear-archive').click();
             assert.equal(await page.evaluate(() => calls.length), before + (answer === 'ja' ? 1 : 0));
         }
+        assert.equal(await page.locator('#myx-archive-status').textContent(), 'leer');
+        assert.equal(await page.locator('[data-check=archive]').isVisible(), false);
         assert.deepEqual(await page.evaluate(() => calls.at(-1)), {
             url: '/apps/shi_re/admin/pdf/settings', body: {action: 'clear_archive', confirmation: 'ja'},
         });
         assert.deepEqual(await page.locator('[data-setting] > th').allTextContents(),
             ['eigene Vorlagen', 'XML-Validierung', 'PDF-Erzeugung', 'PDF-Prüfung', 'INValidator', 'Meldungsbereich', 'Button „Entwurf löschen“']);
         assert.equal(await page.locator('.shire-system > thead').count(), 0);
-        assert.ok(await page.locator('.shire-system > tbody > tr').evaluateAll(rows => rows.every(row => row.children.length === 3)));
+        assert.ok(await page.locator('.shire-system > tbody > tr:not(#myx-template-panel)').evaluateAll(rows => rows.every(row => row.children.length === 4 && row.lastElementChild.querySelector('[data-shire-help]'))));
         assert.equal(await page.locator('#myx-message-area').isDisabled(), true);
         assert.equal(await page.locator('#myx-message-area').isChecked(), true);
-        assert.equal(await page.locator('[data-check=templates] #myx-pdf-templates').count(), 1);
+        assert.equal(await page.locator('#myx-template-panel #myx-pdf-templates').count(), 1);
         await page.locator('#myx-validation-enabled').uncheck();
         await page.waitForFunction(() => !document.getElementById('myx-validation-enabled').disabled);
         assert.equal(await page.locator('[data-setting="myx-hide-validator"]').isVisible(), false);
@@ -107,6 +110,7 @@ const path = require('node:path');
         await page.waitForFunction(() => !document.getElementById('myx-custom-templates').disabled);
         assert.equal(await page.locator('#myx-custom-templates-label').textContent(), 'deaktivieren');
         await page.locator('#myx-replace-templates summary').click();
+        await page.locator('#myx-pdf-xml').waitFor({state: 'visible'});
         assert.equal(await page.locator('#myx-pdf-xml').isVisible(), true);
         assert.equal(await page.locator('.shire-template-uploads input[type=file]').count(), 6);
         await page.locator('#myx-check-system').click();
@@ -123,9 +127,14 @@ const path = require('node:path');
         await page.locator('#myx-discard-templates').click();
         await page.waitForFunction(() => !document.getElementById('myx-discard-templates').disabled);
         assert.equal(await page.locator('[data-check=templates]').isVisible(), false);
+        assert.equal(await page.locator('#myx-template-panel').isVisible(), false);
         assert.equal(await page.locator('#myx-install-templates').isVisible(), true);
         await page.locator('#myx-install-templates').click();
         assert.equal(await page.locator('#myx-pdf-upload').isVisible(), true);
+        assert.equal(await page.locator('[data-check=templates]').isVisible(), true);
+        await page.locator('#myx-replace-templates summary').click();
+        await page.locator('#myx-template-panel').waitFor({state: 'hidden'});
+        assert.equal(await page.locator('#myx-template-panel').isVisible(), false);
         await page.waitForSelector('.shire-readme-rich:not([hidden]) h1');
         assert.equal(await page.locator('.shire-readme-rich h1').textContent(), 'ShiRE');
         await page.evaluate(() => { window.open = (...args) => { window.helpWindow = args; }; });
