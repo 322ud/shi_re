@@ -64,6 +64,7 @@
                     output.textContent = error.message;
                 } finally {
                     input.disabled = false;
+                    refreshSettings();
                 }
             });
         }
@@ -73,44 +74,49 @@
         bindSwitch('myx-auto-update', '/admin/validator/settings', 'auto_update', data => showValidatorStatus(data.status));
         bindSwitch('myx-validation-enabled', '/admin/validator/settings', 'validation_enabled', data => showValidatorStatus(data.status));
         bindSwitch('myx-custom-templates', '/admin/pdf/settings', 'custom_templates', data => {
-            document.getElementById('myx-pdf-templates').hidden = !document.getElementById('myx-custom-templates').checked;
             showPdfStatus(data.status);
         });
         bind('myx-discard-templates', async () => {
             const data = await post('/admin/pdf/settings', {action: 'discard_templates'});
             document.getElementById('myx-custom-templates').checked = false;
             document.getElementById('myx-pdf-templates').reset();
-            document.getElementById('myx-pdf-templates').hidden = true;
             showPdfStatus(data.status);
             output.textContent = 'Eigene Vorlagen verworfen. Standardvorlagen werden verwendet.';
         });
         const pdfOutput = document.getElementById('myx-pdf-status');
-        const xmlOutput = document.getElementById('myx-xml-status');
         let pdfStatus = JSON.parse(pdfOutput.dataset.status);
+        let validatorStatus = {installed: !document.getElementById('myx-validation-enabled').closest('label').hidden, enabled: root.dataset.validatorEnabled === 'true'};
+        function refreshSettings() {
+            root.querySelectorAll('[data-setting]').forEach(row => {
+                const input = row.querySelector('input');
+                const id = input.id;
+                const visibility = ['myx-hide-validator', 'myx-message-area', 'myx-allow-draft-deletion'].includes(id);
+                const visible = id === 'myx-hide-validator' ? !input.checked : input.checked;
+                if (!input.closest('label').hidden) {
+                    row.querySelector('[data-setting-state]').textContent = id === 'myx-custom-templates' ? 'installiert'
+                        : visibility ? (visible ? 'eingeblendet' : 'ausgeblendet') : (input.checked ? 'aktiv' : 'inaktiv');
+                }
+                document.getElementById(id + '-label').textContent = visibility ? (visible ? 'ausblenden' : 'einblenden') : (input.checked ? 'deaktivieren' : 'aktivieren');
+            });
+            const active = validatorStatus.installed && validatorStatus.enabled && document.getElementById('myx-validation-enabled').checked;
+            root.querySelector('[data-setting="myx-hide-validator"]').hidden = !active;
+            document.getElementById('myx-auto-update').parentElement.hidden = !active;
+        }
+        function setInstalled(id, installed) {
+            const input = document.getElementById(id);
+            input.closest('label').hidden = !installed;
+            if (!installed) input.closest('tr').querySelector('[data-setting-state]').textContent = 'nicht installiert';
+        }
         function showCheck(key, check) {
             const row = root.querySelector('[data-check="' + key + '"]');
-            if (!row) return;
-            const state = row.querySelector('.shire-state');
-            state.textContent = check.ok ? '✓' : '✕';
-            state.className = 'shire-state shire-state--' + (check.ok ? 'available' : 'missing');
-            state.setAttribute('aria-label', check.ok ? 'Bereit' : 'Nicht bereit');
-            row.querySelector('[data-version]').textContent = key === 'templates' ? '—' : (check.version || '—');
-            row.querySelector('[data-detail]').textContent = check.detail || '';
+            if (row && key !== 'templates') row.querySelector('[data-version]').textContent = check.version || 'nicht installiert';
         }
         function showValidatorStatus(status) {
-            const validation = document.getElementById('myx-validation-enabled');
-            if (typeof status.validation_enabled === 'boolean') validation.checked = status.validation_enabled;
+            validatorStatus = status;
+            if (typeof status.validation_enabled === 'boolean') document.getElementById('myx-validation-enabled').checked = status.validation_enabled;
             if (typeof status.auto_update === 'boolean') document.getElementById('myx-auto-update').checked = status.auto_update;
-            document.getElementById('myx-validator-install-help').hidden = Boolean(status.installed);
-            validation.parentElement.hidden = !status.installed;
-            document.getElementById('myx-auto-update').parentElement.hidden = !(status.installed && status.enabled && validation.checked);
-            const ready = Boolean(status.installed && status.enabled && validation.checked && !status.check_error);
-            xmlOutput.dataset.ready = String(ready);
-            xmlOutput.textContent = ready ? 'XML-Rechnung wird erzeugt und validiert.' : 'XML-Rechnung wird erzeugt, aber nicht validiert.';
-            showCheck('validator', {ok: Boolean(status.installed && status.enabled && !status.check_error),
-                version: status.installed, detail: status.check_error || (!status.enabled ? 'INValidator fehlt oder ist deaktiviert.'
-                    : status.update_available ? 'Update auf ' + status.latest + ' verfügbar.' : '')});
-            if (pdfStatus) showPdfStatus(pdfStatus);
+            setInstalled('myx-validation-enabled', Boolean(status.installed));
+            refreshSettings();
         }
         function showPdfStatus(status) {
             pdfStatus = status;
@@ -131,11 +137,23 @@
                 }
             }
             Object.entries(status.checks || {}).forEach(([key, check]) => showCheck(key, check));
-            pdfOutput.textContent = status.enabled
-                ? 'PDF-Rechnung wird erzeugt und mit MustangCLI geprüft. ' + (status.checks?.verapdf?.ok
-                    ? 'Zusätzlich wird PDF/A-3b mit veraPDF geprüft.' : 'PDF/A-3b wird nicht mit veraPDF geprüft.')
-                : 'PDF-Rechnung wird nicht erzeugt und nicht geprüft. ' + (status.errors || []).join(' ');
+            const installed = Boolean(templates?.version);
+            root.querySelector('[data-check="templates"]').hidden = !installed;
+            document.getElementById('myx-install-templates').hidden = installed;
+            setInstalled('myx-custom-templates', installed);
+            const form = document.getElementById('myx-pdf-templates');
+            document.getElementById(installed ? 'myx-template-menu-slot' : 'myx-template-install-slot').appendChild(form);
+            document.querySelector('#myx-replace-templates summary').textContent = installed ? 'ersetzen' : 'Vorlagen installieren';
+            setInstalled('myx-pdf-enabled', Boolean(status.checks?.libreoffice?.ok && status.checks?.mustang?.ok));
+            setInstalled('myx-pdf-validation', Boolean(status.checks?.verapdf?.ok));
+            pdfOutput.textContent = '';
+            refreshSettings();
         }
+        showPdfStatus(pdfStatus);
+        document.getElementById('myx-install-templates').addEventListener('click', () => {
+            document.getElementById('myx-replace-templates').open = true;
+            document.getElementById('shire-components-title').focus();
+        });
         bind('myx-check-system', async () => {
             const results = await Promise.allSettled([
                 post('/validator/status').then(data => showValidatorStatus(data.status)),

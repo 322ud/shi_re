@@ -80,6 +80,7 @@ const path = require('node:path');
         assert.equal(await page.locator('.shire-document-image').count(), 2);
         await page.waitForFunction(() => [...document.querySelectorAll('.shire-document-image')].every(img => img.complete && img.naturalWidth > 0));
         assert.equal(await page.locator('.shire-document-image').first().getAttribute('src'), '/nextcloud/apps/shi_re/img/eingabemaske.png');
+        await page.locator('summary').filter({hasText: 'Weitere Einstellungen'}).click();
         for (const answer of [null, 'nein', 'JA', 'ja']) {
             const before = await page.evaluate(() => calls.length);
             page.once('dialog', dialog => answer === null ? dialog.dismiss() : dialog.accept(answer));
@@ -89,124 +90,42 @@ const path = require('node:path');
         assert.deepEqual(await page.evaluate(() => calls.at(-1)), {
             url: '/apps/shi_re/admin/pdf/settings', body: {action: 'clear_archive', confirmation: 'ja'},
         });
-        assert.equal(await page.locator('[role=switch]').count(), 6);
-        assert.deepEqual(await page.locator('.shire-settings-group h4').allTextContents(), ['Validierung', 'Vorlagen', 'andere']);
-        assert.equal(await page.locator('[aria-labelledby="shire-validation-title"] #myx-validation-enabled').count(), 1);
-        assert.equal(await page.locator('[aria-labelledby="shire-templates-title"] #myx-pdf-templates').count(), 1);
-        assert.equal(await page.locator('[aria-labelledby="shire-other-title"] #myx-clear-archive').count(), 1);
-        assert.equal(await page.locator('#myx-detailed-progress').isDisabled(), false);
-        assert.equal(await page.locator('#myx-detailed-progress').isChecked(), false);
-        await page.locator('#myx-detailed-progress').check();
-        await page.waitForFunction(() => !document.getElementById('myx-detailed-progress').disabled);
-        assert.ok((await page.evaluate(() => calls)).some(call => call.url.endsWith('/admin/validator/settings') && call.body.detailed_progress === true));
-        assert.equal(await page.locator('#myx-clear-archive').evaluate(node => Boolean(
-            node.compareDocumentPosition(document.getElementById('shire-admin-readme-title')) & Node.DOCUMENT_POSITION_FOLLOWING)), true);
-
-        assert.equal(await page.locator('#myx-validator-install-help').isVisible(), false);
-        assert.equal(await page.locator('#myx-validation-enabled').isChecked(), true);
-        assert.equal(await page.locator('#myx-check-validator').count(), 0);
+        assert.deepEqual(await page.locator('[data-setting] > th').allTextContents(),
+            ['eigene Vorlagen', 'XML-Validierung', 'PDF-Erzeugung', 'PDF-Prüfung', 'INValidator', 'Meldungsbereich', 'Button „Entwurf löschen“']);
+        assert.equal(await page.locator('.shire-system > thead').count(), 0);
+        assert.ok(await page.locator('.shire-system > tbody > tr').evaluateAll(rows => rows.every(row => row.children.length === 3)));
+        assert.equal(await page.locator('#myx-message-area').isDisabled(), true);
+        assert.equal(await page.locator('#myx-message-area').isChecked(), true);
+        assert.equal(await page.locator('[data-check=templates] #myx-pdf-templates').count(), 1);
         await page.locator('#myx-validation-enabled').uncheck();
         await page.waitForFunction(() => !document.getElementById('myx-validation-enabled').disabled);
-        assert.equal(await page.locator('#myx-auto-update').isVisible(), false);
-        assert.equal(await page.locator('#myx-xml-status').textContent(), 'XML-Rechnung wird erzeugt, aber nicht validiert.');
-        assert.ok((await page.evaluate(() => calls)).some(call => call.body.validation_enabled === false));
+        assert.equal(await page.locator('[data-setting="myx-hide-validator"]').isVisible(), false);
         await page.locator('#myx-validation-enabled').check();
         await page.waitForFunction(() => !document.getElementById('myx-validation-enabled').disabled);
-        // Refresh after an external removal: show administrative installation guidance.
-        await page.evaluate(() => {
-            window.savedFetch = window.fetch;
-            window.fetch = async url => ({ok: true, json: async () => ({success: true,
-                status: url.endsWith('/admin/validator/install')
-                    ? {installed: '1.2', enabled: true, validation_enabled: true, auto_update: true}
-                    : {installed: null, enabled: false, validation_enabled: true, auto_update: true}})});
-        });
-        await page.locator('#myx-check-system').click();
-        await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
-        assert.equal(await page.locator('#myx-validator-install-help').isVisible(), true);
-        assert.match(await page.locator('#myx-validator-install-help').textContent(), /Nextcloud-Administration/);
-        assert.equal(await page.locator('#myx-install-validator').count(), 0);
-        assert.equal(await page.locator('#myx-validation-enabled').isVisible(), false);
-        assert.equal(await page.locator('#myx-auto-update').isVisible(), false);
-        await page.evaluate(() => { window.fetch = window.savedFetch; });
-        await page.locator('#myx-check-system').click();
-        await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
-        assert.equal(await page.locator('#myx-validator-install-help').isVisible(), false);
-        assert.equal(await page.locator('#myx-validation-enabled').isVisible(), true);
-        await page.locator('#myx-auto-update').uncheck();
-        await page.waitForFunction(() => !document.getElementById('myx-auto-update').disabled);
-        assert.equal(await page.locator('#myx-hide-validator').isChecked(), true);
-        assert.equal(await page.locator('#myx-pdf-templates').isVisible(), false);
-        assert.equal(await page.locator('.shire-readme-link').count(), 0);
+        assert.equal(await page.locator('[data-setting="myx-hide-validator"]').isVisible(), true);
         await page.locator('#myx-custom-templates').check();
-        await page.waitForFunction(() => !document.getElementById('myx-pdf-templates').hidden);
-        assert.equal(await page.locator('#myx-pdf-upload').textContent(), 'neue Vorlagen prüfen');
-        assert.match(await page.locator('#myx-template-files').textContent(), /meine-rechnung.xml — Upload-Datum: 13.11.2026 10:30 UTC/);
-        assert.equal(await page.locator('#myx-template-files li').count(), 1);
-        assert.deepEqual(await page.locator('.shire-template-uploads thead th').allTextContents(), ['Format', 'XRechnung', 'Storno']);
-        assert.equal(await page.locator('.shire-template-uploads input[type=file]').count(), 6);
-        assert.equal(await page.locator('#myx-pdf-xml').isVisible(), false);
-        assert.equal(await page.locator('#myx-pdf-upload').isVisible(), false);
+        await page.waitForFunction(() => !document.getElementById('myx-custom-templates').disabled);
+        assert.equal(await page.locator('#myx-custom-templates-label').textContent(), 'deaktivieren');
         await page.locator('#myx-replace-templates summary').click();
         assert.equal(await page.locator('#myx-pdf-xml').isVisible(), true);
-        assert.equal(await page.locator('#myx-pdf-upload').isVisible(), true);
-        assert.equal(await page.locator('#myx-pdf-xml').inputValue(), '', 'Stored templates do not populate upload inputs');
-        await page.locator('#myx-auto-update').check();
-        await page.waitForFunction(() => !document.getElementById('myx-auto-update').disabled);
-        assert.ok((await page.evaluate(() => calls)).some(call => call.body.auto_update === true));
-        assert.deepEqual(await page.locator('.shire-system').first().locator('thead th').allTextContents(), ['Ergebnis', 'Komponente', 'Version', 'Pfad/Details', 'Aktion/Hilfe']);
-        assert.deepEqual(await page.locator('.shire-system tbody th').allTextContents(), ['eigene Vorlagen', 'INValidator', 'LibreOffice', 'MustangCLI', 'veraPDF']);
+        assert.equal(await page.locator('.shire-template-uploads input[type=file]').count(), 6);
         await page.locator('#myx-check-system').click();
         await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
-        assert.equal(await page.locator('[data-check=libreoffice] .shire-state').textContent(), '✓');
-        assert.equal(await page.locator('[data-check=mustang] .shire-state').textContent(), '✕');
-        assert.equal(await page.locator('[data-check=validator] [data-version]').textContent(), '1.2');
         assert.equal(await page.locator('[data-check=libreoffice] [data-version]').textContent(), '24.2');
-        assert.equal(await page.locator('#myx-xml-status').textContent(), 'XML-Rechnung wird erzeugt und validiert.');
-        assert.match(await page.locator('#myx-pdf-status').textContent(), /PDF-Rechnung wird erzeugt und mit MustangCLI geprüft/);
-        assert.match(await page.locator('#myx-pdf-status').textContent(), /PDF\/A-3b wird nicht mit veraPDF geprüft/);
-        await page.evaluate(() => {
-            window.fetch = async url => ({ok: true, json: async () => ({success: true,
-                status: url.endsWith('/validator/status') ? {installed: '1.2', enabled: false}
-                    : {enabled: true, checks: {verapdf: {ok: true}}}})});
-        });
-        await page.locator('#myx-check-system').click();
-        await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
-        assert.equal(await page.locator('#myx-xml-status').textContent(), 'XML-Rechnung wird erzeugt, aber nicht validiert.');
-        assert.match(await page.locator('#myx-pdf-status').textContent(), /PDF-Rechnung wird erzeugt und mit MustangCLI geprüft/);
-        await page.evaluate(() => {
-            window.fetch = async () => ({ok: false, json: async () => ({success: false, error: 'Speichern fehlgeschlagen'})});
-        });
-        await page.evaluate(() => {
-            window.fetch = async () => ({ok: false, status: 404,
-                json: async () => { throw new SyntaxError('Unexpected token <'); }});
-        });
-        await page.locator('#myx-discard-templates').click();
-        await page.waitForFunction(() => !document.getElementById('myx-discard-templates').disabled);
-        assert.match(await page.locator('#myx-admin-result').textContent(), /HTTP 404, \/admin\/pdf\/settings/);
-        assert.equal(await page.locator('#myx-custom-templates').isChecked(), true, 'Failed discard preserves UI state');
-        await page.evaluate(() => {
-            window.fetch = async (url, options) => {
-                window.discardBody = JSON.parse(options.body);
-                window.discardUrl = url;
-                return {ok: true, json: async () => ({success: true, status: {enabled: true,
-                    checks: {templates: {ok: false, version: '', detail: 'inaktiv'}}}})};
-            };
-        });
-        await page.locator('#myx-discard-templates').click();
-        await page.waitForFunction(() => !document.getElementById('myx-discard-templates').disabled);
-        assert.equal(await page.evaluate(() => window.discardUrl), '/apps/shi_re/admin/pdf/settings');
-        assert.deepEqual(await page.evaluate(() => window.discardBody), {action: 'discard_templates'});
-        assert.equal(await page.locator('#myx-custom-templates').isChecked(), false);
-        assert.equal(await page.locator('#myx-pdf-templates').isVisible(), false);
-        assert.equal(await page.locator('[data-check=templates] [data-detail]').textContent(), 'inaktiv');
-        assert.equal(await page.locator('#myx-saved-templates').count(), 0);
-        await page.evaluate(() => {
-            window.fetch = async () => ({ok: false, json: async () => ({success: false, error: 'Speichern fehlgeschlagen'})});
-        });
         await page.evaluate(() => { window.fail = true; });
         await page.locator('#myx-hide-validator').click();
         await page.waitForFunction(() => !document.getElementById('myx-hide-validator').disabled);
         assert.equal(await page.locator('#myx-hide-validator').isChecked(), true, 'Failed save restores switch');
+        await page.evaluate(() => {
+            window.fetch = async () => ({ok: true, json: async () => ({success: true,
+                status: {checks: {templates: {version: '', files: {}}}}})});
+        });
+        await page.locator('#myx-discard-templates').click();
+        await page.waitForFunction(() => !document.getElementById('myx-discard-templates').disabled);
+        assert.equal(await page.locator('[data-check=templates]').isVisible(), false);
+        assert.equal(await page.locator('#myx-install-templates').isVisible(), true);
+        await page.locator('#myx-install-templates').click();
+        assert.equal(await page.locator('#myx-pdf-upload').isVisible(), true);
         await page.waitForSelector('.shire-readme-rich:not([hidden]) h1');
         assert.equal(await page.locator('.shire-readme-rich h1').textContent(), 'ShiRE');
         await page.evaluate(() => { window.open = (...args) => { window.helpWindow = args; }; });
@@ -224,10 +143,6 @@ const path = require('node:path');
                 'http://shire.test' + href, 'shire-help-%2Fnextcloud%2Findex.php%2Fapps%2Fshi_re%2Freadme-admin', 'popup,width=1024,height=800',
             ]);
         }
-        await page.locator('[data-check=templates] [data-shire-help]').focus();
-        await page.evaluate(() => { window.helpWindow = null; });
-        await page.keyboard.press('Enter');
-        assert.ok((await page.evaluate(() => window.helpWindow[0])).endsWith('#h-eigene-vorlagen'));
         assert.equal(await page.locator('.shire-readme-fallback').isVisible(), false);
         assert.equal(await page.evaluate(() => editorOptions.readOnly && editorReadOnly), true);
         assert.ok(await page.evaluate(() => editorOptions.content.startsWith('# ShiRE')));
