@@ -12,6 +12,9 @@ $adminHelp = static function (string $section, string $label) use ($_): void {
 ?>
 <?php
 $checks = $_['pdfStatus']['checks'];
+$pdfActive = !empty($checks['libreoffice']['ok']) && ($_['pdfStatus']['pdf_enabled'] ?? true);
+$embeddingAvailable = $pdfActive && !empty($checks['mustang']['ok']) && !empty($checks['java']['ok']);
+$pdfValidationAvailable = $pdfActive && !empty($checks['verapdf']['ok']);
 $templatesInstalled = !empty($checks['templates']['version']);
 $validationActive = !empty($status['installed']) && !empty($status['enabled']) && !empty($status['validation_enabled']);
 $helpSections = [
@@ -28,8 +31,8 @@ $rows = [
     ['myx-custom-templates', 'eigene Vorlagen', $templatesInstalled, $_['customTemplates'], false, false],
     ['myx-validation-enabled', 'XML-Validierung', !empty($status['installed']), $status['validation_enabled'], false, false],
     ['myx-pdf-enabled', 'PDF-Erzeugung', !empty($checks['libreoffice']['ok']), $_['pdfStatus']['pdf_enabled'] ?? !empty($checks['libreoffice']['ok']), false, false],
-    ['myx-xml-embedding', 'XML-Einbindung', !empty($checks['mustang']['ok']), true, false, true],
-    ['myx-pdf-validation', 'PDF-Prüfung', !empty($checks['verapdf']['ok']), true, false, true],
+    ['myx-xml-embedding', 'XML-Einbindung', $embeddingAvailable, $embeddingAvailable && ($_['pdfStatus']['xmlEmbedding'] ?? true), false, false],
+    ['myx-pdf-validation', 'PDF-Prüfung', $pdfValidationAvailable, $pdfValidationAvailable && ($_['pdfStatus']['pdfaVerification'] ?? true), false, false],
     ['myx-hide-validator', 'INValidator', true, !$status['hide_navigation'], true, false],
     ['myx-message-area', 'Meldungsbereich', true, $_['messageArea'] ?? true, true, false],
     ['myx-allow-draft-deletion', 'Button „Entwurf löschen“', true, $_['allowDraftDeletion'], true, false],
@@ -50,7 +53,7 @@ $rows = [
             $visible = $checked;
             $state = !$installed ? 'nicht installiert' : ($id === 'myx-custom-templates' ? 'installiert' : ($visibility ? ($visible ? 'eingeblendet' : 'ausgeblendet') : ($checked ? 'aktiv' : 'inaktiv')));
             $action = $visibility ? ($visible ? 'ausblenden' : 'einblenden') : ($checked ? 'deaktivieren' : 'aktivieren'); ?>
-            <tr data-setting="<?php p($id); ?>"<?php if (($id === 'myx-hide-validator' && !$validationActive) || ($id === 'myx-pdf-enabled' && !$installed)) { print_unescaped(' hidden'); } ?>>
+            <tr data-setting="<?php p($id); ?>"<?php if (($id === 'myx-hide-validator' && !$validationActive) || (in_array($id, ['myx-pdf-enabled', 'myx-xml-embedding', 'myx-pdf-validation'], true) && !$installed)) { print_unescaped(' hidden'); } ?>>
                 <th scope="row" id="<?php p($id); ?>-name"><?php p($label); ?></th>
                 <td data-setting-state><?php p($state); ?></td>
                 <td>
@@ -66,7 +69,6 @@ $rows = [
         </tbody></table>
         </div>
         <?php endforeach; ?>
-        <p id="shire-pending-settings">Die Schalter für XML-Einbindung und PDF-Prüfung sind vorbereitet; ihre Funktion wird im nächsten Schritt ergänzt.</p>
         <p id="myx-admin-result" role="status" aria-live="polite"></p>
     </section>
     <section aria-labelledby="shire-components-title">

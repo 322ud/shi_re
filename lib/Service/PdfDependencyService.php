@@ -18,6 +18,14 @@ class PdfDependencyService {
         $this->config->setAppValue('shi_re', 'pdf_enabled', $enabled ? 'yes' : 'no');
     }
 
+    public function setXmlEmbedding(bool $enabled): void {
+        $this->config->setAppValue('shi_re', 'xml_embedding', $enabled ? 'yes' : 'no');
+    }
+
+    public function setPdfValidation(bool $enabled): void {
+        $this->config->setAppValue('shi_re', 'pdf_validation', $enabled ? 'yes' : 'no');
+    }
+
     public function tools(): array {
         $tools = [
             'libreoffice' => $this->config->getSystemValueString('shi_re_libreoffice', '/usr/bin/libreoffice'),
@@ -107,8 +115,10 @@ class PdfDependencyService {
         return ['pdf_enabled' => $pdfEnabled, 'enabled' => !$errors, 'errors' => $errors, 'versions' => $versions, 'checks' => $checks,
             'customTemplatesStatus' => $checks['templates']['detail'],
             'templateVersion' => $bundle['version'] ?? null,
-            'xmlEmbedding' => $checks['mustang']['ok'],
-            'pdfaVerification' => $checks['verapdf']['ok']];
+            'xmlEmbedding' => $pdfEnabled && $checks['mustang']['ok'] && $checks['java']['ok']
+                && $this->config->getAppValue('shi_re', 'xml_embedding', 'yes') === 'yes',
+            'pdfaVerification' => $pdfEnabled && $checks['verapdf']['ok']
+                && $this->config->getAppValue('shi_re', 'pdf_validation', 'yes') === 'yes'];
     }
 
     private function mustangVersion(string $path): string {

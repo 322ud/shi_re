@@ -286,6 +286,31 @@ namespace {
         $probe = $mustangDependencies->status();
         check($probe['checks']['mustang']['ok'] && $probe['checks']['mustang']['version'] === '2.26.0', 'Mustang release from own Maven metadata, not help or filename');
         check($probe['enabled'], 'Ready tools enable PDF by default');
+        $config->system['shi_re_verapdf'] = PHP_BINARY;
+        $active = $mustangDependencies->status();
+        check($active['xmlEmbedding'] && $active['pdfaVerification'], 'Optional features default active when tools and PDF are available');
+        $mustangDependencies->setXmlEmbedding(false);
+        $active = $mustangDependencies->status();
+        check(!$active['xmlEmbedding'] && $active['pdfaVerification'] && $active['enabled'], 'Embedding opt-out keeps PDF and veraPDF active');
+        $mustangDependencies->setPdfValidation(false);
+        $active = $mustangDependencies->status();
+        check(!$active['pdfaVerification'] && $active['enabled'], 'Validation opt-out keeps plain PDF active');
+        $mustangDependencies->setPdfEnabled(false);
+        $mustangDependencies->setPdfEnabled(true);
+        $active = $mustangDependencies->status();
+        check(!$active['xmlEmbedding'] && !$active['pdfaVerification'], 'PDF toggle preserves optional preferences');
+        $mustangDependencies->setXmlEmbedding(true);
+        $mustangDependencies->setPdfValidation(true);
+        $mustangDependencies->setPdfEnabled(false);
+        $active = $mustangDependencies->status();
+        check(!$active['xmlEmbedding'] && !$active['pdfaVerification'], 'Inactive PDF forces both effective flags off');
+        $mustangDependencies->setPdfEnabled(true);
+        $config->system['shi_re_java'] = '/missing/java';
+        $active = $mustangDependencies->status();
+        check(!$active['xmlEmbedding'] && $active['pdfaVerification'], 'Java absence only disables embedding');
+        $config->system['shi_re_java'] = PHP_BINARY;
+        unset($config->system['shi_re_verapdf']);
+
         $mustangDependencies->setPdfEnabled(false);
         check(!$mustangDependencies->status()['enabled'], 'PDF opt-out blocks generation even with ready tools');
         $mustangDependencies->setPdfEnabled(true);
@@ -559,7 +584,8 @@ namespace {
     check($admin->saveSettings()->data['discardCalled'] === true, 'Established settings route dispatches explicit discard action');
     $pdfRequest = new class implements \OCP\IRequest {
         public mixed $value = false;
-        public function getParam($key) { return $key === 'pdf_enabled' ? $this->value : null; }
+        public string $key = 'pdf_enabled';
+        public function getParam($key) { return $key === $this->key ? $this->value : null; }
     };
     $pdfAdmin = new \OCA\ShiRE\Controller\PdfAdminController('shi_re', $pdfRequest, $templates, $probeDependencies, $storage, $proof);
     check($pdfAdmin->saveSettings()->data['status']['pdf_enabled'] === false, 'Existing route persists PDF opt-out');
@@ -567,6 +593,16 @@ namespace {
     check($pdfAdmin->saveSettings()->status === 400, 'PDF flag rejects non-boolean input');
     $pdfRequest->value = true;
     $pdfAdmin->saveSettings();
+    foreach (['xml_embedding', 'pdf_validation'] as $key) {
+        $pdfRequest->key = $key;
+        foreach ([false, true] as $value) {
+            $pdfRequest->value = $value;
+            check($pdfAdmin->saveSettings()->data['success'], 'Optional setting saved through existing route');
+            check($config->app[$key] === ($value ? 'yes' : 'no'), 'Optional preference persisted');
+        }
+        $pdfRequest->value = 'false';
+        check($pdfAdmin->saveSettings()->status === 400 && $config->app[$key] === 'yes', 'Invalid optional flag rejected without mutation');
+    }
     foreach (['upload', 'status', 'saveSettings', 'discard'] as $method) {
         $reflection = new ReflectionMethod(\OCA\ShiRE\Controller\PdfAdminController::class, $method);
         check(count($reflection->getAttributes('OCP\\AppFramework\\Http\\Attribute\\NoAdminRequired')) === 0, 'Admin-only upload/status');

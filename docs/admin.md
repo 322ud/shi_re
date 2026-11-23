@@ -79,11 +79,13 @@ Automatische Updates benötigen Zugriff auf die GitHub-Releases und ein beschrei
 
 ### PDF-Erzeugung mit LibreOffice und MustangCLI
 
-LibreOffice Writer konvertiert die ausgefüllte ODT-Vorlage in eine PDF-Rechnung. Java, MustangCLI und veraPDF sind dafür keine Voraussetzung. Ohne verfügbares Java und MustangCLI wird die LibreOffice-PDF ohne eingebettete Rechnungs-XML und ohne Mustang-Prüfung ausgegeben. Sind Java und MustangCLI verfügbar, bettet MustangCLI die Rechnungs-XML ein und prüft das Ergebnis; ShiRE ergänzt die Metadaten und vergleicht die eingebettete XML mit der angenommenen Rechnung. Die XML-Rechnungsdaten werden weiterhin intern zum Ausfüllen der ODT-Vorlage verwendet.
+LibreOffice Writer konvertiert die ausgefüllte ODT-Vorlage in eine PDF-Rechnung. Java, MustangCLI und veraPDF sind dafür keine Voraussetzung. Ohne verfügbares Java und MustangCLI wird die LibreOffice-PDF ohne eingebettete Rechnungs-XML und ohne Mustang-Prüfung ausgegeben. Sind Java und MustangCLI verfügbar und ist **XML-Einbindung** aktiv, bettet MustangCLI die Rechnungs-XML ein und prüft das Ergebnis; ShiRE ergänzt die Metadaten und vergleicht die eingebettete XML mit der angenommenen Rechnung. Die XML-Rechnungsdaten werden weiterhin intern zum Ausfüllen der ODT-Vorlage verwendet.
 
 Unter **Einstellungen → Rechnungserzeugung → PDF-Erzeugung** lässt sich die PDF-Erzeugung aktivieren oder deaktivieren. Die Zeile erscheint nur, wenn LibreOffice verfügbar ist; ohne gespeicherte Auswahl ist das Flag dann standardmäßig aktiv. Ohne LibreOffice ist es inaktiv und die Zeile ausgeblendet. Eine gespeicherte Deaktivierung bleibt auch nach einem Neustart erhalten. Erforderlich bleiben konsistente Vorlagen, PHP ZIP und DOM, `proc_open` und ein beschreibbares temporäres Arbeitsverzeichnis. Die Verfügbarkeit der optionalen Werkzeuge steht unter **Komponenten**. Bei deaktivierter oder nicht betriebsbereiter PDF-Erzeugung bleibt die XML-Erzeugung einschließlich einer gegebenenfalls aktivierten XML-Prüfung verfügbar.
 
-Das Flag `pdf_enabled` wird über die bestehende Route `/admin/pdf/settings` gespeichert. Dafür sind weder eine neue Routenregistrierung noch eine Aktualisierung des Routencaches erforderlich.
+Die Flags `pdf_enabled`, `xml_embedding` und `pdf_validation` werden über die bestehende Route `/admin/pdf/settings` gespeichert. Dafür sind weder eine neue Routenregistrierung noch eine Aktualisierung des Routencaches erforderlich.
+
+Unter **Einstellungen → Rechnungserzeugung → XML-Einbindung** lässt sich die XML-Einbettung abschalten. Die Zeile erscheint nur bei aktiver PDF-Erzeugung und verfügbarem Java und MustangCLI. Standard ist aktiv. Ohne diese Voraussetzungen ist das effektive Flag inaktiv; die gespeicherte Auswahl bleibt für eine spätere Reaktivierung erhalten. Bei ausgeschalteter Einbindung entfallen auch Mustang-Prüfung und zusätzliche Metadaten-Ergänzung.
 
 Installation und Verwendung: [LibreOffice im Kommandozeilenbetrieb](https://help.libreoffice.org/latest/de/text/shared/guide/start_parameters.html), [Mustangproject mit CLI und Releases](https://github.com/ZUGFeRD/mustangproject).
 
@@ -97,7 +99,7 @@ Das PDF enthält die Versionen von ShiRE, MustangCLI und LibreOffice sowie bei a
 
 ### PDF-Validierung mit veraPDF
 
-[veraPDF installieren](https://docs.verapdf.org/install/) und `shi_re_verapdf` auf das ausführbare CLI-Programm setzen. Damit wird die zusätzliche Prüfung des fertigen Dokuments auf **PDF/A-3b** aktiviert; einen Admin-Schalter gibt es nicht. **Komponenten → veraPDF** zeigt die Verfügbarkeit. Ohne verfügbares veraPDF entfällt diese Zusatzprüfung; auch ein ungültiger Pfad blockiert die reine PDF-Erzeugung nicht. Ein verfügbares veraPDF prüft unabhängig von MustangCLI auch eine PDF ohne XML-Einbettung. Schlägt eine tatsächlich gestartete Prüfung oder XML-Einbettung fehl, wird der Vorgang weiterhin mit einem Fehler beendet.
+[veraPDF installieren](https://docs.verapdf.org/install/) und `shi_re_verapdf` auf das ausführbare CLI-Programm setzen. Unter **Einstellungen → Rechnungserzeugung → PDF-Prüfung** lässt sich die zusätzliche Prüfung des fertigen Dokuments auf **PDF/A-3b** ein- und ausschalten. Die Zeile erscheint nur bei aktiver PDF-Erzeugung und verfügbarem veraPDF; Standard ist aktiv. Andernfalls ist das effektive Flag inaktiv. Die gespeicherte Auswahl bleibt erhalten. **Komponenten → veraPDF** zeigt die Verfügbarkeit. Ohne verfügbares veraPDF entfällt diese Zusatzprüfung; auch ein ungültiger Pfad blockiert die reine PDF-Erzeugung nicht. Bei aktivierter PDF-Prüfung prüft veraPDF unabhängig von MustangCLI auch eine PDF ohne XML-Einbettung. Schlägt eine tatsächlich gestartete Prüfung oder XML-Einbettung fehl, wird der Vorgang weiterhin mit einem Fehler beendet.
 
 Details: [veraPDF-Prüfprofile und CLI](https://docs.verapdf.org/cli/validation/). Die PDF/A-Prüfung ersetzt keine fachliche XML-Validierung.
 

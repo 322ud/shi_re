@@ -75,6 +75,8 @@
         bindSwitch('myx-hide-validator', '/admin/validator/settings', 'hide_navigation', () => {}, checked => !checked);
         bindSwitch('myx-auto-update', '/admin/validator/settings', 'auto_update', data => showValidatorStatus(data.status));
         bindSwitch('myx-validation-enabled', '/admin/validator/settings', 'validation_enabled', data => showValidatorStatus(data.status));
+        bindSwitch('myx-xml-embedding', '/admin/pdf/settings', 'xml_embedding', data => showPdfStatus(data.status));
+        bindSwitch('myx-pdf-validation', '/admin/pdf/settings', 'pdf_validation', data => showPdfStatus(data.status));
         bindSwitch('myx-pdf-enabled', '/admin/pdf/settings', 'pdf_enabled', data => showPdfStatus(data.status));
         bindSwitch('myx-custom-templates', '/admin/pdf/settings', 'custom_templates', data => {
             showPdfStatus(data.status);
@@ -157,8 +159,16 @@
             pdfSwitch.closest('tr').hidden = !libreofficeInstalled;
             pdfSwitch.closest('label').hidden = false;
             pdfSwitch.checked = libreofficeInstalled && (status.pdf_enabled ?? true);
-            setInstalled('myx-xml-embedding', Boolean(status.checks?.mustang?.ok));
-            setInstalled('myx-pdf-validation', Boolean(status.checks?.verapdf?.ok));
+            for (const [id, available, enabled] of [
+                ['myx-xml-embedding', Boolean(status.checks?.mustang?.ok && status.checks?.java?.ok), status.xmlEmbedding],
+                ['myx-pdf-validation', Boolean(status.checks?.verapdf?.ok), status.pdfaVerification],
+            ]) {
+                const input = document.getElementById(id);
+                const usable = pdfSwitch.checked && available;
+                input.closest('tr').hidden = !usable;
+                input.closest('label').hidden = false;
+                input.checked = usable && (enabled ?? true);
+            }
             pdfOutput.textContent = '';
             refreshSettings();
         }

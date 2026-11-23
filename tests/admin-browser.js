@@ -97,7 +97,9 @@ const path = require('node:path');
         assert.deepEqual(await page.locator('section[aria-labelledby="shire-settings-title"] h4').allTextContents(), ['Rechnungserzeugung', 'Nutzeroberfläche']);
         assert.equal(await page.locator('table[aria-labelledby="shire-generation-title"] [data-setting]').count(), 5);
         assert.equal(await page.locator('table[aria-labelledby="shire-interface-title"] [data-setting]').count(), 3);
-        assert.equal(await page.locator('#myx-xml-embedding').isDisabled(), true);
+        assert.equal(await page.locator('#myx-xml-embedding').isDisabled(), false);
+        assert.equal(await page.locator('[data-setting="myx-xml-embedding"]').isVisible(), false);
+        assert.equal(await page.locator('[data-setting="myx-pdf-validation"]').isVisible(), false);
         assert.equal(await page.locator('[data-setting="myx-pdf-enabled"]').isVisible(), false);
         assert.equal(await page.locator('.shire-system > thead').count(), 0);
         assert.ok(await page.locator('.shire-system > tbody > tr:not(#myx-template-panel)').evaluateAll(rows => rows.every(row => row.children.length === 4 && row.lastElementChild.querySelector('[data-shire-help]'))));
@@ -172,6 +174,52 @@ const path = require('node:path');
         await page.waitForFunction(() => !document.getElementById('myx-pdf-enabled').disabled);
         assert.equal(await page.locator('#myx-pdf-enabled').isChecked(), false);
         await page.evaluate(() => { window.fetch = window.pdfFetch; window.fail = false; });
+        await page.evaluate(() => {
+            window.featurePreferences = {pdf_enabled: true, xml_embedding: true, pdf_validation: true};
+            window.featureTools = {java: true, mustang: true, verapdf: true};
+            window.fetch = async (url, options) => {
+                const response = await window.pdfFetch(url, options);
+                const data = await response.json();
+                if (!window.fail) Object.assign(window.featurePreferences, JSON.parse(options.body));
+                const prefs = window.featurePreferences;
+                for (const [key, ok] of Object.entries(window.featureTools)) data.status.checks[key] = {ok, version: ok ? '1.0' : ''};
+                data.status.pdf_enabled = prefs.pdf_enabled;
+                data.status.xmlEmbedding = prefs.pdf_enabled && prefs.xml_embedding && window.featureTools.java && window.featureTools.mustang;
+                data.status.pdfaVerification = prefs.pdf_enabled && prefs.pdf_validation && window.featureTools.verapdf;
+                return {...response, json: async () => data};
+            };
+        });
+        const refreshPdf = async () => {
+            // Refresh only the PDF endpoint so the fixture remains a PDF status response.
+            await page.locator('#myx-pdf-enabled').click();
+            await page.waitForFunction(() => !document.getElementById('myx-pdf-enabled').disabled);
+        };
+        await refreshPdf();
+        for (const id of ['myx-xml-embedding', 'myx-pdf-validation']) {
+            assert.equal(await page.locator('#' + id).isVisible(), true);
+            assert.equal(await page.locator('#' + id).isChecked(), true);
+            await page.locator('#' + id).uncheck();
+            await page.waitForFunction(id => !document.getElementById(id).disabled, id);
+            assert.equal(await page.locator('[data-setting="' + id + '"] [data-setting-state]').textContent(), 'inaktiv');
+            await page.evaluate(() => { window.fail = true; });
+            await page.locator('#' + id).click();
+            await page.waitForFunction(id => !document.getElementById(id).disabled, id);
+            assert.equal(await page.locator('#' + id).isChecked(), false);
+            await page.evaluate(() => { window.fail = false; });
+        }
+        await refreshPdf();
+        assert.equal(await page.locator('#myx-xml-embedding').isVisible(), false);
+        assert.equal(await page.locator('#myx-pdf-validation').isVisible(), false);
+        await refreshPdf();
+        assert.equal(await page.locator('#myx-xml-embedding').isChecked(), false);
+        assert.equal(await page.locator('#myx-pdf-validation').isChecked(), false);
+        await page.evaluate(() => { window.featureTools.java = false; window.featureTools.verapdf = false; });
+        await refreshPdf();
+        await refreshPdf();
+        assert.equal(await page.locator('#myx-xml-embedding').isVisible(), false);
+        assert.equal(await page.locator('#myx-pdf-validation').isVisible(), false);
+        await page.evaluate(() => { window.fetch = window.pdfFetch; });
+
 
         await page.evaluate(() => { window.fail = true; });
         await page.locator('#myx-hide-validator').click();
