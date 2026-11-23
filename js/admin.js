@@ -152,6 +152,7 @@
             document.getElementById('myx-template-panel').hidden = !installed || !document.getElementById('myx-replace-templates').open;
             document.querySelector('#myx-replace-templates summary').textContent = installed ? 'ersetzen' : 'Vorlagen installieren';
             setInstalled('myx-pdf-enabled', Boolean(status.checks?.libreoffice?.ok && status.checks?.mustang?.ok));
+            setInstalled('myx-xml-embedding', Boolean(status.checks?.mustang?.ok));
             setInstalled('myx-pdf-validation', Boolean(status.checks?.verapdf?.ok));
             pdfOutput.textContent = '';
             refreshSettings();

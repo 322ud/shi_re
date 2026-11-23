@@ -18,6 +18,7 @@ $helpSections = [
     'myx-custom-templates' => 'eigene-vorlagen',
     'myx-validation-enabled' => 'xml-validierung-mit-invalidator',
     'myx-pdf-enabled' => 'pdf-erzeugung-mit-libreoffice-und-mustangcli',
+    'myx-xml-embedding' => 'pdf-erzeugung-mit-libreoffice-und-mustangcli',
     'myx-pdf-validation' => 'pdf-validierung-mit-verapdf',
     'myx-hide-validator' => 'xml-validierung-mit-invalidator',
     'myx-message-area' => 'optionen-fur-die-nutzung',
@@ -27,6 +28,7 @@ $rows = [
     ['myx-custom-templates', 'eigene Vorlagen', $templatesInstalled, $_['customTemplates'], false, false],
     ['myx-validation-enabled', 'XML-Validierung', !empty($status['installed']), $status['validation_enabled'], false, false],
     ['myx-pdf-enabled', 'PDF-Erzeugung', !empty($checks['libreoffice']['ok']) && !empty($checks['mustang']['ok']), true, false, true],
+    ['myx-xml-embedding', 'XML-Einbindung', !empty($checks['mustang']['ok']), true, false, true],
     ['myx-pdf-validation', 'PDF-Prüfung', !empty($checks['verapdf']['ok']), true, false, true],
     ['myx-hide-validator', 'INValidator', true, !$status['hide_navigation'], true, false],
     ['myx-message-area', 'Meldungsbereich', true, true, true, true],
@@ -37,9 +39,14 @@ $rows = [
     <h2>ShiRE</h2>
     <section aria-labelledby="shire-settings-title">
         <h3 id="shire-settings-title">Einstellungen</h3>
+        <?php foreach ([
+            ['shire-generation-title', 'Rechnungserzeugung', array_slice($rows, 0, 5)],
+            ['shire-interface-title', 'Nutzeroberfläche', array_slice($rows, 5)],
+        ] as [$groupId, $groupTitle, $groupRows]): ?>
+        <h4 id="<?php p($groupId); ?>"><?php p($groupTitle); ?></h4>
         <div class="shire-table-scroll">
-        <table class="shire-system" aria-labelledby="shire-settings-title"><tbody>
-        <?php foreach ($rows as [$id, $label, $installed, $checked, $visibility, $pending]):
+        <table class="shire-system" aria-labelledby="<?php p($groupId); ?>"><tbody>
+        <?php foreach ($groupRows as [$id, $label, $installed, $checked, $visibility, $pending]):
             $visible = $checked;
             $state = !$installed ? 'nicht installiert' : ($id === 'myx-custom-templates' ? 'installiert' : ($visibility ? ($visible ? 'eingeblendet' : 'ausgeblendet') : ($checked ? 'aktiv' : 'inaktiv')));
             $action = $visibility ? ($visible ? 'ausblenden' : 'einblenden') : ($checked ? 'deaktivieren' : 'aktivieren'); ?>
@@ -58,7 +65,8 @@ $rows = [
         <?php endforeach; ?>
         </tbody></table>
         </div>
-        <p id="shire-pending-settings">Die Schalter für PDF-Erzeugung, PDF-Prüfung und Meldungsbereich sind vorbereitet; ihre Funktion wird im nächsten Schritt ergänzt.</p>
+        <?php endforeach; ?>
+        <p id="shire-pending-settings">Die Schalter für PDF-Erzeugung, XML-Einbindung, PDF-Prüfung und Meldungsbereich sind vorbereitet; ihre Funktion wird im nächsten Schritt ergänzt.</p>
         <p id="myx-admin-result" role="status" aria-live="polite"></p>
     </section>
     <section aria-labelledby="shire-components-title">

@@ -94,7 +94,11 @@ const path = require('node:path');
             url: '/apps/shi_re/admin/pdf/settings', body: {action: 'clear_archive', confirmation: 'ja'},
         });
         assert.deepEqual(await page.locator('[data-setting] > th').allTextContents(),
-            ['eigene Vorlagen', 'XML-Validierung', 'PDF-Erzeugung', 'PDF-Prüfung', 'INValidator', 'Meldungsbereich', 'Button „Entwurf löschen“']);
+            ['eigene Vorlagen', 'XML-Validierung', 'PDF-Erzeugung', 'XML-Einbindung', 'PDF-Prüfung', 'INValidator', 'Meldungsbereich', 'Button „Entwurf löschen“']);
+        assert.deepEqual(await page.locator('section[aria-labelledby="shire-settings-title"] h4').allTextContents(), ['Rechnungserzeugung', 'Nutzeroberfläche']);
+        assert.equal(await page.locator('table[aria-labelledby="shire-generation-title"] [data-setting]').count(), 5);
+        assert.equal(await page.locator('table[aria-labelledby="shire-interface-title"] [data-setting]').count(), 3);
+        assert.equal(await page.locator('#myx-xml-embedding').isDisabled(), true);
         assert.equal(await page.locator('.shire-system > thead').count(), 0);
         assert.ok(await page.locator('.shire-system > tbody > tr:not(#myx-template-panel)').evaluateAll(rows => rows.every(row => row.children.length === 4 && row.lastElementChild.querySelector('[data-shire-help]'))));
         assert.equal(await page.locator('[data-check=validator] + [data-check=libreoffice]').count(), 1);
