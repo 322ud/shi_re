@@ -4,6 +4,18 @@
         const root = document.getElementById('myx-admin');
         if (!root) return;
         const output = document.getElementById('myx-admin-result');
+        const templateForm = document.getElementById('myx-pdf-templates');
+        function refreshFileNames() {
+            templateForm.querySelectorAll('.shire-file-picker').forEach(picker => {
+                const input = picker.querySelector('input[type=file]');
+                picker.querySelector('[data-file-name]').textContent = input.files?.[0]?.name || 'Datei auswählen';
+            });
+        }
+        templateForm.addEventListener('change', refreshFileNames);
+        // A reset event fires before the browser clears the native file inputs.
+        templateForm.addEventListener('reset', () => setTimeout(refreshFileNames, 0));
+        refreshFileNames();
+
         async function post(path, body = {}) {
             const response = await fetch(OC.generateUrl('/apps/shi_re' + path), {
                 method: 'POST',
@@ -137,6 +149,7 @@
                     if (!pdfActive) input.value = '';
                 });
             });
+            refreshFileNames();
             document.getElementById('myx-template-pdf-help').hidden = !pdfActive;
             document.getElementById('myx-template-xml-help').hidden = pdfActive;
             const templates = status.checks?.templates;

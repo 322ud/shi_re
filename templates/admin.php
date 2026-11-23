@@ -20,12 +20,12 @@ $validationActive = !empty($status['installed']) && !empty($status['enabled']) &
 $helpSections = [
     'myx-custom-templates' => 'eigene-vorlagen',
     'myx-validation-enabled' => 'xml-validierung-mit-invalidator',
-    'myx-pdf-enabled' => 'pdf-erzeugung-mit-libreoffice-und-mustangcli',
-    'myx-xml-embedding' => 'pdf-erzeugung-mit-libreoffice-und-mustangcli',
-    'myx-pdf-validation' => 'pdf-validierung-mit-verapdf',
-    'myx-hide-validator' => 'xml-validierung-mit-invalidator',
-    'myx-message-area' => 'optionen-fur-die-nutzung',
-    'myx-allow-draft-deletion' => 'optionen-fur-die-nutzung',
+    'myx-pdf-enabled' => 'pdf-erzeugung-mit-libreoffice',
+    'myx-xml-embedding' => 'xml-einbindung-mit-mustangcli',
+    'myx-pdf-validation' => 'pdf-prufung-mit-verapdf',
+    'myx-hide-validator' => 'nutzeroberflache',
+    'myx-message-area' => 'nutzeroberflache',
+    'myx-allow-draft-deletion' => 'nutzeroberflache',
 ];
 $rows = [
     ['myx-custom-templates', 'eigene Vorlagen', $templatesInstalled, $_['customTemplates'], false, false],
@@ -99,16 +99,20 @@ $rows = [
         </ul>
         <div class="shire-table-scroll">
         <table class="shire-template-uploads">
-            <thead><tr><th scope="col">Format</th><th scope="col">XRechnung</th><th scope="col">Storno</th></tr></thead>
-            <tbody>
+            <thead><tr><th scope="col">XRechnung</th><th scope="col">Storno</th></tr></thead>
             <?php foreach (['odt' => ['ODT', '.odt', '10 MiB'], 'xml' => ['XML', '.xml', '2 MiB'], 'mapping' => ['Mapping', '.tsv,.txt', '256 KiB']] as $key => [$label, $accept, $limit]): ?>
-            <tr<?php if ($key !== 'xml') { print_unescaped(' data-pdf-template' . (!$pdfActive ? ' hidden' : '')); } ?>><th scope="row"><?php p($label . ' (max ' . $limit . ')'); ?></th>
+            <tbody<?php if ($key !== 'xml') { print_unescaped(' data-pdf-template' . (!$pdfActive ? ' hidden' : '')); } ?>>
+            <tr class="shire-template-format"><th colspan="2" scope="rowgroup"><?php p($label . ' (max ' . $limit . ')'); ?></th></tr>
+            <tr>
                 <?php foreach (['' => 'XRechnung', 'storno_' => 'Storno'] as $prefix => $kind): ?>
-                <td><input id="myx-pdf-<?php p($prefix . $key); ?>" name="<?php p($prefix . $key); ?>" type="file"<?php if (!$pdfActive && $key !== 'xml') { print_unescaped(' disabled'); } ?> accept="<?php p($accept); ?>" aria-label="<?php p($kind . ' ' . $label . ' (max ' . $limit . ')'); ?>"></td>
+                <td><label class="shire-file-picker">
+                    <input id="myx-pdf-<?php p($prefix . $key); ?>" name="<?php p($prefix . $key); ?>" type="file"<?php if (!$pdfActive && $key !== 'xml') { print_unescaped(' disabled'); } ?> accept="<?php p($accept); ?>" aria-label="<?php p($kind . ' ' . $label . ' (max ' . $limit . ')'); ?>">
+                    <span data-file-name aria-hidden="true">Datei auswählen</span>
+                </label></td>
                 <?php endforeach; ?>
             </tr>
-            <?php endforeach; ?>
             </tbody>
+            <?php endforeach; ?>
         </table>
         </div>
         <p id="myx-template-pdf-help"<?php if (!$pdfActive) { print_unescaped(' hidden'); } ?>>Nicht ausgewählte Dateien bleiben erhalten. Die Vorlagensätze für XRechnung und Storno werden jeweils auf vollständige
@@ -132,14 +136,14 @@ $rows = [
             <tr data-check="<?php p($key); ?>">
                 <th scope="row"><?php p($label); ?></th>
                 <td data-version><?php p($checks[$key]['version'] ?: 'nicht installiert'); ?></td><td></td>
-                <td class="shire-help-cell"><?php $adminHelp($key === 'verapdf' ? 'pdf-validierung-mit-verapdf' : 'pdf-erzeugung-mit-libreoffice-und-mustangcli', $label); ?></td>
+                <td class="shire-help-cell"><?php $adminHelp(['libreoffice' => 'pdf-erzeugung-mit-libreoffice', 'mustang' => 'xml-einbindung-mit-mustangcli', 'verapdf' => 'pdf-prufung-mit-verapdf'][$key], $label); ?></td>
             </tr>
             <?php endforeach; ?>
             <tr data-check="archive"<?php if (($_['archiveStatus'] ?? 'leer') === 'leer') { print_unescaped(' hidden'); } ?>>
                 <th scope="row">Rechnungsarchiv</th>
                 <td id="myx-archive-status"><?php p($_['archiveStatus'] ?? 'leer'); ?></td>
                 <td><button id="myx-clear-archive" type="button">Archiv leeren</button></td>
-                <td class="shire-help-cell"><?php $adminHelp('betrieb-und-archiv', 'Rechnungsarchiv'); ?></td>
+                <td class="shire-help-cell"><?php $adminHelp('komponenten', 'Rechnungsarchiv'); ?></td>
             </tr>
         </tbody></table>
         </div>

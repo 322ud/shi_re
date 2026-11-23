@@ -105,6 +105,32 @@ transition: transform 0.15s;
 #myx-admin .shire-system .shire-switch { margin: 0; }
 #myx-admin .shire-system details { margin: 0; }
 #myx-admin .shire-switch input:disabled { cursor: not-allowed; }
-#myx-admin .shire-template-uploads { min-width: 520px; }
+#myx-admin .shire-template-uploads { table-layout: fixed; min-width: 0; }
+#myx-admin .shire-template-uploads .shire-template-format th { padding-bottom: 4px; border-bottom: 0; }
+#myx-admin .shire-file-picker {
+    display: block;
+    position: relative;
+    margin: 0;
+    padding: 8px 12px;
+    min-height: 36px;
+    box-sizing: border-box;
+    border: 1px solid var(--color-border-dark, #767676);
+    border-radius: var(--border-radius, 4px);
+    background: var(--color-main-background, #fff);
+    cursor: pointer;
+}
+#myx-admin .shire-file-picker:hover { border-color: var(--color-primary-element, #00679e); }
+#myx-admin .shire-file-picker:focus-within { outline: 2px solid var(--color-primary-element, #00679e); outline-offset: 2px; }
+#myx-admin .shire-file-picker input[type="file"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+#myx-admin .shire-file-picker [data-file-name] { display: block; overflow-wrap: anywhere; }
 #myx-admin .shire-system > tbody > tr > .shire-help-cell { width: 44px; text-align: center; }
 #myx-admin #myx-template-panel > td { width: auto; }

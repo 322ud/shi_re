@@ -24,7 +24,7 @@ const path = require('node:path');
         await page.goto('http://shire.test/nextcloud/index.php/settings/admin/shi_re');
         await page.setContent(html);
         assert.equal(await page.locator('[data-check=archive] .shire-admin-help').getAttribute('href'),
-            '/nextcloud/index.php/apps/shi_re/readme?document=admin#h-betrieb-und-archiv');
+            '/nextcloud/index.php/apps/shi_re/readme?document=admin#h-komponenten');
         await page.addStyleTag({path: path.resolve('css/admin.css')});
         await page.evaluate(() => {
             window.OC = {generateUrl: path => path, imagePath: (app, file) => '/nextcloud/apps/' + app + '/img/' + file, requestToken: 'test'};
@@ -151,6 +151,22 @@ const path = require('node:path');
         await page.locator('#myx-pdf-xml').waitFor({state: 'visible'});
         assert.equal(await page.locator('#myx-pdf-xml').isVisible(), true);
         assert.equal(await page.locator('.shire-template-uploads input[type=file]').count(), 6);
+        assert.deepEqual(await page.locator('.shire-template-uploads thead th').allTextContents(), ['XRechnung', 'Storno']);
+        assert.deepEqual(await page.locator('.shire-template-format th').allTextContents(), ['ODT (max 10 MiB)', 'XML (max 2 MiB)', 'Mapping (max 256 KiB)']);
+        assert.ok(await page.locator('.shire-template-format').evaluateAll(rows => rows.every(row => row.nextElementSibling.querySelectorAll('input[type=file]').length === 2)));
+        const xmlPicker = page.locator('.shire-file-picker').filter({has: page.locator('#myx-pdf-xml')});
+        assert.equal(await xmlPicker.locator('[data-file-name]').textContent(), 'Datei auswählen');
+        const [chooser] = await Promise.all([page.waitForEvent('filechooser'), xmlPicker.click()]);
+        await chooser.setFiles({name: 'meine-auswahl.xml', mimeType: 'application/xml', buffer: Buffer.from('<test/>')});
+        assert.equal(await xmlPicker.locator('[data-file-name]').textContent(), 'meine-auswahl.xml');
+        await page.locator('#myx-pdf-xml').focus();
+        const [keyboardChooser] = await Promise.all([page.waitForEvent('filechooser'), page.keyboard.press('Enter')]);
+        await keyboardChooser.setFiles([]);
+        assert.equal(await xmlPicker.locator('[data-file-name]').textContent(), 'Datei auswählen');
+        await page.locator('#myx-pdf-xml').setInputFiles({name: 'reset.xml', mimeType: 'application/xml', buffer: Buffer.from('<test/>')});
+        await page.evaluate(() => document.getElementById('myx-pdf-templates').reset());
+        await page.waitForFunction(() => document.getElementById('myx-pdf-xml').parentElement.querySelector('[data-file-name]').textContent === 'Datei auswählen');
+
         assert.equal(await page.locator('[data-pdf-template]:visible').count(), 2);
         assert.match(await page.locator('#myx-template-files').textContent(), /eigene-vorlage.odt/);
         await page.locator('#myx-pdf-odt').setInputFiles({name: 'ausgewaehlt.odt', mimeType: 'application/octet-stream', buffer: Buffer.from('test')});
@@ -176,6 +192,7 @@ const path = require('node:path');
         assert.equal(await page.locator('[data-pdf-template]:visible').count(), 0);
         assert.equal(await page.locator('[data-pdf-template] input:disabled').count(), 4);
         assert.equal(await page.locator('#myx-pdf-odt').inputValue(), '');
+        assert.equal(await page.locator('#myx-pdf-odt').locator('..').locator('[data-file-name]').textContent(), 'Datei auswählen');
         assert.equal(await page.locator('#myx-pdf-xml').isVisible(), true);
         assert.equal(await page.locator('#myx-pdf-storno_xml').isVisible(), true);
         assert.doesNotMatch(await page.locator('#myx-template-files').textContent(), /\.(odt|tsv)/);
@@ -364,7 +381,7 @@ const path = require('node:path');
         await page.waitForFunction(() => window.anchorReached === true);
         // Umlaut chapters work with Text's real anchor shape and without Text.
         for (const [anchor, title] of [
-            ['h-optionen-fur-die-nutzung', 'Optionen für die Nutzung'],
+            ['h-nutzeroberflache', 'Nutzeroberfläche'],
             ['h-struktur-und-ubernahme', 'Struktur und Übernahme'],
         ]) {
             await page.evaluate(({anchor, title}) => {
@@ -386,7 +403,7 @@ const path = require('node:path');
                 Element.prototype.scrollIntoView = function () { window.fallbackHeading = this.textContent; };
                 window.dispatchEvent(new Event('shire-help-focus'));
             });
-            assert.equal(await page.evaluate(() => window.fallbackHeading), '##' + (title.startsWith('Struktur') ? '##' : '') + ' ' + title);
+            assert.equal(await page.evaluate(() => window.fallbackHeading), '###' + (title.startsWith('Struktur') ? '#' : '') + ' ' + title);
             await page.evaluate(() => {
                 document.querySelector('.shire-readme-rich').hidden = false;
                 document.querySelector('.shire-readme-fallback').hidden = true;

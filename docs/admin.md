@@ -52,75 +52,7 @@ Für reine XML-Erzeugung sind keine ShiRE-Programmpfade erforderlich. Je nach ge
 
 Die Programme müssen für den Webserver-Benutzer lesbar und ausführbar sein, die JAR lesbar. ShiRE installiert diese Programme nicht selbst. Nach Änderungen **Systemprüfung wiederholen** wählen. Java und MustangCLI werden nur für die XML-Einbindung samt Mustang-Prüfung und Metadaten-Ergänzung benötigt. veraPDF dient ausschließlich der zusätzlichen PDF/A-Prüfung.
 
-## Optionen für die Nutzung
-
-Unter **Einstellungen → Rechnungserzeugung**:
-
-| Einstellung | Verfügbarkeit und Wirkung | Standard |
-| --- | --- | --- |
-| eigene Vorlagen | Ohne gespeicherten Satz: „nicht installiert“ und **installieren**, das den Upload-Bereich unter Komponenten öffnet. Mit gespeichertem Satz: Schalter zum Auswählen eigener oder mitgelieferter Vorlagen. Siehe die Einschränkung beim ersten Upload unter „Eigene Vorlagen“. | aus |
-| XML-Validierung | Ohne INValidator: „nicht installiert“. Nach Installation ist der Schalter sichtbar. Die Prüfung benötigt außerdem eine aktivierte und für den Nutzer verfügbare Validator-App. | aktiv |
-| PDF-Erzeugung | Zeile nur bei verfügbarem LibreOffice. Ausgeschaltet oder ohne LibreOffice: ausschließlich XML-Ausgabe, gegebenenfalls mit XML-Prüfung. | aktiv |
-| XML-Einbindung | Zeile nur bei aktiver PDF-Erzeugung sowie verfügbarem MustangCLI und Java. Steuert die XML-Einbettung, die zusätzliche Metadaten-Ergänzung und die Mustang-Prüfung. | aktiv |
-| PDF-Prüfung | Zeile nur bei aktiver PDF-Erzeugung und verfügbarem veraPDF. Steuert die PDF/A-3b-Prüfung, unabhängig von XML-Einbindung und MustangCLI. | aktiv |
-
-Ohne die jeweiligen Voraussetzungen sind die PDF-Funktionen effektiv inaktiv. Ihre gespeicherten Auswahlen bleiben erhalten: Wer XML-Einbindung oder PDF-Prüfung abschaltet, erhält nach Aus- und Einschalten der PDF-Erzeugung weiterhin diese Auswahl. Ein aktiver PDF-Schalter ersetzt nicht die technischen Voraussetzungen wie konsistente Vorlagen und ein beschreibbares Tempverzeichnis.
-
-Unter **Einstellungen → Nutzeroberfläche**:
-
-| Einstellung | Wirkung und Sichtbarkeit | Standard |
-| --- | --- | --- |
-| INValidator | Blendet den Navigationseintrag der Validator-App ein oder aus. Die Zeile erscheint nur bei installiertem, aktiviertem INValidator und eingeschalteter XML-Validierung. | ausgeblendet |
-| Meldungsbereich | Blendet den grauen Meldungsbereich ein oder aus. Ohne ihn füllt der weiße Bereich die gesamte nutzbare Fläche. | eingeblendet |
-| Button „Entwurf löschen“ | Zeigt bei einem Entwurfskonflikt die Möglichkeit, den blockierenden Entwurf nach Bestätigung zu löschen. Dabei gehen dessen Daten verloren. Bei mehreren gleichzeitig arbeitenden Nutzern ausgeschaltet lassen. | ausgeblendet |
-
-Die Einstellung „Meldungsbereich“ gilt nach dem nächsten Laden der Nutzeroberfläche. Die Ablaufdokumentation ist immer ausführlich, mit Uhrzeit (Europe/Berlin) und Hinweisen auf übersprungene Prüfungen. Die frühere Auswahl einer kurzen oder ausführlichen Dokumentation und das Menü „Weitere Einstellungen“ entfallen; gespeicherte Werte von `detailed_progress` werden nicht mehr verwendet.
-
-Unter **Komponenten** befinden sich außerdem die Vorlagenverwaltung, automatische INValidator-Updates und bei vorhandenem Archiv **Archiv leeren**. Einzelheiten stehen in den jeweiligen Abschnitten unten.
-
-## Optionale Komponenten
-
-### XML-Validierung mit INValidator
-
-INValidator separat installieren und aktivieren; ShiRE übernimmt keine Erstinstallation. Installationshinweise und Releases stehen im [INValidator-Projekt](https://github.com/322ud/inv_validator). Bei manueller Bereitstellung eines Release-Pakets im App-Verzeichnis die App unter dem Webserver-Benutzer mit `php occ app:enable inv_validator` registrieren und aktivieren. Danach die ShiRE-Administration neu laden.
-
-Wenn INValidator installiert ist, zeigt **Komponenten → INValidator** die Version und den Schalter **automatisch aktualisieren** beziehungsweise **nicht automatisch aktualisieren**. Standard ist **aus**. Der Schalter ist auch bei ausgeschalteter XML-Validierung sichtbar; das automatische Update beim ShiRE-Start setzt zusätzlich eine aktive XML-Prüfung und einen angemeldeten Administrator voraus.
-
-Automatische Updates benötigen Zugriff auf die GitHub-Releases und ein beschreibbares App-Verzeichnis. Bei einem privaten Repository kann in `config.php` der serverseitige Eintrag `shi_re_github_token` erforderlich sein. Der Update-Schalter betrifft die Validator-App; die verwendeten Prüfszenarien und ihre Voraussetzungen sind in deren Dokumentation beschrieben.
-
-Wenn INValidator installiert ist, stehen unter **Einstellungen** zwei weitere Optionen zur Verfügung:
-
-**→ Rechnungserzeugung → XML-Validierung** schaltet die XML-Prüfung ein oder aus (Standard: aktiv). Ohne Prüfung wird weiterhin XML erzeugt. Der Schalter allein installiert oder aktiviert die Nextcloud-App nicht.
-
-**→ Nutzeroberfläche → INValidator** steuert den Navigationseintrag (Standard: ausgeblendet). Die Prüfung aus ShiRE bleibt beim Ausblenden verfügbar. Die installierte INValidator-Version muss das Ausblenden unterstützen.
-
-### PDF-Erzeugung mit LibreOffice und MustangCLI
-
-Wenn LibreOffice Writer installiert ist, ist standardmäßig unter **Einstellungen → Rechnungserzeugung** die Option **→ PDF-Erzeugung** aktiv, lässt sich aber mittels des Schalters in dieser Zeile deaktivieren. Der gespeicherte Status bleibt nach einem Neustart erhalten. Erforderlich bleiben konsistente Vorlagen, PHP ZIP und DOM, `proc_open` und ein beschreibbares temporäres Arbeitsverzeichnis.
-
-LibreOffice Writer füllt die ODT-Vorlage mit den Rechnungsdaten der XML-Rechnung und erzeugt eine PDF-Rechnung. Bei deaktivierter oder nicht betriebsbereiter PDF-Erzeugung bleibt die XML-Erzeugung einschließlich einer gegebenenfalls aktivierten XML-Prüfung verfügbar.
-
-Installation und Verwendung: [LibreOffice im Kommandozeilenbetrieb](https://help.libreoffice.org/latest/de/text/shared/guide/start_parameters.html)
-
-### XML-Einbindung mit MustangCLI
-
-Wenn MustangCLI und Java installiert sind, ist standardmäßig unter **→ Rechnungserzeugung** die Option **→ XML-Einbindung** aktiv, lässt sich aber mittels des Schalters in dieser Zeile deaktivieren. Der gespeicherte Status bleibt nach einem Neustart erhalten.
-
-MustangCLI bettet die Rechnungs-XML in die PDF-Rechnung ein und prüft das Ergebnis; ShiRE ergänzt die Metadaten und vergleicht noch einmal die eingebettete XML mit der gespeicherten XML-Rechnung. Schlägt die XML-Einbettung fehl, wird der Vorgang mit einem Fehler beendet.
-
-Installation und Verwendung: [Mustangproject mit CLI und Releases](https://github.com/ZUGFeRD/mustangproject).
-
-#### PDF-Metadaten
-
-MustangCLI setzt den PDF-Autor (Author und XMP `dc:creator`) als `initialen@domain` vollständig in Kleinbuchstaben. Die Initialen stammen aus dem Anzeigenamen des angemeldeten Nextcloud-Nutzers (ersatzweise der Benutzerkennung), die Domain aus den letzten beiden Bestandteilen des von Nextcloud ermittelten Anfragehosts: Second-Level-Domain plus Top-Level-Domain, ohne Port und vorgelagerte Subdomains (z. B. `nextcloud.intern.my_domain.de` → `my_domain.de`). Es erfolgt keine Ermittlung der registrierbaren Domain anhand einer Public-Suffix-Liste: `cloud.example.co.uk` ergibt daher `co.uk`. IP-Adressen und einteilige Hostnamen bleiben unverändert.
-
-Das PDF enthält die Versionen von ShiRE, MustangCLI und LibreOffice sowie bei aktiver Prüfung die verfügbaren Versionen von INValidator, KoSIT-Validator, XRechnung-Prüfszenario und veraPDF. Nicht ermittelbare Versionen erscheinen als `unbekannt`. Die Szenarioversion bezeichnet das konkrete Prüfrelease; die Versionsangaben sind kein eigenständiger Validierungsnachweis.
-
-### PDF-Validierung mit veraPDF
-
-**Komponenten → veraPDF** zeigt die Verfügbarkeit. Wenn [veraPDF installiert](https://docs.verapdf.org/install/) ist und `shi_re_verapdf` (in config.php) auf das ausführbare CLI-Programm zeigt, ist standardmäßig unter **Einstellungen → Rechnungserzeugung** die Option **→ PDF-Prüfung** aktiv, lässt sich aber mittels des Schalters in dieser Zeile deaktivieren. Der gespeicherte Status bleibt nach einem Neustart erhalten. Schlägt die Prüfung fehl, wird der Vorgang mit einem Fehler beendet.
-
-Details: [veraPDF-Prüfprofile und CLI](https://docs.verapdf.org/cli/validation/).
+## Einstellungen
 
 ### Eigene Vorlagen
 
@@ -204,7 +136,62 @@ Die mitgelieferte XML bezeichnet ihr Profil derzeit mit `urn:cen.eu:en16931:2017
 
 **PDF/A:** Ziel ist PDF/A-3b nach [ISO 19005-3](https://www.iso.org/standard/57229.html). Dazu müssen unter anderem Schriften eingebettet, Metadaten und Farbinformationen passend sowie Anhänge korrekt eingebunden sein. Auf dem Server verfügbare, einbettbare Schriften verwenden und nach Änderungen an Layout oder Schriften das fertige PDF mit veraPDF prüfen. Ein erfolgreich verarbeitbares ODT allein garantiert keine PDF/A-Konformität. Bei aktivierter XML-Einbindung zusätzlich die sichtbaren Rechnungsangaben mit der eingebetteten XML abgleichen.
 
-## Betrieb und Archiv
+### XML-Validierung mit INValidator
+
+INValidator separat installieren und aktivieren; ShiRE übernimmt keine Erstinstallation. Installationshinweise und Releases stehen im [INValidator-Projekt](https://github.com/322ud/inv_validator). Bei manueller Bereitstellung eines Release-Pakets im App-Verzeichnis die App unter dem Webserver-Benutzer mit `php occ app:enable inv_validator` registrieren und aktivieren. Danach die ShiRE-Administration neu laden.
+
+Wenn INValidator installiert ist, zeigt **Komponenten → INValidator** die Version und den Schalter **automatisch aktualisieren** beziehungsweise **nicht automatisch aktualisieren**. Standard ist **aus**. Der Schalter ist auch bei ausgeschalteter XML-Validierung sichtbar; das automatische Update beim ShiRE-Start setzt zusätzlich eine aktive XML-Prüfung und einen angemeldeten Administrator voraus.
+
+Automatische Updates benötigen Zugriff auf die GitHub-Releases und ein beschreibbares App-Verzeichnis. Bei einem privaten Repository kann in `config.php` der serverseitige Eintrag `shi_re_github_token` erforderlich sein. Der Update-Schalter betrifft die Validator-App; die verwendeten Prüfszenarien und ihre Voraussetzungen sind in deren Dokumentation beschrieben.
+
+Wenn INValidator installiert ist, stehen unter **Einstellungen** zwei weitere Optionen zur Verfügung:
+
+**→ Rechnungserzeugung → XML-Validierung** schaltet die XML-Prüfung ein oder aus (Standard: aktiv). Ohne Prüfung wird weiterhin XML erzeugt. Der Schalter allein installiert oder aktiviert die Nextcloud-App nicht.
+
+**→ Nutzeroberfläche → INValidator** steuert den Navigationseintrag (Standard: ausgeblendet). Die Prüfung aus ShiRE bleibt beim Ausblenden verfügbar. Die installierte INValidator-Version muss das Ausblenden unterstützen.
+
+### PDF-Erzeugung mit LibreOffice
+
+Wenn LibreOffice Writer installiert ist, ist standardmäßig unter **Einstellungen → Rechnungserzeugung** die Option **→ PDF-Erzeugung** aktiv, lässt sich aber mittels des Schalters in dieser Zeile deaktivieren. Der gespeicherte Status bleibt nach einem Neustart erhalten. Erforderlich bleiben konsistente Vorlagen, PHP ZIP und DOM, `proc_open` und ein beschreibbares temporäres Arbeitsverzeichnis.
+
+LibreOffice Writer füllt die ODT-Vorlage mit den Rechnungsdaten der XML-Rechnung und erzeugt eine PDF-Rechnung. Bei deaktivierter oder nicht betriebsbereiter PDF-Erzeugung bleibt die XML-Erzeugung einschließlich einer gegebenenfalls aktivierten XML-Prüfung verfügbar.
+
+Installation und Verwendung: [LibreOffice im Kommandozeilenbetrieb](https://help.libreoffice.org/latest/de/text/shared/guide/start_parameters.html)
+
+### XML-Einbindung mit MustangCLI
+
+Wenn MustangCLI und Java installiert sind, ist standardmäßig unter **→ Rechnungserzeugung** die Option **→ XML-Einbindung** aktiv, lässt sich aber mittels des Schalters in dieser Zeile deaktivieren. Der gespeicherte Status bleibt nach einem Neustart erhalten.
+
+MustangCLI bettet die Rechnungs-XML in die PDF-Rechnung ein und prüft das Ergebnis; ShiRE ergänzt die Metadaten und vergleicht noch einmal die eingebettete XML mit der gespeicherten XML-Rechnung. Schlägt die XML-Einbettung fehl, wird der Vorgang mit einem Fehler beendet.
+
+Installation und Verwendung: [Mustangproject mit CLI und Releases](https://github.com/ZUGFeRD/mustangproject).
+
+#### PDF-Metadaten
+
+MustangCLI setzt den PDF-Autor (Author und XMP `dc:creator`) als `initialen@domain` vollständig in Kleinbuchstaben. Die Initialen stammen aus dem Anzeigenamen des angemeldeten Nextcloud-Nutzers (ersatzweise der Benutzerkennung), die Domain aus den letzten beiden Bestandteilen des von Nextcloud ermittelten Anfragehosts: Second-Level-Domain plus Top-Level-Domain, ohne Port und vorgelagerte Subdomains (z. B. `nextcloud.intern.my_domain.de` → `my_domain.de`). Es erfolgt keine Ermittlung der registrierbaren Domain anhand einer Public-Suffix-Liste: `cloud.example.co.uk` ergibt daher `co.uk`. IP-Adressen und einteilige Hostnamen bleiben unverändert.
+
+Das PDF enthält die Versionen von ShiRE, MustangCLI und LibreOffice sowie bei aktiver Prüfung die verfügbaren Versionen von INValidator, KoSIT-Validator, XRechnung-Prüfszenario und veraPDF. Nicht ermittelbare Versionen erscheinen als `unbekannt`. Die Szenarioversion bezeichnet das konkrete Prüfrelease; die Versionsangaben sind kein eigenständiger Validierungsnachweis.
+
+### PDF-Prüfung mit veraPDF
+
+**Komponenten → veraPDF** zeigt die Verfügbarkeit. Wenn [veraPDF installiert](https://docs.verapdf.org/install/) ist und `shi_re_verapdf` (in `config.php`) auf das ausführbare CLI-Programm zeigt, ist standardmäßig unter **Einstellungen → Rechnungserzeugung** die Option **→ PDF-Prüfung** aktiv, lässt sich aber mittels des Schalters in dieser Zeile deaktivieren. Der gespeicherte Status bleibt nach einem Neustart erhalten. Schlägt die Prüfung fehl, wird der Vorgang mit einem Fehler beendet.
+
+Details: [veraPDF-Prüfprofile und CLI](https://docs.verapdf.org/cli/validation/).
+
+
+### Nutzeroberfläche
+
+Unter **Einstellungen → Nutzeroberfläche**:
+
+| Einstellung | Wirkung und Sichtbarkeit | Standard |
+| --- | --- | --- |
+| INValidator | Blendet den Navigationseintrag der Validator-App ein oder aus. Die Zeile erscheint nur bei installiertem, aktiviertem INValidator und eingeschalteter XML-Validierung. | ausgeblendet |
+| Meldungsbereich | Blendet den grauen Meldungsbereich ein oder aus. Ohne ihn füllt der weiße Bereich die gesamte nutzbare Fläche. | eingeblendet |
+| Button „Entwurf löschen“ | Zeigt bei einem Entwurfskonflikt die Möglichkeit, den blockierenden Entwurf nach Bestätigung zu löschen. Dabei gehen dessen Daten verloren. Bei mehreren gleichzeitig arbeitenden Nutzern ausgeschaltet lassen. | ausgeblendet |
+
+## Komponenten
+
+Unter **Komponenten** wird der mit einer automatischen Systemprüfung ermittelte Status der für die Rechnungserzeugung genutzten Komponenten dargestellt.
 
 LibreOffice verwendet ein eigenes Profil pro Vorgang. Dateien liegen in privaten, von Nextcloud verwalteten temporären Verzeichnissen; sie werden bei Erfolg und Fehler sofort gelöscht. Bei einem harten Prozessabbruch greift Nextclouds Tempbereinigung.
 
@@ -212,8 +199,7 @@ Die Arbeitsdatei im AppData-Hauptverzeichnis heißt `tmp.xml`; sie wird für Erz
 
 Angenommene XML-Rechnungen und erfolgreich erzeugte PDFs liegen dauerhaft als `<Rechnungsnummer>.xml` beziehungsweise `<Rechnungsnummer>.pdf` im AppData-Hauptverzeichnis. Das Archiv ist appweit gemeinsam. Vorhandene PDFs werden nicht überschrieben; ein erneuter Speicherversuch unter demselben Namen wird abgelehnt. Bei einem PDF-Fehler bleibt die bereits angenommene XML im Archiv erhalten. Downloads erfordern eine Anmeldung; öffentliche Download-Links gibt es nicht.
 
-
-Die Zeile **Komponenten → Rechnungsarchiv** erscheint nur bei nicht leerem beziehungsweise nicht ermittelbarem Archivstatus. Sie zeigt `bis JJ NNN` für die höchste archivierte Rechnungsnummer oder „nicht ermittelbar“. **Archiv leeren** löscht nach Bestätigung durch Eingabe von `ja` alle archivierten XML-Rechnungen und PDFs appweit. Entwürfe und Vorlagen bleiben erhalten. Die nächste Rechnungsnummer richtet sich anschließend wieder nach der aktiven Vorlage; ein bestehender Entwurf behält seine Nummer.
+Bei nicht leerem Archiv oderzeigt die Zeile **Komponenten → Rechnungsarchiv** `bis JJ NNN` für die höchste archivierte Rechnungsnummer, oder „nicht ermittelbar“ für den Archivstatus. **Archiv leeren** löscht nach Bestätigung durch Eingabe von `ja` alle archivierten XML-Rechnungen und PDFs appweit. Entwürfe und Vorlagen bleiben erhalten. Die nächste Rechnungsnummer richtet sich dann wieder nach der aktiven Vorlage; ein bestehender Entwurf behält seine Nummer.
 
 ## Einstellungen speichern und bestehende Installationen
 
