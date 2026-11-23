@@ -99,6 +99,22 @@
             const createButton = NS.button(cancellation ? 'Storno-Rechnung erstellen' : 'Rechnung erstellen', NS.createXmlInvoice, 'myx-primary');
             createButton.disabled = !supportedType;
             actions.appendChild(createButton);
+            const steps = NS.make('ul', {class: 'myx-creation-steps', id: 'myx-creation-steps'});
+            steps.appendChild(NS.make('li', {}, 'erzeugt eine XML-Rechnung'));
+            if (NS.state.validationActive) {
+                steps.appendChild(NS.make('li', {}, 'validiert die XML-Rechnung auf das XRechnung-Szenario'));
+            }
+            if (NS.state.pdfStatus?.enabled) {
+                steps.appendChild(NS.make('li', {}, 'erzeugt eine PDF-Rechnung'));
+                if (NS.state.pdfStatus.xmlEmbedding) {
+                    steps.appendChild(NS.make('li', {}, 'bindet die XML-Rechnung in die PDF-Rechnung ein'));
+                }
+                if (NS.state.pdfStatus.pdfaVerification) {
+                    steps.appendChild(NS.make('li', {}, 'prüft die PDF-Rechnung auf den Standard PDF/A-3'));
+                }
+            }
+            createButton.setAttribute('aria-describedby', steps.id);
+            actions.appendChild(steps);
             if (!cancellation) actions.appendChild(NS.savedInvoiceDropdown());
             if (cancellation) {
                 actions.appendChild(NS.cancellationAbortDropdown());

@@ -392,6 +392,14 @@ button:hover {
     max-width: 100%;
 }
 
+.myx-actions > .myx-creation-steps {
+    flex-basis: 100%;
+    margin: 0;
+    padding-left: 22px;
+    box-sizing: border-box;
+    list-style: disc;
+}
+
 .myx-saved-menu {
     position: absolute;
     top: 100%;

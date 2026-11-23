@@ -35,6 +35,8 @@ class PdfInvoiceController extends Controller {
         // Werkzeugpfade/Versionen und administrative Upload-Details nur in der Administration.
         return new JSONResponse(['success' => true, 'status' => [
             'enabled' => $status['enabled'], 'templateVersion' => $status['templateVersion'],
+            'xmlEmbedding' => $status['enabled'] && $status['xmlEmbedding'],
+            'pdfaVerification' => $status['enabled'] && $status['pdfaVerification'],
             'message' => $status['enabled'] ? '' : 'PDF-Modul ist deaktiviert. Bitte die Administration prüfen.',
         ]]);
     }

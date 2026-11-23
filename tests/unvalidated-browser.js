@@ -48,6 +48,32 @@ const path = require('node:path');
                     };
                     ns.showInvoiceForm();
                 }, {pdfEnabled, validationActive});
+                for (const cancellation of [false, true]) {
+                    for (const optionalSteps of [false, true]) {
+                        await page.evaluate(({cancellation, optionalSteps}) => {
+                            const ns = window.ShiRE;
+                            ns.state.cancellationFilename = cancellation ? 'original.xml' : null;
+                            ns.state.invoiceData.archivedTotals = {vat: -19, grand: -119};
+                            ns.state.pdfStatus.xmlEmbedding = optionalSteps;
+                            ns.state.pdfStatus.pdfaVerification = optionalSteps;
+                            ns.showInvoiceForm();
+                        }, {cancellation, optionalSteps});
+                        const expected = ['erzeugt eine XML-Rechnung'];
+                        if (validationActive) expected.push('validiert die XML-Rechnung auf das XRechnung-Szenario');
+                        if (pdfEnabled) {
+                            expected.push('erzeugt eine PDF-Rechnung');
+                            if (optionalSteps) expected.push('bindet die XML-Rechnung in die PDF-Rechnung ein',
+                                'prüft die PDF-Rechnung auf den Standard PDF/A-3');
+                        }
+                        assert.deepEqual(await page.locator('.myx-creation-steps li').allTextContents(), expected);
+                        assert.equal(await page.locator('.myx-primary + .myx-creation-steps').count(), 1);
+                        assert.equal(await page.locator('.myx-creation-steps + .myx-saved-invoices').count(), 1);
+                    }
+                }
+                await page.evaluate(() => {
+                    window.ShiRE.state.cancellationFilename = null;
+                    window.ShiRE.showInvoiceForm();
+                });
                 const downloadEvent = pdfEnabled ? page.waitForEvent('download') : null;
                 await page.getByRole('button', {name: 'Rechnung erstellen', exact: true}).click();
                 if (pdfEnabled) {
