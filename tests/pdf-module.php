@@ -239,7 +239,8 @@ namespace {
     }
 
     $dependencies = new PdfDependencyService($config, $runner, $workspace, $templates, $consistency);
-    check(!$dependencies->status()['enabled'], 'Missing Mustang disables module');
+    $config->system['shi_re_libreoffice'] = '/missing/shire-libreoffice';
+    check(!$dependencies->status()['enabled'], 'Missing LibreOffice disables module');
     $config->system['shi_re_libreoffice'] = PHP_BINARY;
     $config->system['shi_re_java'] = PHP_BINARY;
     $probeRunner = new class extends PdfProcessRunner {
@@ -247,8 +248,27 @@ namespace {
     };
     $probe = (new PdfDependencyService($config, $probeRunner, $workspace, $templates, $consistency))->status();
     check($probe['checks']['libreoffice']['ok'] && $probe['checks']['libreoffice']['version'] === '24.2.1', 'Independent LibreOffice check and version');
-    check(!$probe['checks']['mustang']['ok'] && !$probe['enabled'], 'Missing Mustang has its own failure');
+    check($probe['pdf_enabled'], 'PDF flag defaults to active with LibreOffice, independently of Mustang');
+    $probeDependencies = new PdfDependencyService($config, $probeRunner, $workspace, $templates, $consistency);
+    $probeDependencies->setPdfEnabled(false);
+    check(!$probeDependencies->status()['pdf_enabled'] && !$probeDependencies->status()['enabled'], 'Stored PDF opt-out disables generation');
+    $probeDependencies->setPdfEnabled(true);
+    $config->system['shi_re_libreoffice'] = '/missing/shire-libreoffice';
+    check(!$probeDependencies->status()['pdf_enabled'], 'Missing LibreOffice overrides active preference');
+    $config->system['shi_re_libreoffice'] = PHP_BINARY;
+    check($probeDependencies->status()['pdf_enabled'], 'Restored LibreOffice restores active preference');
+    check(!$probe['checks']['mustang']['ok'] && $probe['enabled'] && !$probe['xmlEmbedding'], 'Missing Mustang leaves plain PDF available');
     check(!$probe['checks']['verapdf']['ok'] && str_contains($probe['checks']['verapdf']['detail'], 'Optional'), 'Missing optional veraPDF is explicit');
+    $config->system['shi_re_java'] = '/missing/java';
+    $config->system['shi_re_mustang_jar'] = '/missing/mustang.jar';
+    $config->system['shi_re_verapdf'] = '/missing/verapdf';
+    $optionalMissing = $probeDependencies->status();
+    check($optionalMissing['enabled'] && !$optionalMissing['xmlEmbedding'] && !$optionalMissing['pdfaVerification'],
+        'Unavailable Java, Mustang and configured veraPDF do not block plain PDF');
+    check($probeDependencies->tools()['libreoffice'] === PHP_BINARY, 'Tool lookup accepts missing optional tools');
+    $config->system['shi_re_java'] = PHP_BINARY;
+    unset($config->system['shi_re_mustang_jar'], $config->system['shi_re_verapdf']);
+
     $dir = $workspace->create();
     try {
         $config->system['shi_re_mustang_jar'] = $dir . '/Mustang-CLI-0.0.0.jar';
@@ -265,6 +285,10 @@ namespace {
         $jar->close();
         $probe = $mustangDependencies->status();
         check($probe['checks']['mustang']['ok'] && $probe['checks']['mustang']['version'] === '2.26.0', 'Mustang release from own Maven metadata, not help or filename');
+        check($probe['enabled'], 'Ready tools enable PDF by default');
+        $mustangDependencies->setPdfEnabled(false);
+        check(!$mustangDependencies->status()['enabled'], 'PDF opt-out blocks generation even with ready tools');
+        $mustangDependencies->setPdfEnabled(true);
         $jar->open($config->system['shi_re_mustang_jar']);
         $jar->deleteName('META-INF/maven/org.mustangproject/Mustang-CLI/pom.properties');
         $jar->close();
@@ -288,8 +312,9 @@ namespace {
     // Vertragstests ohne installierte Werkzeuge, echte Dateien und Aufräumpfade.
     $fakeDependencies = new class($config, $runner, $workspace, $templates, $consistency) extends PdfDependencyService {
         public bool $enabled = true;
-        public function status(): array { return ['enabled' => $this->enabled, 'errors' => ['disabled']]; }
-        public function tools(): array { return ['libreoffice' => 'lo', 'java' => 'java', 'mustang' => 'mustang.jar', 'verapdf' => '']; }
+        public bool $embedding = true, $verification = false;
+        public function status(): array { return ['enabled' => $this->enabled, 'errors' => ['disabled'], 'xmlEmbedding' => $this->embedding, 'pdfaVerification' => $this->verification]; }
+        public function tools(): array { return ['libreoffice' => 'lo', 'java' => 'java', 'mustang' => 'mustang.jar', 'verapdf' => 'verapdf']; }
     };
     $fakeRunner = new class extends PdfProcessRunner {
         public bool $wrongXml = false, $fail = false, $failMetadata = false;
@@ -306,6 +331,7 @@ namespace {
                 file_put_contents($cwd . '/final.pdf', '%PDF-1.7 final');
             }
             if (in_array('extract', $command, true)) file_put_contents($cwd . '/extracted.xml', $this->wrongXml ? '<wrong/>' : file_get_contents($cwd . '/invoice.xml'));
+            if ($command[0] === 'verapdf') return '<report><validationReport isCompliant="true"/></report>';
             return '';
         }
     };
@@ -354,6 +380,20 @@ namespace {
     $fakeDependencies->enabled = false;
     rejects(fn () => $pdf->generate($bundle['xml'], $saved['version']), 'disabled');
     $fakeDependencies->enabled = true;
+    $fakeDependencies->embedding = false;
+    $fakeRunner->commands = [];
+    $progress->events = [];
+    $plain = $pdf->generate($bundle['xml'], $saved['version']);
+    check($plain['content'] === '%PDF-1.7 test' && $plain['filename'] === '26 200.pdf', 'Plain LibreOffice PDF is returned');
+    check(count($fakeRunner->commands) === 1 && $fakeRunner->commands[0][0] === 'lo', 'Plain PDF runs no Java, Mustang or veraPDF');
+    check(!in_array('Mustang-Prüfung erfolgreich abgeschlossen.', $progress->events, true), 'Plain PDF does not claim validation');
+    $fakeDependencies->verification = true;
+    $fakeRunner->commands = [];
+    $pdf->generate($bundle['xml'], $saved['version']);
+    check(count($fakeRunner->commands) === 2 && $fakeRunner->commands[1][0] === 'verapdf'
+        && str_ends_with(end($fakeRunner->commands[1]), '/invoice.pdf'), 'veraPDF independently checks plain LibreOffice output');
+    $fakeDependencies->embedding = true;
+    $fakeDependencies->verification = false;
 
     $request = new class implements \OCP\IRequest {
         public function getServerHost(): string { return 'CLOUD.322UD.DE:8443'; }
@@ -517,6 +557,16 @@ namespace {
         }
     };
     check($admin->saveSettings()->data['discardCalled'] === true, 'Established settings route dispatches explicit discard action');
+    $pdfRequest = new class implements \OCP\IRequest {
+        public mixed $value = false;
+        public function getParam($key) { return $key === 'pdf_enabled' ? $this->value : null; }
+    };
+    $pdfAdmin = new \OCA\ShiRE\Controller\PdfAdminController('shi_re', $pdfRequest, $templates, $probeDependencies, $storage, $proof);
+    check($pdfAdmin->saveSettings()->data['status']['pdf_enabled'] === false, 'Existing route persists PDF opt-out');
+    $pdfRequest->value = 'true';
+    check($pdfAdmin->saveSettings()->status === 400, 'PDF flag rejects non-boolean input');
+    $pdfRequest->value = true;
+    $pdfAdmin->saveSettings();
     foreach (['upload', 'status', 'saveSettings', 'discard'] as $method) {
         $reflection = new ReflectionMethod(\OCA\ShiRE\Controller\PdfAdminController::class, $method);
         check(count($reflection->getAttributes('OCP\\AppFramework\\Http\\Attribute\\NoAdminRequired')) === 0, 'Admin-only upload/status');
@@ -524,6 +574,18 @@ namespace {
     }
 
     if (in_array('--libreoffice', $argv, true)) {
+        $previousSystem = $config->system;
+        try {
+            $config->system['shi_re_libreoffice'] = '/usr/bin/libreoffice';
+            $config->system['shi_re_java'] = '/missing/java';
+            $config->system['shi_re_mustang_jar'] = '/missing/mustang.jar';
+            $config->system['shi_re_verapdf'] = '/missing/verapdf';
+            $plainService = new PdfInvoiceService($dependencies, $templates, $renderer, $runner, $workspace, $config);
+            $plainResult = $plainService->generate($bundle['xml'], $templates->current()['version']);
+            check(str_starts_with($plainResult['content'], '%PDF-'), 'Real service generates PDF without Java, Mustang or veraPDF');
+            echo "Real plain PDF generation without optional tools passed.\n";
+        } finally { $config->system = $previousSystem; }
+
         $dir = $workspace->create();
         try {
             file_put_contents($dir . '/invoice.odt', $rendered);

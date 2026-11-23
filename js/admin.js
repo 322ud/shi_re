@@ -75,6 +75,7 @@
         bindSwitch('myx-hide-validator', '/admin/validator/settings', 'hide_navigation', () => {}, checked => !checked);
         bindSwitch('myx-auto-update', '/admin/validator/settings', 'auto_update', data => showValidatorStatus(data.status));
         bindSwitch('myx-validation-enabled', '/admin/validator/settings', 'validation_enabled', data => showValidatorStatus(data.status));
+        bindSwitch('myx-pdf-enabled', '/admin/pdf/settings', 'pdf_enabled', data => showPdfStatus(data.status));
         bindSwitch('myx-custom-templates', '/admin/pdf/settings', 'custom_templates', data => {
             showPdfStatus(data.status);
         });
@@ -151,7 +152,11 @@
             if (!installed) document.getElementById('myx-replace-templates').open = false;
             document.getElementById('myx-template-panel').hidden = !installed || !document.getElementById('myx-replace-templates').open;
             document.querySelector('#myx-replace-templates summary').textContent = installed ? 'ersetzen' : 'Vorlagen installieren';
-            setInstalled('myx-pdf-enabled', Boolean(status.checks?.libreoffice?.ok && status.checks?.mustang?.ok));
+            const libreofficeInstalled = Boolean(status.checks?.libreoffice?.ok);
+            const pdfSwitch = document.getElementById('myx-pdf-enabled');
+            pdfSwitch.closest('tr').hidden = !libreofficeInstalled;
+            pdfSwitch.closest('label').hidden = false;
+            pdfSwitch.checked = libreofficeInstalled && (status.pdf_enabled ?? true);
             setInstalled('myx-xml-embedding', Boolean(status.checks?.mustang?.ok));
             setInstalled('myx-pdf-validation', Boolean(status.checks?.verapdf?.ok));
             pdfOutput.textContent = '';

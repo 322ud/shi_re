@@ -43,40 +43,46 @@ class PdfInvoiceService {
                 '--headless', '--nologo', '--nodefault', '--norestore', '--convert-to',
                 'pdf:writer_pdf_Export:{"SelectPdfVersion":{"type":"long","value":"3"}}',
                 '--outdir', $dir, $dir . '/invoice.odt'], $dir);
-            $this->pdf($dir . '/invoice.pdf'); // LibreOffice meldet manche Exportfehler mit Exitcode 0.
+            $finalPath = $dir . '/invoice.pdf';
+            $pdf = $this->pdf($finalPath); // LibreOffice meldet manche Exportfehler mit Exitcode 0.
             $this->progress?->finish('PDF aus der Rechnungsvorlage erzeugt.');
-            $this->progress?->start('XML wird mit Mustang in die PDF eingebettet …');
-            $base = [$tools['java'], '-jar', $tools['mustang'], '--disable-file-logging'];
-            $this->runner->run(array_merge($base, ['--action', 'combine', '--source', $dir . '/invoice.pdf',
-                '--source-xml', $dir . '/invoice.xml', '--out', $dir . '/combined.pdf',
-                '--format', 'fx', '--version', '1', '--profile', $this->profile($xml),
-                '--no-additional-attachments']), $dir);
-            $this->pdf($dir . '/combined.pdf');
-            $this->progress?->finish('XML-Rechnung in PDF eingebettet.');
-            $this->progress?->start('PDF-Metadaten werden ergänzt …');
-            $metadata = new PdfMetadataService();
-            $this->write($dir . '/metadata.xml', $metadata->properties($values['{{DocumentType}}'], $status['versions'] ?? [],
-                $this->config->getAppValue('shi_re', 'validation_enabled', 'yes') === 'yes' ? $validatorVersions : [],
-                $tools['verapdf'] !== '', $author));
-            $this->runner->run([$tools['java'], '-Djava.awt.headless=true', '-cp',
-                $metadata->classPath($tools['mustang']), 'ShiRePdfMetadata',
-                $dir . '/combined.pdf', $dir . '/final.pdf', $dir . '/metadata.xml'], $dir);
-            $pdf = $this->pdf($dir . '/final.pdf');
-            $this->progress?->finish('PDF-Metadaten ergänzt.');
-            $this->progress?->start('Eingebettete XML wird abgeglichen …');
-            $this->runner->run(array_merge($base, ['--action', 'extract', '--source', $dir . '/final.pdf',
-                '--out', $dir . '/extracted.xml']), $dir);
-            $extracted = @file_get_contents($dir . '/extracted.xml');
-            if ($extracted === false || !hash_equals(hash('sha256', $xml), hash('sha256', $extracted))) {
-                throw new \RuntimeException('Die eingebettete XML stimmt nicht mit der validierten XML überein.');
+            if (!empty($status['xmlEmbedding'])) {
+                $this->progress?->start('XML wird mit Mustang in die PDF eingebettet …');
+                $base = [$tools['java'], '-jar', $tools['mustang'], '--disable-file-logging'];
+                $this->runner->run(array_merge($base, ['--action', 'combine', '--source', $dir . '/invoice.pdf',
+                    '--source-xml', $dir . '/invoice.xml', '--out', $dir . '/combined.pdf',
+                    '--format', 'fx', '--version', '1', '--profile', $this->profile($xml),
+                    '--no-additional-attachments']), $dir);
+                $this->pdf($dir . '/combined.pdf');
+                $this->progress?->finish('XML-Rechnung in PDF eingebettet.');
+                $this->progress?->start('PDF-Metadaten werden ergänzt …');
+                $metadata = new PdfMetadataService();
+                $this->write($dir . '/metadata.xml', $metadata->properties($values['{{DocumentType}}'], $status['versions'] ?? [],
+                    $this->config->getAppValue('shi_re', 'validation_enabled', 'yes') === 'yes' ? $validatorVersions : [],
+                    !empty($status['pdfaVerification']), $author));
+                $this->runner->run([$tools['java'], '-Djava.awt.headless=true', '-cp',
+                    $metadata->classPath($tools['mustang']), 'ShiRePdfMetadata',
+                    $dir . '/combined.pdf', $dir . '/final.pdf', $dir . '/metadata.xml'], $dir);
+                $finalPath = $dir . '/final.pdf';
+                $pdf = $this->pdf($finalPath);
+                $this->progress?->finish('PDF-Metadaten ergänzt.');
+                $this->progress?->start('Eingebettete XML wird abgeglichen …');
+                $this->runner->run(array_merge($base, ['--action', 'extract', '--source', $dir . '/final.pdf',
+                    '--out', $dir . '/extracted.xml']), $dir);
+                $extracted = @file_get_contents($dir . '/extracted.xml');
+                if ($extracted === false || !hash_equals(hash('sha256', $xml), hash('sha256', $extracted))) {
+                    throw new \RuntimeException('Die eingebettete XML stimmt nicht mit der validierten XML überein.');
+                }
+                $this->progress?->finish('Eingebettete XML stimmt mit der archivierten XML überein.');
+                $this->progress?->start('PDF-Rechnung wird mit Mustang geprüft …');
+                $this->runner->run(array_merge($base, ['--action', 'validate', '--source', $dir . '/final.pdf']), $dir);
+                $this->progress?->finish('Mustang-Prüfung erfolgreich abgeschlossen.');
+            } else {
+                $this->progress?->finish('PDF ohne XML-Einbettung und ohne Mustang-Prüfung erzeugt.');
             }
-            $this->progress?->finish('Eingebettete XML stimmt mit der archivierten XML überein.');
-            $this->progress?->start('PDF-Rechnung wird mit Mustang geprüft …');
-            $this->runner->run(array_merge($base, ['--action', 'validate', '--source', $dir . '/final.pdf']), $dir);
-            $this->progress?->finish('Mustang-Prüfung erfolgreich abgeschlossen.');
-            if ($tools['verapdf'] !== '') {
+            if (!empty($status['pdfaVerification'])) {
                 $this->progress?->start('PDF/A-3b wird mit veraPDF geprüft …');
-                $report = $this->runner->run([$tools['verapdf'], '--format', 'xml', '--flavour', '3b', $dir . '/final.pdf'], $dir);
+                $report = $this->runner->run([$tools['verapdf'], '--format', 'xml', '--flavour', '3b', $finalPath], $dir);
                 $doc = OdtInvoiceRenderer::xml($report);
                 $xp = new \DOMXPath($doc);
                 $results = $xp->query('//*[local-name()="validationReport"]');

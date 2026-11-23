@@ -13,7 +13,7 @@ Unter **System → Systemprüfung wiederholen** erscheinen Verfügbarkeit, Versi
 | eigene Vorlagen | Ein konsistenter Vorlagensatz; ohne eigene Vorlagen werden die mitgelieferten verwendet. |
 | INValidator | Optional für XML-Validierung; muss installiert, aktiviert und zur Prüfung eingeschaltet sein. |
 | LibreOffice | Writer auf dem Server für die PDF-Konvertierung. |
-| MustangCLI | Lesbare CLI-JAR und Java ab Version 11; ShiRE prüft auch benötigte CLI-Funktionen und den mitgelieferten Metadaten-Helfer. Getestet: Mustang-CLI 2.26.0. |
+| MustangCLI | Optional für XML-Einbettung, zusätzliche Metadaten und Mustang-Prüfung. Lesbare CLI-JAR und Java ab Version 11; ShiRE prüft auch benötigte CLI-Funktionen und den mitgelieferten Metadaten-Helfer. Getestet: Mustang-CLI 2.26.0. |
 | veraPDF | Optional für die zusätzliche PDF/A-3b-Prüfung. |
 
 Für PDF muss PHP außerdem `proc_open` ausführen dürfen. Der Webserver-Benutzer benötigt Zugriff auf Programme und Schriften sowie ein beschreibbares Nextcloud-Tempverzeichnis. Bei Containern müssen die Werkzeuge in der Umgebung des PHP-Prozesses erreichbar sein. HTTP-/Proxy-Zeitlimits müssen Konvertierung und Prüfung zulassen; einzelne Werkzeugaufrufe sind auf 60 Sekunden begrenzt.
@@ -79,13 +79,17 @@ Automatische Updates benötigen Zugriff auf die GitHub-Releases und ein beschrei
 
 ### PDF-Erzeugung mit LibreOffice und MustangCLI
 
-LibreOffice Writer konvertiert die ausgefüllte ODT-Vorlage. MustangCLI bettet die Rechnungs-XML ein und prüft das Ergebnis; ShiRE ergänzt die Metadaten und vergleicht die eingebettete XML mit der angenommenen Rechnung.
+LibreOffice Writer konvertiert die ausgefüllte ODT-Vorlage in eine PDF-Rechnung. Java, MustangCLI und veraPDF sind dafür keine Voraussetzung. Ohne verfügbares Java und MustangCLI wird die LibreOffice-PDF ohne eingebettete Rechnungs-XML und ohne Mustang-Prüfung ausgegeben. Sind Java und MustangCLI verfügbar, bettet MustangCLI die Rechnungs-XML ein und prüft das Ergebnis; ShiRE ergänzt die Metadaten und vergleicht die eingebettete XML mit der angenommenen Rechnung. Die XML-Rechnungsdaten werden weiterhin intern zum Ausfüllen der ODT-Vorlage verwendet.
 
-Es gibt hierfür **keinen eigenen Schalter**: Sind Werkzeuge und Vorlagen bereit, steht PDF-Erzeugung zur Verfügung. Maßgeblich sind die Einträge **System → für PDF-Erzeugung** und die Statuszeile darunter. Ohne betriebsbereites PDF-Modul bleibt der XML-Download verfügbar.
+Unter **Einstellungen → Rechnungserzeugung → PDF-Erzeugung** lässt sich die PDF-Erzeugung aktivieren oder deaktivieren. Die Zeile erscheint nur, wenn LibreOffice verfügbar ist; ohne gespeicherte Auswahl ist das Flag dann standardmäßig aktiv. Ohne LibreOffice ist es inaktiv und die Zeile ausgeblendet. Eine gespeicherte Deaktivierung bleibt auch nach einem Neustart erhalten. Erforderlich bleiben konsistente Vorlagen, PHP ZIP und DOM, `proc_open` und ein beschreibbares temporäres Arbeitsverzeichnis. Die Verfügbarkeit der optionalen Werkzeuge steht unter **Komponenten**. Bei deaktivierter oder nicht betriebsbereiter PDF-Erzeugung bleibt die XML-Erzeugung einschließlich einer gegebenenfalls aktivierten XML-Prüfung verfügbar.
+
+Das Flag `pdf_enabled` wird über die bestehende Route `/admin/pdf/settings` gespeichert. Dafür sind weder eine neue Routenregistrierung noch eine Aktualisierung des Routencaches erforderlich.
 
 Installation und Verwendung: [LibreOffice im Kommandozeilenbetrieb](https://help.libreoffice.org/latest/de/text/shared/guide/start_parameters.html), [Mustangproject mit CLI und Releases](https://github.com/ZUGFeRD/mustangproject).
 
 #### PDF-Metadaten
+
+Die folgende Metadaten-Ergänzung erfolgt nur im Verarbeitungspfad mit Java und MustangCLI. Bei reinem LibreOffice-Export bleiben die von LibreOffice erzeugten Metadaten erhalten.
 
 Der PDF-Autor (Author und XMP `dc:creator`) wird als `initialen@domain` vollständig in Kleinbuchstaben gesetzt. Die Initialen stammen aus dem Anzeigenamen des angemeldeten Nextcloud-Nutzers (ersatzweise der Benutzerkennung), die Domain aus dem von Nextcloud ermittelten Anfragehost ohne Port und ohne führendes `cloud.` (z. B. `cloud.my_domain.de` → `my_domain.de`).
 
@@ -93,7 +97,7 @@ Das PDF enthält die Versionen von ShiRE, MustangCLI und LibreOffice sowie bei a
 
 ### PDF-Validierung mit veraPDF
 
-[veraPDF installieren](https://docs.verapdf.org/install/) und `shi_re_verapdf` auf das ausführbare CLI-Programm setzen. Damit wird die zusätzliche Prüfung des fertigen Dokuments auf **PDF/A-3b** aktiviert; einen Admin-Schalter gibt es nicht. **System → veraPDF** zeigt die Verfügbarkeit. Ohne Pfadeintrag entfällt diese Zusatzprüfung; ein eingetragener, aber ungültiger Pfad verhindert die PDF-Bereitschaft.
+[veraPDF installieren](https://docs.verapdf.org/install/) und `shi_re_verapdf` auf das ausführbare CLI-Programm setzen. Damit wird die zusätzliche Prüfung des fertigen Dokuments auf **PDF/A-3b** aktiviert; einen Admin-Schalter gibt es nicht. **Komponenten → veraPDF** zeigt die Verfügbarkeit. Ohne verfügbares veraPDF entfällt diese Zusatzprüfung; auch ein ungültiger Pfad blockiert die reine PDF-Erzeugung nicht. Ein verfügbares veraPDF prüft unabhängig von MustangCLI auch eine PDF ohne XML-Einbettung. Schlägt eine tatsächlich gestartete Prüfung oder XML-Einbettung fehl, wird der Vorgang weiterhin mit einem Fehler beendet.
 
 Details: [veraPDF-Prüfprofile und CLI](https://docs.verapdf.org/cli/validation/). Die PDF/A-Prüfung ersetzt keine fachliche XML-Validierung.
 

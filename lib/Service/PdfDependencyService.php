@@ -14,6 +14,10 @@ class PdfDependencyService {
         private TemplateConsistencyService $consistency,
     ) {}
 
+    public function setPdfEnabled(bool $enabled): void {
+        $this->config->setAppValue('shi_re', 'pdf_enabled', $enabled ? 'yes' : 'no');
+    }
+
     public function tools(): array {
         $tools = [
             'libreoffice' => $this->config->getSystemValueString('shi_re_libreoffice', '/usr/bin/libreoffice'),
@@ -22,7 +26,8 @@ class PdfDependencyService {
             'verapdf' => $this->config->getSystemValueString('shi_re_verapdf', ''),
         ];
         foreach ($tools as $name => $path) {
-            if ($name === 'verapdf' && $path === '') continue;
+            // Optional tools are selected from their capability checks in status().
+            if ($name !== 'libreoffice') continue;
             if (!str_starts_with($path, '/') || !is_file($path) || !is_readable($path)
                 || ($name !== 'mustang' && !is_executable($path))) {
                 throw new \RuntimeException("PDF-Werkzeug $name fehlt oder ist nicht zugreifbar. Pfad in config.php prüfen.");
@@ -83,7 +88,7 @@ class PdfDependencyService {
                 }
                 $checks[$key] = ['ok' => true, 'version' => $versions[$key], 'detail' => $path];
             } catch (\Throwable $e) {
-                $errors[] = $e->getMessage();
+                if ($key === 'libreoffice') $errors[] = $e->getMessage();
                 $checks[$key] = ['ok' => false, 'version' => '', 'detail' => $e->getMessage()];
             } finally {
                 if ($dir !== null) $this->workspace->remove($dir);
@@ -96,10 +101,14 @@ class PdfDependencyService {
             $checks['mustang']['ok'] = false;
             $checks['mustang']['detail'] .= ' Java: ' . $checks['java']['detail'];
         }
-        return ['enabled' => !$errors, 'errors' => $errors, 'versions' => $versions, 'checks' => $checks,
+        $pdfEnabled = $checks['libreoffice']['ok']
+            && $this->config->getAppValue('shi_re', 'pdf_enabled', 'yes') === 'yes';
+        if (!$pdfEnabled) $errors[] = 'PDF-Erzeugung ist deaktiviert.';
+        return ['pdf_enabled' => $pdfEnabled, 'enabled' => !$errors, 'errors' => $errors, 'versions' => $versions, 'checks' => $checks,
             'customTemplatesStatus' => $checks['templates']['detail'],
             'templateVersion' => $bundle['version'] ?? null,
-            'pdfaVerification' => $tools['verapdf'] !== ''];
+            'xmlEmbedding' => $checks['mustang']['ok'],
+            'pdfaVerification' => $checks['verapdf']['ok']];
     }
 
     private function mustangVersion(string $path): string {

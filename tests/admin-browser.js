@@ -98,6 +98,7 @@ const path = require('node:path');
         assert.equal(await page.locator('table[aria-labelledby="shire-generation-title"] [data-setting]').count(), 5);
         assert.equal(await page.locator('table[aria-labelledby="shire-interface-title"] [data-setting]').count(), 3);
         assert.equal(await page.locator('#myx-xml-embedding').isDisabled(), true);
+        assert.equal(await page.locator('[data-setting="myx-pdf-enabled"]').isVisible(), false);
         assert.equal(await page.locator('.shire-system > thead').count(), 0);
         assert.ok(await page.locator('.shire-system > tbody > tr:not(#myx-template-panel)').evaluateAll(rows => rows.every(row => row.children.length === 4 && row.lastElementChild.querySelector('[data-shire-help]'))));
         assert.equal(await page.locator('[data-check=validator] + [data-check=libreoffice]').count(), 1);
@@ -151,6 +152,27 @@ const path = require('node:path');
         await page.locator('#myx-check-system').click();
         await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
         assert.equal(await page.locator('[data-check=libreoffice] [data-version]').textContent(), '24.2');
+        assert.equal(await page.locator('[data-setting="myx-pdf-enabled"]').isVisible(), true);
+        assert.equal(await page.locator('#myx-pdf-enabled').isChecked(), true);
+        await page.evaluate(() => {
+            window.pdfFetch = window.fetch;
+            window.fetch = async (url, options) => {
+                const response = await window.pdfFetch(url, options);
+                const data = await response.json();
+                data.status.pdf_enabled = JSON.parse(options.body).pdf_enabled;
+                return {...response, json: async () => data};
+            };
+        });
+        await page.locator('#myx-pdf-enabled').uncheck();
+        await page.waitForFunction(() => !document.getElementById('myx-pdf-enabled').disabled);
+        assert.equal(await page.evaluate(() => calls.at(-1).body.pdf_enabled), false);
+        assert.equal(await page.locator('[data-setting="myx-pdf-enabled"] [data-setting-state]').textContent(), 'inaktiv');
+        await page.evaluate(() => { window.fail = true; });
+        await page.locator('#myx-pdf-enabled').click();
+        await page.waitForFunction(() => !document.getElementById('myx-pdf-enabled').disabled);
+        assert.equal(await page.locator('#myx-pdf-enabled').isChecked(), false);
+        await page.evaluate(() => { window.fetch = window.pdfFetch; window.fail = false; });
+
         await page.evaluate(() => { window.fail = true; });
         await page.locator('#myx-hide-validator').click();
         await page.waitForFunction(() => !document.getElementById('myx-hide-validator').disabled);

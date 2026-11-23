@@ -56,6 +56,12 @@ class PdfAdminController extends Controller {
         if ($this->request->getParam('action') === 'discard_templates') {
             return $this->discard();
         }
+        $pdfEnabled = $this->request->getParam('pdf_enabled');
+        if ($pdfEnabled !== null) {
+            if (!is_bool($pdfEnabled)) return new JSONResponse(['success' => false, 'error' => 'Ungültige PDF-Einstellung.'], 400);
+            $this->dependencies->setPdfEnabled($pdfEnabled);
+            return $this->status();
+        }
         $enabled = $this->request->getParam('custom_templates');
         if (!is_bool($enabled)) return new JSONResponse(['success' => false, 'error' => 'Ungültige Vorlageneinstellung.'], 400);
         $this->templates->setCustomTemplates($enabled);
