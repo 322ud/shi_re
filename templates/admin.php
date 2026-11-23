@@ -31,7 +31,7 @@ $rows = [
     ['myx-xml-embedding', 'XML-Einbindung', !empty($checks['mustang']['ok']), true, false, true],
     ['myx-pdf-validation', 'PDF-Prüfung', !empty($checks['verapdf']['ok']), true, false, true],
     ['myx-hide-validator', 'INValidator', true, !$status['hide_navigation'], true, false],
-    ['myx-message-area', 'Meldungsbereich', true, true, true, true],
+    ['myx-message-area', 'Meldungsbereich', true, $_['messageArea'] ?? true, true, false],
     ['myx-allow-draft-deletion', 'Button „Entwurf löschen“', true, $_['allowDraftDeletion'], true, false],
 ];
 ?>
@@ -144,10 +144,7 @@ $rows = [
         <button id="myx-check-system" type="button">Systemprüfung wiederholen</button>
         <?php $adminHelp('systemvoraussetzungen', 'Systemprüfung wiederholen'); ?>
         <p id="myx-pdf-status" data-status="<?php p(json_encode($_['pdfStatus'])); ?>" role="status" aria-live="polite"></p>
-        <details><summary>Weitere Einstellungen</summary>
-            <label class="shire-switch"><input id="myx-detailed-progress" type="checkbox" role="switch" <?php if ($_['detailedProgress'] ?? false) { print_unescaped('checked'); } ?>>ausführliche Ablaufdokumentation</label>
 
-        </details>
     </section>
     <section aria-labelledby="shire-admin-readme-title">
         <h3 id="shire-admin-readme-title">README</h3>

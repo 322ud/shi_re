@@ -26,10 +26,7 @@ namespace {
     };
     $session = new class implements \OCP\ISession { public int $closed = 0; public function close() { $this->closed++; } };
     $make = fn () => new \OCA\ShiRE\Service\ProgressService($config, $request, $users, $session);
-    $disabled = $make();
-    $disabled->start('unused'); $disabled->finish('unused');
-    check($config->values === [] && $session->closed === 0);
-    $config->enabled = true;
+    // Detailed reporting is always enabled, even with the legacy setting off.
     $writer = $make();
     $reader = $make();
     $id = $request->params['progressId'];
@@ -71,5 +68,5 @@ namespace {
     $users->uid = 'bob';
     check($controller->status()->data['progress'] === null);
     $users->uid = 'alice';
-    echo "Progress snapshots: live state, timestamps, failures, session release, isolation, expiration and disabled mode passed.\n";
+    echo "Progress snapshots: live state, timestamps, failures, session release, isolation, expiration and always-on reporting passed.\n";
 }

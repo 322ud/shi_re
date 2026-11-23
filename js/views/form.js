@@ -263,7 +263,7 @@
         const link = NS.make('a', {href: url, download: filename});
         document.body.appendChild(link);
         link.click();
-        if (NS.state.detailedProgress) NS.log(filename.toLowerCase().endsWith('.xml') ? 'XML-Download gestartet.' : 'PDF-Download gestartet.');
+        NS.log(filename.toLowerCase().endsWith('.xml') ? 'XML-Download gestartet.' : 'PDF-Download gestartet.');
         link.remove();
         window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
     };

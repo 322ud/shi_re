@@ -19,8 +19,7 @@ class ProgressService {
         $this->initialized = true;
         $id = $this->request->getParam('progressId');
         $window = $this->request->getParam('windowId');
-        if ($this->config->getAppValue('shi_re', 'detailed_progress', 'no') !== 'yes'
-            || !is_string($id) || !preg_match('/^[a-f0-9]{32}$/D', $id)
+        if (!is_string($id) || !preg_match('/^[a-f0-9]{32}$/D', $id)
             || !is_string($window) || $window === '' || strlen($window) > 128 || !$this->users->getUser()) return false;
         $this->snapshot = ['id' => $id, 'window' => $window, 'updated' => time(), 'current' => null, 'events' => []];
         // Polling must not wait for the invoice request to release its session.
@@ -57,7 +56,7 @@ class ProgressService {
 
     public function read(string $id, string $window): ?array {
         $user = $this->users->getUser();
-        if (!$user || $this->config->getAppValue('shi_re', 'detailed_progress', 'no') !== 'yes') return null;
+        if (!$user) return null;
         $this->session->close();
         $snapshot = json_decode($this->config->getUserValue($user->getUID(), 'shi_re', 'progress_snapshot', ''), true);
         if (!is_array($snapshot) || ($snapshot['id'] ?? null) !== $id || ($snapshot['window'] ?? null) !== $window

@@ -10,12 +10,20 @@ const path = require('node:path');
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
         await page.goto('about:blank');
-        await page.setContent('<div id="myx-input"></div><div id="myx-output"></div>');
+        await page.setContent('<div id="myx-root" data-message-area="false"></div>');
         await page.evaluate(() => {
             window.ShiRE = {state: {detailedProgress: true, windowId: 'window'}};
             window.OC = {requestToken: 'test'};
         });
         for (const file of ['js/dom.js', 'js/api.js', 'js/progress.js']) await page.addScriptTag({path: path.resolve(file)});
+        await page.addStyleTag({path: path.resolve('css/style.css')});
+        await page.evaluate(() => ShiRE.initLayout());
+        assert.equal(await page.locator('#myx-output').isVisible(), false);
+        const rootBox = await page.locator('#myx-root').boundingBox();
+        const inputBox = await page.locator('#myx-input').boundingBox();
+        assert.ok(Math.abs(rootBox.height - inputBox.height) < 1, 'White pane fills the available height');
+        await page.evaluate(() => ShiRE.setMessageAreaVisible(true));
+        assert.equal(await page.locator('#myx-output').isVisible(), true);
         await page.evaluate(() => {
             ShiRE.route = path => path;
             window.snapshot = {current: {time: '11:01:02', text: 'XML wird mit INValidator geprüft …'}, events: []};
@@ -50,22 +58,14 @@ const path = require('node:path');
         });
         assert.equal(await page.locator('#myx-output > div').count(), 2, 'Final drain preserves short completions without duplicates');
         assert.equal(await page.locator('.myx-busy').count(), 0);
-        const polls = await page.evaluate(() => window.polls);
-        await page.evaluate(async () => {
-            ShiRE.state.detailedProgress = false;
-            window.fetch = async (url, options) => {
-                if (url === '/validator/status' || JSON.parse(options.body).progressId) throw Error('Disabled progress made request');
-                return new Response(JSON.stringify({success: true}));
-            };
-            await ShiRE.post('/en16931/createXmlInvoice');
-        });
-        assert.equal(await page.evaluate(() => window.polls), polls);
         await page.evaluate(() => {
-            ShiRE.state.detailedProgress = true;
+            ShiRE.state.detailedProgress = false; // Old state cannot select a short mode.
+            ShiRE.setMessageAreaVisible(false);
             ShiRE.log('Abschluss.');
         });
+        assert.equal(await page.locator('#myx-output').isVisible(), false);
         assert.match(await page.locator('#myx-output > div').last().textContent(), /^\[\d{2}:\d{2}:\d{2}\] Abschluss\.$/);
         assert.deepEqual(errors, []);
-        console.log('Progress browser: live steps before response, server timestamps, final drain, no duplicates and disabled mode passed.');
+        console.log('Progress browser: live steps before response, server timestamps, final drain, no duplicates and full-height hidden message area passed.');
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

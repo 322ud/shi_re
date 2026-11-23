@@ -2,7 +2,7 @@
     'use strict';
 
     const NS = window.ShiRE;
-    const progressLabel = text => NS.state.detailedProgress && NS.progressTime
+    const progressLabel = text => NS.progressTime
         ? '[' + NS.progressTime() + '] ' + text : text;
 
     NS.createXmlInvoice = async function () {
@@ -20,7 +20,7 @@
 
 
 
-        if (!NS.state.detailedProgress || !NS.progressReported) NS.log(
+        if (!NS.progressReported) NS.log(
             'XML-Rechnung erstellt: Datei ' +
             NS.state.xmlInvoiceFile +
             ', Rechnungsnummer ' +
@@ -51,7 +51,7 @@
         } finally {
             busy.hidden = true;
         }
-        if (!NS.state.detailedProgress || !NS.progressReported) NS.log(data.skipped ? 'XML-Rechnung ohne INValidator-Prüfung erstellt'
+        if (!NS.progressReported) NS.log(data.skipped ? 'XML-Rechnung ohne INValidator-Prüfung erstellt'
             : data.valid ? 'XRechnung (XML) ist valide' : 'XRechnung (XML) ist nicht valide');
         if (data.html && !NS.state.invoiceInterrupted) {
             const frame = NS.make('iframe', {
@@ -80,7 +80,7 @@
                 const result = await NS.post('/en16931/review', {xmlHash: data.xmlHash, accept: accepted,
                     validationToken: NS.state.validationToken, pdf: choice === 'pdf'});
                 finished = true;
-                if (accepted && (!NS.state.detailedProgress || !NS.progressReported)) NS.log('XML-Rechnung archiviert');
+                if (accepted && !NS.progressReported) NS.log('XML-Rechnung archiviert');
                 NS.stopHeartbeat();
                 if (menu) menu.destroy();
                 if (choice === 'pdf') {
@@ -147,8 +147,7 @@
         NS.clear(input);
         const busy = NS.make('div', {class: 'myx-busy', role: 'status'});
         busy.appendChild(NS.make('span', {class: 'icon-loading-small', 'aria-hidden': 'true'}));
-        busy.appendChild(NS.make('span', {}, progressLabel(NS.state.detailedProgress
-            ? 'PDF-Werkzeuge und Vorlagen werden geprüft …' : 'PDF-Rechnung wird aus der archivierten XML erstellt …')));
+        busy.appendChild(NS.make('span', {}, progressLabel('PDF-Werkzeuge und Vorlagen werden geprüft …')));
         input.appendChild(busy);
         try {
             const {status} = await NS.post('/pdf/status');
@@ -177,7 +176,7 @@
                 throw new Error(message);
             }
             NS.state.pdfDownloadUrl = URL.createObjectURL(pdfBlob);
-            if (!NS.state.detailedProgress || !NS.progressReported) {
+            if (!NS.progressReported) {
                 NS.log('PDF-Rechnung erstellt');
                 NS.log('PDF-Rechnung archiviert');
             }
@@ -189,18 +188,16 @@
                 link.click();
                 link.remove();
                 window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-                if (NS.state.detailedProgress) NS.log('PDF-Download gestartet.');
+                NS.log('PDF-Download gestartet.');
             }
             NS.showFinishedInvoice();
             const preview = NS.make('iframe', {src: NS.state.pdfDownloadUrl, title: 'PDF-Rechnung', class: 'myx-validation-frame'});
-            if (NS.state.detailedProgress) {
-                const loading = NS.make('p', {role: 'status'}, '[' + NS.progressTime() + '] PDF-Rechnung wird zur Anzeige geladen …');
-                input.appendChild(loading);
-                preview.addEventListener('load', () => {
-                    loading.remove();
-                    NS.log('PDF-Rechnung zur Anzeige und zum Speichern bereit.');
-                }, {once: true});
-            }
+            const loading = NS.make('p', {role: 'status'}, progressLabel('PDF-Rechnung wird zur Anzeige geladen …'));
+            input.appendChild(loading);
+            preview.addEventListener('load', () => {
+                loading.remove();
+                NS.log('PDF-Rechnung zur Anzeige und zum Speichern bereit.');
+            }, {once: true});
             input.appendChild(preview);
         } catch (error) {
             NS.showFinishedInvoice();

@@ -588,3 +588,7 @@ button:hover {
     color: #c00;
     opacity: 1;
 }
+
+/* Removing the log pane lets the input pane consume the full flex height. */
+#myx-output[hidden] { display: none !important; }
+#myx-root[data-message-area="false"] #myx-input { flex: 1; }

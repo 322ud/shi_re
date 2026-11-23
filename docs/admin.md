@@ -49,13 +49,17 @@ Die Programme müssen für den Webserver-Benutzer lesbar und ausführbar sein, d
 
 ## Optionen für die Nutzung
 
-Unter **Einstellungen → andere**:
+Unter **Einstellungen** (Archivverwaltung unter **Komponenten**):
 
 | Auswahl | Wirkung | Standard |
 | --- | --- | --- |
-| ausführliche Ablaufdokumentation | Zeigt den laufenden Verarbeitungsschritt und abgeschlossene Schritte mit Uhrzeit im Meldungsfenster der Nutzer. Übersprungene Prüfungen werden benannt; Zeitzone ist Europe/Berlin. | aus |
+| Meldungsbereich | Blendet den grauen Meldungsbereich in der Nutzeroberfläche ein oder aus. Ohne Meldungsbereich füllt der weiße Bereich die gesamte nutzbare Fläche. Die Ablaufdokumentation ist immer ausführlich, mit Uhrzeit (Europe/Berlin) und Hinweisen auf übersprungene Prüfungen. | eingeblendet |
 | zeige Button „aktiven Rechnungsentwurf löschen“ bei Entwurfskonflikt | Nutzer können den blockierenden aktiven Entwurf nach Bestätigung löschen und neu beginnen. Dabei gehen die bisherigen Entwurfsdaten verloren. Diese Option darf bei mehreren (gleichzeitigen) Nutzern nicht gesetzt sein.| aus |
 | Archiv leeren (Button) | Löscht nach Bestätigung durch Eingabe von `ja` alle archivierten XML-Rechnungen und PDFs appweit. Entwürfe und Vorlagen bleiben erhalten. Die nächste Rechnungsnummer richtet sich anschließend wieder nach der aktiven Vorlage; ein bestehender Entwurf behält seine Nummer. | — |
+
+Die Einstellung „Meldungsbereich“ gilt nach dem nächsten Laden der Nutzeroberfläche. Die frühere Auswahl einer kurzen oder ausführlichen Ablaufdokumentation und das Menü „Weitere Einstellungen“ entfallen. Gespeicherte Werte von `detailed_progress` werden nicht mehr verwendet.
+
+Die Einstellung wird über die bestehende, auf Administratoren beschränkte und CSRF-geschützte Route `/admin/validator/settings` gespeichert (`message_area`, boolesch). Es wird keine neue Route benötigt; bestehende Installationen benötigen dafür keine Routencache-Aktualisierung.
 
 ## Optionale Komponenten
 

@@ -16,7 +16,8 @@ class PageController extends Controller {
         string $appName,
         IRequest $request,
         private \OCP\IURLGenerator $urls,
-        private \OCA\ShiRE\Service\TextEditorLoader $textEditorLoader
+        private \OCA\ShiRE\Service\TextEditorLoader $textEditorLoader,
+        private \OCP\IConfig $config
     ) {
         parent::__construct($appName, $request);
     }
@@ -50,7 +51,10 @@ class PageController extends Controller {
         Util::addScript('shi_re', 'views/create-xml-invoice');
         Util::addScript('shi_re', 'main');
 
-        return new TemplateResponse('shi_re', 'index', ['readmeUrl' => $this->urls->linkToRoute('shi_re.page.readme')]);
+        return new TemplateResponse('shi_re', 'index', [
+            'readmeUrl' => $this->urls->linkToRoute('shi_re.page.readme'),
+            'messageArea' => $this->config->getAppValue('shi_re', 'message_area', 'yes') === 'yes',
+        ]);
     }
     #[NoAdminRequired]
     #[NoCSRFRequired]

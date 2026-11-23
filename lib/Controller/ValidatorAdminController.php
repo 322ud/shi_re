@@ -38,7 +38,7 @@ class ValidatorAdminController extends Controller {
                 (string)$this->request->getParam('progressId'), (string)$this->request->getParam('windowId'))]);
         }
         $status = $this->dependency->settings();
-        $status['detailed_progress'] = $this->config->getAppValue('shi_re', 'detailed_progress', 'no') === 'yes';
+        $status['message_area'] = $this->config->getAppValue('shi_re', 'message_area', 'yes') === 'yes';
         $status['validation_active'] = $this->validator->isActive();
         $user = $this->session->getUser();
         $status['admin'] = $user !== null && $this->groups->isAdmin($user->getUID());
@@ -65,9 +65,9 @@ class ValidatorAdminController extends Controller {
 
     #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/admin/progress/settings')]
     public function saveProgressSettings(): JSONResponse {
-        $enabled = $this->request->getParam('detailed_progress');
+        $enabled = $this->request->getParam('message_area');
         if (!is_bool($enabled)) return new JSONResponse(['success' => false, 'error' => 'Ungültige Einstellung.'], 400);
-        $this->config->setAppValue('shi_re', 'detailed_progress', $enabled ? 'yes' : 'no');
+        $this->config->setAppValue('shi_re', 'message_area', $enabled ? 'yes' : 'no');
         return new JSONResponse(['success' => true]);
     }
 
@@ -84,7 +84,7 @@ class ValidatorAdminController extends Controller {
     #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/admin/validator/settings')]
     public function save(): JSONResponse {
         // Reuse the established admin/CSRF-protected settings route; keep the newer alias working too.
-        if ($this->request->getParam('detailed_progress') !== null) {
+        if ($this->request->getParam('message_area') !== null) {
             return $this->saveProgressSettings();
         }
         try {

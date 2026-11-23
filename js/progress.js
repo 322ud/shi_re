@@ -12,7 +12,7 @@
         timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
     }).format(new Date());
     NS.trackProgress = async function (path, body, action) {
-        if (!NS.state.detailedProgress || !paths.has(path)) return action();
+        if (!paths.has(path)) return action();
         const bytes = crypto.getRandomValues(new Uint8Array(16));
         body.progressId = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
         const windowId = NS.state.windowId;

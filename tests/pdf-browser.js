@@ -11,6 +11,7 @@ class Element {
     remove() { this.isConnected = false; }
     appendChild(child) { this.children.push(child); }
     click() { this.clicked = true; }
+    addEventListener(name, handler) { (this.events ||= {})[name] = handler; }
 }
 (async () => {
     for (const choice of ['cancel-close', 'cancel-new', 'accept-stay', 'pdf']) {
@@ -88,7 +89,11 @@ class Element {
             assert.equal(ns.state.validationToken, null);
             if (choice === 'pdf') {
                 assert.ok(calls.includes('/en16931/downloadPdfInvoice'));
-                assert.ok(input.children.some(child => child.tag === 'iframe' && child.attributes.src === 'blob:pdf'));
+                const preview = input.children.find(child => child.tag === 'iframe' && child.attributes.src === 'blob:pdf');
+                assert.ok(preview);
+                preview.events.load();
+                assert.ok(logs.includes('PDF-Rechnung zur Anzeige und zum Speichern bereit.'));
+                assert.ok(!logs.some(message => message.startsWith('PDF-Erstellung fehlgeschlagen')));
             } else {
                 assert.equal(destination, choice === 'accept-stay' ? undefined : choice.endsWith('new') ? 'new' : 'close');
                 assert.equal(downloaded, choice.startsWith('accept') ? '26 200.xml' : undefined);

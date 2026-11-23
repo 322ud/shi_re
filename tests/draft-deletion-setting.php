@@ -39,14 +39,14 @@ namespace {
     $request->values = ['allow_draft_deletion' => false, 'confirmation' => 'ja', 'deletionToken' => 'old-token'];
     check($admin->saveDraftSettings()->status === 200);
     check($invoice->deleteActiveDraft()->status === 403); // Auch alter Button/Token wird gesperrt.
-    $request->values = ['detailed_progress' => 'yes'];
+    $request->values = ['message_area' => 'yes'];
     check($admin->save()->status === 400);
-    $request->values = ['detailed_progress' => true];
+    $request->values = ['message_area' => true];
     check($admin->save()->status === 200);
-    check($config->values['detailed_progress'] === 'yes');
-    $request->values = ['detailed_progress' => false];
+    check($config->values['message_area'] === 'yes');
+    $request->values = ['message_area' => false];
     check($admin->save()->status === 200);
-    check($config->values['detailed_progress'] === 'no');
+    check($config->values['message_area'] === 'no');
     // Both the established route and newer alias retain admin and CSRF requirements.
     foreach (['save', 'saveProgressSettings'] as $method) {
         $reflection = new ReflectionMethod($admin, $method);
@@ -54,7 +54,7 @@ namespace {
             check($reflection->getAttributes('OCP\\AppFramework\\Http\\Attribute\\' . $attribute) === []);
         }
     }
-    $request->values = ['detailed_progress' => true];
+    $request->values = ['message_area' => true];
     check($admin->saveProgressSettings()->status === 200); // Newer clients remain compatible.
     echo "Draft deletion default, save and server-side blocking tests passed.\n";
 }

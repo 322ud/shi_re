@@ -38,7 +38,7 @@
         if (!out) return;
 
         const p = document.createElement('div');
-        p.textContent = NS.state?.detailedProgress && NS.progressTime && !/^\[\d{2}:\d{2}:\d{2}\] /.test(text)
+        p.textContent = NS.progressTime && !/^\[\d{2}:\d{2}:\d{2}\] /.test(text)
             ? '[' + NS.progressTime() + '] ' + text : text;
         out.appendChild(p);
         out.scrollTop = out.scrollHeight;
@@ -180,6 +180,11 @@
         return wrap;
     };
 
+    NS.setMessageAreaVisible = function (visible) {
+        NS.root().dataset.messageArea = String(visible);
+        NS.outputArea().hidden = !visible;
+    };
+
     NS.initLayout = function () {
         const r = NS.root();
         NS.clear(r);
@@ -192,5 +197,6 @@
 
         r.appendChild(input);
         r.appendChild(output);
+        NS.setMessageAreaVisible(r.dataset.messageArea !== 'false');
     };
 })();
