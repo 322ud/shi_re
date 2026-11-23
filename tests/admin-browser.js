@@ -4,7 +4,7 @@ const {execFileSync} = require('node:child_process');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 (async () => {
-    const html = execFileSync('php', ['-r', `
+    const html = execFileSync('php', ['-d', 'memory_limit=64M', '-d', 'max_execution_time=5', '-r', `
         function p($value) { echo htmlspecialchars((string)$value, ENT_QUOTES); }
         function print_unescaped($value) { echo $value; }
         $_ = ['readmeUrl' => '/nextcloud/index.php/apps/shi_re/readme', 'status' => ['validation_enabled' => true, 'auto_update' => false, 'hide_navigation' => true, 'installed' => '1.0', 'enabled' => true, 'navigation_supported' => true],
@@ -12,7 +12,7 @@ const path = require('node:path');
             'pdfStatus' => ['enabled' => true, 'errors' => [], 'versions' => [], 'checks' => array_fill_keys(['libreoffice', 'mustang', 'verapdf', 'templates'], ['ok' => false, 'version' => '', 'detail' => 'Nicht eingerichtet'])]];
         $_['pdfStatus']['checks']['templates'] = ['ok' => true, 'version' => 'abc123', 'detail' => 'geprüft'];
         require 'templates/admin.php';
-    `], {encoding: 'utf8'});
+    `], {encoding: 'utf8', timeout: 10000});
     const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true});
     try {
         const page = await browser.newPage();
@@ -33,7 +33,7 @@ const path = require('node:path');
             window.fetch = async (url, options) => {
                 calls.push({url, body: JSON.parse(options.body)});
                 return {ok: !window.fail, json: async () => ({success: !window.fail, error: 'Speichern fehlgeschlagen',
-                    status: url === '/apps/shi_re/admin/validator/settings' ? {installed: '1.0', enabled: true, ...JSON.parse(options.body)} : url === '/apps/shi_re/validator/status' ? {installed: '1.2', enabled: true} : {enabled: true, checks: {templates: {ok: true, version: 'def456', detail: 'geprüft', files: {mapping: {name: 'XRechnung.tsv', source: 'default'}, xml: {name: 'meine-rechnung.xml', date: '13.11.2026 10:30 UTC'}}}, libreoffice: {ok: true, version: '24.2', detail: '/usr/bin/libreoffice'}}}})};
+                    status: url === '/apps/shi_re/admin/validator/settings' ? {installed: '1.0', enabled: true, ...JSON.parse(options.body)} : url === '/apps/shi_re/validator/status' ? {installed: '1.2', enabled: true} : {enabled: true, checks: {templates: {ok: true, version: 'def456', detail: 'geprüft', files: {mapping: {name: 'eigenes-mapping.tsv', source: 'upload'}, odt: {name: 'eigene-vorlage.odt', source: 'upload'}, storno_mapping: {name: 'storno-mapping.tsv', source: 'upload'}, storno_odt: {name: 'storno-vorlage.odt', source: 'upload'}, xml: {name: 'meine-rechnung.xml', date: '13.11.2026 10:30 UTC'}}}, libreoffice: {ok: true, version: '24.2', detail: '/usr/bin/libreoffice'}}}})};
             };
         });
         await page.addScriptTag({path: path.resolve('js/admin.js')});
@@ -151,6 +151,10 @@ const path = require('node:path');
         await page.locator('#myx-pdf-xml').waitFor({state: 'visible'});
         assert.equal(await page.locator('#myx-pdf-xml').isVisible(), true);
         assert.equal(await page.locator('.shire-template-uploads input[type=file]').count(), 6);
+        assert.equal(await page.locator('[data-pdf-template]:visible').count(), 2);
+        assert.match(await page.locator('#myx-template-files').textContent(), /eigene-vorlage.odt/);
+        await page.locator('#myx-pdf-odt').setInputFiles({name: 'ausgewaehlt.odt', mimeType: 'application/octet-stream', buffer: Buffer.from('test')});
+
         await page.locator('#myx-check-system').click();
         await page.waitForFunction(() => !document.getElementById('myx-check-system').disabled);
         assert.equal(await page.locator('[data-check=libreoffice] [data-version]').textContent(), '24.2');
@@ -169,6 +173,16 @@ const path = require('node:path');
         await page.waitForFunction(() => !document.getElementById('myx-pdf-enabled').disabled);
         assert.equal(await page.evaluate(() => calls.at(-1).body.pdf_enabled), false);
         assert.equal(await page.locator('[data-setting="myx-pdf-enabled"] [data-setting-state]').textContent(), 'inaktiv');
+        assert.equal(await page.locator('[data-pdf-template]:visible').count(), 0);
+        assert.equal(await page.locator('[data-pdf-template] input:disabled').count(), 4);
+        assert.equal(await page.locator('#myx-pdf-odt').inputValue(), '');
+        assert.equal(await page.locator('#myx-pdf-xml').isVisible(), true);
+        assert.equal(await page.locator('#myx-pdf-storno_xml').isVisible(), true);
+        assert.doesNotMatch(await page.locator('#myx-template-files').textContent(), /\.(odt|tsv)/);
+        assert.match(await page.locator('#myx-template-files').textContent(), /meine-rechnung.xml/);
+        assert.equal(await page.locator('#myx-template-xml-help').isVisible(), true);
+        assert.equal(await page.evaluate(() => new FormData(document.getElementById('myx-pdf-templates')).has('odt')), false);
+
         await page.evaluate(() => { window.fail = true; });
         await page.locator('#myx-pdf-enabled').click();
         await page.waitForFunction(() => !document.getElementById('myx-pdf-enabled').disabled);
@@ -195,6 +209,10 @@ const path = require('node:path');
             await page.waitForFunction(() => !document.getElementById('myx-pdf-enabled').disabled);
         };
         await refreshPdf();
+        assert.equal(await page.locator('[data-pdf-template]:visible').count(), 2);
+        assert.equal(await page.locator('[data-pdf-template] input:disabled').count(), 0);
+        assert.match(await page.locator('#myx-template-files').textContent(), /storno-mapping.tsv/);
+        assert.equal(await page.locator('#myx-template-pdf-help').isVisible(), true);
         for (const id of ['myx-xml-embedding', 'myx-pdf-validation']) {
             assert.equal(await page.locator('#' + id).isVisible(), true);
             assert.equal(await page.locator('#' + id).isChecked(), true);
@@ -260,13 +278,13 @@ const path = require('node:path');
         assert.equal(await page.locator('.shire-readme-fallback').isVisible(), false);
         assert.equal(await page.evaluate(() => editorOptions.readOnly && editorReadOnly), true);
         assert.ok(await page.evaluate(() => editorOptions.content.startsWith('# ShiRE')));
-        const appHtml = execFileSync('php', ['-r', `
+        const appHtml = execFileSync('php', ['-d', 'memory_limit=64M', '-d', 'max_execution_time=5', '-r', `
             function p($value) { echo htmlspecialchars((string)$value, ENT_QUOTES); }
             function print_unescaped($value) { echo $value; }
             $_ = ['readmeUrl' => '/apps/shi_re/readme'];
             require 'templates/readme-link.php';
             echo '<input id="invoice-value" value="Entwurf bleibt erhalten">';
-        `], {encoding: 'utf8'});
+        `], {encoding: 'utf8', timeout: 10000});
         await page.setContent('<div id=content><div id=app-content>' + appHtml + '</div></div>');
         await page.addScriptTag({path: path.resolve('js/readme.js')});
         assert.equal(await page.locator('#shire-readme-dialog').count(), 0);
@@ -280,12 +298,12 @@ const path = require('node:path');
             'shire-help-%2Fapps%2Fshi_re%2Freadme-user', 'popup,width=1024,height=800',
         ]);
         assert.equal(await page.locator('#invoice-value').inputValue(), 'Entwurf bleibt erhalten');
-        const userDoc = execFileSync('php', ['-r', `
+        const userDoc = execFileSync('php', ['-d', 'memory_limit=64M', '-d', 'max_execution_time=5', '-r', `
             function p($value) { echo htmlspecialchars((string)$value, ENT_QUOTES); }
             function print_unescaped($value) { echo $value; }
             $_ = ['document' => 'user', 'readmeUrl' => '/apps/shi_re/readme', 'appUrl' => '/apps/shi_re/'];
             require 'templates/readme.php';
-        `], {encoding: 'utf8'});
+        `], {encoding: 'utf8', timeout: 10000});
         for (const section of ['rechnung-erstellen', 'rechnungsarchiv', 'storno-rechnung']) {
             await page.goto('http://shire.test/apps/shi_re/readme?document=user#h-' + section);
             await page.setContent(userDoc);
@@ -303,12 +321,12 @@ const path = require('node:path');
             }[section]);
             assert.ok(await page.locator('.shire-readme-fallback a[href="#rechnung-erstellen"]').count());
         }
-        const adminDoc = execFileSync('php', ['-r', `
+        const adminDoc = execFileSync('php', ['-d', 'memory_limit=64M', '-d', 'max_execution_time=5', '-r', `
             function p($value) { echo htmlspecialchars((string)$value, ENT_QUOTES); }
             function print_unescaped($value) { echo $value; }
             $_ = ['document' => 'admin', 'readmeUrl' => '/nextcloud/index.php/apps/shi_re/readme', 'appUrl' => '/nextcloud/index.php/apps/shi_re/'];
             require 'templates/readme.php';
-        `], {encoding: 'utf8'});
+        `], {encoding: 'utf8', timeout: 10000});
         await page.goto('http://shire.test/nextcloud/index.php/apps/shi_re/readme?document=admin#systemvoraussetzungen');
         await page.setContent(adminDoc);
         await page.evaluate(() => {

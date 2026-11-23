@@ -34,7 +34,7 @@ namespace {
         require __DIR__ . '/../lib/Service/' . $class . '.php';
     }
     require __DIR__ . '/../lib/Config/AppFiles.php';
-    foreach (['DraftService', 'IncRamID', 'InvoiceReviewService', 'DomService'] as $class) require __DIR__ . '/../lib/Service/' . $class . '.php';
+    foreach (['InvoiceXmlService', 'DraftService', 'IncRamID', 'InvoiceReviewService', 'DomService'] as $class) require __DIR__ . '/../lib/Service/' . $class . '.php';
     require __DIR__ . '/../lib/Controller/PdfInvoiceController.php';
     require __DIR__ . '/../lib/Controller/PdfAdminController.php';
     require __DIR__ . '/../lib/Service/CancellationInvoiceService.php';

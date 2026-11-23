@@ -88,7 +88,7 @@ $rows = [
         <?php if (!empty($savedTemplates['version'])): ?>
             <?php foreach (['odt' => 'XRechnung (ODT)', 'xml' => 'XRechnung (XML)', 'mapping' => 'XRechnung (Mapping)', 'storno_odt' => 'Storno (ODT)', 'storno_xml' => 'Storno (XML)', 'storno_mapping' => 'Storno (Mapping)'] as $key => $label):
                 $file = $savedTemplates['files'][$key] ?? [];
-                if (!$file || ($file['source'] ?? '') === 'default') continue; ?>
+                if (!$file || ($file['source'] ?? '') === 'default' || (!$pdfActive && !in_array($key, ['xml', 'storno_xml'], true))) continue; ?>
             <li><?php
                 $file = $savedTemplates['files'][$key] ?? [];
                 p($label . ': ' . ($file['name'] ?? 'Dateiname nicht erfasst')
@@ -102,17 +102,18 @@ $rows = [
             <thead><tr><th scope="col">Format</th><th scope="col">XRechnung</th><th scope="col">Storno</th></tr></thead>
             <tbody>
             <?php foreach (['odt' => ['ODT', '.odt', '10 MiB'], 'xml' => ['XML', '.xml', '2 MiB'], 'mapping' => ['Mapping', '.tsv,.txt', '256 KiB']] as $key => [$label, $accept, $limit]): ?>
-            <tr><th scope="row"><?php p($label . ' (max ' . $limit . ')'); ?></th>
+            <tr<?php if ($key !== 'xml') { print_unescaped(' data-pdf-template' . (!$pdfActive ? ' hidden' : '')); } ?>><th scope="row"><?php p($label . ' (max ' . $limit . ')'); ?></th>
                 <?php foreach (['' => 'XRechnung', 'storno_' => 'Storno'] as $prefix => $kind): ?>
-                <td><input id="myx-pdf-<?php p($prefix . $key); ?>" name="<?php p($prefix . $key); ?>" type="file" accept="<?php p($accept); ?>" aria-label="<?php p($kind . ' ' . $label . ' (max ' . $limit . ')'); ?>"></td>
+                <td><input id="myx-pdf-<?php p($prefix . $key); ?>" name="<?php p($prefix . $key); ?>" type="file"<?php if (!$pdfActive && $key !== 'xml') { print_unescaped(' disabled'); } ?> accept="<?php p($accept); ?>" aria-label="<?php p($kind . ' ' . $label . ' (max ' . $limit . ')'); ?>"></td>
                 <?php endforeach; ?>
             </tr>
             <?php endforeach; ?>
             </tbody>
         </table>
         </div>
-        <p>Nicht ausgewählte Dateien bleiben erhalten. Die Vorlagensätze für XRechnung und Storno werden jeweils auf vollständige
+        <p id="myx-template-pdf-help"<?php if (!$pdfActive) { print_unescaped(' hidden'); } ?>>Nicht ausgewählte Dateien bleiben erhalten. Die Vorlagensätze für XRechnung und Storno werden jeweils auf vollständige
             Zuordnung zwischen ODT, Mapping und XML geprüft. Bei inkonsistenten Vorlagen werden für XML- und PDF-Rechnungen die Standardvorlagen verwendet; eigene Vorlagen sind dann inaktiv.</p>
+        <p id="myx-template-xml-help"<?php if ($pdfActive) { print_unescaped(' hidden'); } ?>>Bei inaktiver PDF-Erzeugung werden nur XML-Vorlagen gegen die Anforderungen der Eingabemaske beziehungsweise der Storno-Erzeugung geprüft. Gespeicherte ODT- und Mapping-Dateien bleiben erhalten und werden beim Aktivieren von PDF wieder mitgeprüft.</p>
         <button id="myx-discard-templates" type="button">eigene Vorlagen verwerfen</button>
         <button id="myx-pdf-upload" type="submit">neue Vorlagen prüfen</button>
     <?php $adminHelp('struktur-und-ubernahme', 'eigene Vorlagen verwerfen / neue Vorlagen prüfen'); ?>
@@ -145,7 +146,11 @@ $rows = [
         <p id="myx-clear-archive-result" role="status" aria-live="polite"></p>
         <button id="myx-check-system" type="button">Systemprüfung wiederholen</button>
         <?php $adminHelp('systemvoraussetzungen', 'Systemprüfung wiederholen'); ?>
-        <p id="myx-pdf-status" data-status="<?php p(json_encode($_['pdfStatus'])); ?>" role="status" aria-live="polite"></p>
+        <p id="myx-pdf-status" data-status="<?php p(json_encode($_['pdfStatus'])); ?>" role="status" aria-live="polite"><?php
+            if ($_['customTemplates'] && !empty($checks['templates']['error'])) {
+                p('Eigene Vorlagen sind für die aktuelle Konfiguration nicht verwendbar. Standardvorlagen werden verwendet. ' . $checks['templates']['error']);
+            }
+        ?></p>
 
     </section>
     <section aria-labelledby="shire-admin-readme-title">

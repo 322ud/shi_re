@@ -79,6 +79,7 @@ class PdfAdminController extends Controller {
     public function upload(): JSONResponse {
         if (!$this->templates->usesCustomTemplates()) return new JSONResponse(['success' => false, 'error' => 'Eigene Vorlagen sind deaktiviert.'], 400);
         try {
+            $pdfActive = $this->dependencies->status()['pdf_enabled'];
             // Bei überschrittenem post_max_size verwirft PHP den gesamten Multipart-Body.
             if ($this->request->getParam('templatesCheck') !== 'yes') {
                 throw new \InvalidArgumentException('Upload-Daten fehlen. Größenlimits des Webservers und von PHP prüfen.');
@@ -86,6 +87,7 @@ class PdfAdminController extends Controller {
             $files = [];
             $filenames = [];
             foreach (['odt' => OdtInvoiceRenderer::MAX_ODT, 'xml' => 2097152, 'mapping' => 262144, 'storno_odt' => OdtInvoiceRenderer::MAX_ODT, 'storno_xml' => 2097152, 'storno_mapping' => 262144] as $key => $limit) {
+                if (!$pdfActive && !in_array($key, ['xml', 'storno_xml'], true)) continue;
                 $file = $this->request->getUploadedFile($key);
                 if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
                 if ($file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])

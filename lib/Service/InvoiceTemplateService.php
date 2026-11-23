@@ -11,6 +11,7 @@ use OCP\IConfig;
 /** Unveränderliche Vorlagensätze; erst nach vollständigem Schreiben den Zeiger umschalten. */
 class InvoiceTemplateService {
     private ?array $snapshot = null;
+    private ?bool $pdfMode = null;
     private const FILES = ['xml' => 'XRechnung.xml', 'odt' => 'XRechnung.odt', 'mapping' => 'XRechnung.tsv',
         'storno_xml' => 'Storno.xml', 'storno_odt' => 'Storno.odt', 'storno_mapping' => 'Storno.tsv'];
 
@@ -21,10 +22,52 @@ class InvoiceTemplateService {
         private TemplateConsistencyService $consistency,
     ) {}
 
+    public function pdfTemplatesEnabled(): bool {
+        if ($this->pdfMode !== null) return $this->pdfMode;
+        $path = $this->config->getSystemValueString('shi_re_libreoffice', '/usr/bin/libreoffice');
+        return $this->config->getAppValue(Application::APP_ID, 'pdf_enabled', 'yes') === 'yes'
+            && is_file($path) && is_readable($path) && is_executable($path);
+    }
+
+    /** Use the actual tool probe when available, before resolving the current bundle. */
+    public function setPdfMode(bool $enabled): void {
+        $this->pdfMode = $enabled;
+        $this->snapshot = null;
+        $this->syncCheckMode();
+    }
+
+    private function syncCheckMode(): void {
+        $mode = $this->pdfTemplatesEnabled() ? 'pdf' : 'xml';
+        if ($this->config->getAppValue(Application::APP_ID, 'pdf_template_check_mode', 'pdf') === $mode) return;
+        $this->snapshot = null;
+        $this->config->setAppValue(Application::APP_ID, 'pdf_template_check_mode', $mode);
+        $version = $this->config->getAppValue(Application::APP_ID, 'pdf_template_version', '');
+        if ($version === '') return;
+        try {
+            $this->checkBundle($this->loadStored($version));
+            $this->config->setAppValue(Application::APP_ID, 'pdf_template_checked_version', $version);
+            $this->config->setAppValue(Application::APP_ID, 'pdf_template_error', '');
+        } catch (\Throwable $e) {
+            $this->config->setAppValue(Application::APP_ID, 'pdf_template_checked_version', '');
+            $this->disable($e->getMessage());
+        }
+    }
+
     public function current(): array {
+        $this->syncCheckMode();
         if ($this->snapshot !== null) return $this->snapshot;
         $version = $this->config->getAppValue(Application::APP_ID, 'pdf_template_version', '');
         if (!$this->usesCustomTemplates() || $this->error() !== '') $version = '';
+        if ($version !== '') {
+            try {
+                $bundle = $this->loadStored($version);
+                $this->checkBundle($bundle);
+            } catch (\Throwable $e) {
+                $this->disable($e->getMessage());
+                $version = '';
+            }
+        }
+        // Fall back once; an exception without a message must never recurse.
         if ($version === '') {
             $base = $this->apps->getAppPath(Application::APP_ID) . '/config/';
             $bundle = [];
@@ -32,14 +75,6 @@ class InvoiceTemplateService {
                 $content = @file_get_contents($base . $name);
                 if ($content === false) throw new \RuntimeException("Vorlage fehlt: $name");
                 $bundle[$key] = $content;
-            }
-        } else {
-            try {
-                $bundle = $this->loadStored($version);
-                $this->checkBundle($bundle);
-            } catch (\Throwable $e) {
-                $this->disable($e->getMessage());
-                return $this->current();
             }
         }
         $bundle['version'] = $version ?: hash('sha256', implode('', array_intersect_key($bundle, self::FILES)));
@@ -68,9 +103,11 @@ class InvoiceTemplateService {
 
     /** Status of the saved custom set, independent of the currently selected defaults. */
     public function customStatus(): array {
+        $this->syncCheckMode();
         $version = $this->config->getAppValue(Application::APP_ID, 'pdf_template_version', '');
         $result = ['ok' => false, 'version' => $version === '' ? '' : substr($version, 0, 12), 'detail' => 'inaktiv'];
-        $failed = $this->config->getAppValue(Application::APP_ID, 'pdf_template_error', '') !== '';
+        $result['error'] = $this->config->getAppValue(Application::APP_ID, 'pdf_template_error', '');
+        $failed = $result['error'] !== '';
         if ($failed) $result['detail'] = 'inaktiv';
         if ($version === '') return $result;
         try {
@@ -117,6 +154,10 @@ class InvoiceTemplateService {
 
     /** Fehlgeschlagene Uploads schalten XML und PDF auf Standardvorlagen zurück. */
     public function upload(array $replacements, array $filenames = []): array {
+        $this->syncCheckMode();
+        if (!$this->pdfTemplatesEnabled()) {
+            $replacements = array_intersect_key($replacements, array_flip(['xml', 'storno_xml']));
+        }
         if (!$replacements) throw new \InvalidArgumentException('Bitte mindestens eine neue Vorlage auswählen.');
         try {
             $savedVersion = $this->config->getAppValue(Application::APP_ID, 'pdf_template_version', '');
@@ -163,6 +204,10 @@ class InvoiceTemplateService {
             if ($prefix !== '' && !array_filter(['storno_odt', 'storno_xml', 'storno_mapping'],
                 fn ($key) => isset($bundle['files'][$key]) && ($bundle['files'][$key]['source'] ?? '') !== 'default')) continue;
             try {
+                if (!$this->pdfTemplatesEnabled()) {
+                    $this->consistency->checkXml($bundle[$prefix . 'xml'], $prefix === '' ? null : $bundle['xml']);
+                    continue;
+                }
                 $this->consistency->check(['odt' => $bundle[$prefix . 'odt'],
                     'xml' => $bundle[$prefix . 'xml'], 'mapping' => $bundle[$prefix . 'mapping']], templateCheck: $prefix !== '');
             } catch (\Throwable $e) {
@@ -180,6 +225,6 @@ class InvoiceTemplateService {
 
     public function disable(string $reason): void {
         $this->snapshot = null;
-        $this->config->setAppValue(Application::APP_ID, 'pdf_template_error', mb_substr($reason, 0, 4000));
+        $this->config->setAppValue(Application::APP_ID, 'pdf_template_error', mb_substr(trim($reason) !== '' ? $reason : 'Eigene Vorlagen konnten nicht geladen oder geprüft werden.', 0, 4000));
     }
 }

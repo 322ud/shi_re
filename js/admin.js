@@ -129,6 +129,16 @@
         }
         function showPdfStatus(status) {
             pdfStatus = status;
+            const pdfActive = Boolean(status.checks?.libreoffice?.ok && (status.pdf_enabled ?? true));
+            root.querySelectorAll('[data-pdf-template]').forEach(row => {
+                row.hidden = !pdfActive;
+                row.querySelectorAll('input[type=file]').forEach(input => {
+                    input.disabled = !pdfActive;
+                    if (!pdfActive) input.value = '';
+                });
+            });
+            document.getElementById('myx-template-pdf-help').hidden = !pdfActive;
+            document.getElementById('myx-template-xml-help').hidden = pdfActive;
             const templates = status.checks?.templates;
             if (templates) {
                 const list = document.getElementById('myx-template-files');
@@ -136,7 +146,7 @@
                 if (templates.version) {
                     Object.entries({odt: 'XRechnung (ODT)', xml: 'XRechnung (XML)', mapping: 'XRechnung (Mapping)', storno_odt: 'Storno (ODT)', storno_xml: 'Storno (XML)', storno_mapping: 'Storno (Mapping)'}).forEach(([key, label]) => {
                         const file = templates.files?.[key];
-                        if (!file || file.source === 'default') return;
+                        if (!file || file.source === 'default' || (!pdfActive && !['xml', 'storno_xml'].includes(key))) return;
                         const entry = document.createElement('li');
                         entry.textContent = label + ': ' + (file?.name || 'Dateiname nicht erfasst')
                             + (file?.source === 'default' ? ' — mitgelieferte Standardvorlage'
@@ -169,7 +179,9 @@
                 input.closest('label').hidden = false;
                 input.checked = usable && (enabled ?? true);
             }
-            pdfOutput.textContent = '';
+            pdfOutput.textContent = templates?.error && document.getElementById('myx-custom-templates').checked
+                ? 'Eigene Vorlagen sind für die aktuelle Konfiguration nicht verwendbar. Standardvorlagen werden verwendet. ' + templates.error
+                : '';
             refreshSettings();
         }
         document.getElementById('myx-replace-templates').addEventListener('toggle', event => {

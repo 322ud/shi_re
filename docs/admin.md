@@ -6,7 +6,7 @@ Die Seite gliedert sich in **Einstellungen** mit den Gruppen **Rechnungserzeugun
 
 ## Systemvoraussetzungen
 
-ShiRE benötigt Nextcloud **34** sowie PHP mit **DOM und mbstring**. Die Vorlagenprüfung benötigt zusätzlich **ZIP**, auch bei reiner XML-Nutzung. Für die übrige Serverumgebung gelten die [Systemvoraussetzungen von Nextcloud](https://docs.nextcloud.com/server/stable/admin_manual/installation/system_requirements.html).
+ShiRE benötigt Nextcloud **34** sowie PHP mit **DOM und mbstring**. Für PDF-Erzeugung und die Prüfung von ODT-Vorlagen wird zusätzlich **ZIP** benötigt. Bei inaktiver PDF-Erzeugung werden eigene XML-Vorlagen ohne ODT-/TSV-Prüfung geprüft. Für die übrige Serverumgebung gelten die [Systemvoraussetzungen von Nextcloud](https://docs.nextcloud.com/server/stable/admin_manual/installation/system_requirements.html).
 
 Unter **Komponenten** stehen die installierten Versionen beziehungsweise „nicht installiert“. **Systemprüfung wiederholen** aktualisiert die Komponentenanzeigen und die davon abhängigen Einstellungszeilen. Programmpfade werden in `config.php` hinterlegt, siehe unten.
 
@@ -136,9 +136,18 @@ Für **XRechnung** und **Storno** gibt es jeweils:
 
 Ausgangspunkt sind die mitgelieferten Dateien [XRechnung.xml](../config/XRechnung.xml), [XRechnung.odt](../config/XRechnung.odt), [XRechnung.tsv](../config/XRechnung.tsv) sowie [Storno.xml](../config/Storno.xml), [Storno.odt](../config/Storno.odt) und [Storno.tsv](../config/Storno.tsv).
 
-ODT und TSV dienen der optionalen PDF-Ausgabe. **Die aktuelle Vorlagenprüfung verlangt dennoch einen konsistenten vollständigen Satz**, auch ohne PDF-Nutzung. Ein alleiniger XML-Upload ist möglich, wenn er zu den vorhandenen ODT-/TSV-Dateien passt. Nicht hochgeladene Dateien werden aus dem gespeicherten Satz beziehungsweise den Standardvorlagen ergänzt. Sobald eine eigene Storno-Datei vorliegt, wird auch der Storno-Satz geprüft.
+Die Vorlagenverwaltung richtet sich nach **PDF-Erzeugung**:
 
-Ein übernommener Vorlagensatz, der die Konsistenzprüfung nicht besteht, bleibt zur Korrektur gespeichert; ShiRE verwendet dann die Standardvorlagen. Die Upload-Antwort meldet den Fehler. Die Anzeige „installiert“ und der Auswahl-Schalter allein belegen keine erfolgreiche Vorlagenprüfung. Weitere Uploads können den gespeicherten Satz korrigieren. Ausschalten von **eigene Vorlagen** erhält die Dateien; **eigene Vorlagen verwerfen** entfernt deren Auswahl. Die mitgelieferten Dateien bleiben unverändert.
+| PDF-Erzeugung | Dateiauswahl und Anzeige | Vorlagenprüfung |
+| --- | --- | --- |
+| inaktiv, auch bei fehlendem LibreOffice | Nur eigene XML-Dateien für XRechnung und Storno. ODT- und TSV-Auswahl sowie deren gespeicherte Dateinamen sind ausgeblendet. | Die Rechnungs-XML wird gegen die Felder und Berechnungen der Eingabemaske geprüft; eine eigene Storno-XML gegen die Anforderungen der Storno-Erzeugung. ODT und Mapping werden nicht auf Konsistenz geprüft. |
+| aktiv | XML, ODT und TSV für XRechnung und Storno. | Wie bisher: vollständige Zuordnung zwischen XML, Mapping und ODT. Ein eigener Storno-Satz wird ebenfalls geprüft. |
+
+Beim Einschalten von PDF wird ein vorhandener eigener Satz erneut vollständig geprüft. Passt er nicht zu ODT oder Mapping, bleiben seine Dateien gespeichert; ShiRE verwendet die Standardvorlagen und zeigt einen Hinweis mit dem Prüffehler. Beim Ausschalten von PDF wird die XML erneut separat geprüft und kann dadurch wieder verwendbar werden. Eine ausdrücklich ausgeschaltete Auswahl **eigene Vorlagen** bleibt dabei ausgeschaltet.
+
+Gespeicherte ODT- und TSV-Dateien werden durch das Ausschalten von PDF weder gelöscht noch verändert. Bereits im Browser ausgewählte, aber noch nicht hochgeladene ODT-/TSV-Dateien werden beim Ausschalten aus der Auswahl entfernt; bei Bedarf nach dem Einschalten erneut auswählen. Im XML-Betrieb verarbeitet der Upload nur XML-Dateien. Nicht hochgeladene Dateien bleiben im gespeicherten Satz erhalten beziehungsweise werden bei dessen Anlage aus den Standardvorlagen ergänzt. Die Prüfung verändert nicht den Inhalt der hochgeladenen XML und ersetzt keine fachliche XML-Validierung mit INValidator.
+
+Ein übernommener Vorlagensatz, der die Konsistenzprüfung nicht besteht, bleibt zur Korrektur gespeichert; ShiRE verwendet dann die Standardvorlagen. Die Upload-Antwort beziehungsweise der Hinweis unter den Komponenten meldet den Fehler. Die Anzeige „installiert“ und der Auswahl-Schalter allein belegen keine erfolgreiche Vorlagenprüfung. Weitere Uploads können den gespeicherten Satz korrigieren. Ausschalten von **eigene Vorlagen** erhält die Dateien; **eigene Vorlagen verwerfen** entfernt deren Auswahl. Die mitgelieferten Dateien bleiben unverändert.
 
 Ein neuer Rechnungsentwurf lädt die aktive XML-Vorlage. PDF-Erzeugung verwendet den bei ihrer Anforderung aktuellen vollständigen Vorlagensatz; eine Änderung während einer Anforderung wird anhand der Vorlagenversion erkannt.
 

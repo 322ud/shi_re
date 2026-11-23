@@ -51,15 +51,7 @@ class PdfDependencyService {
         $errors = [];
         $versions = [];
         $bundle = null;
-        try {
-            $bundle = $this->templates->current();
-            $this->consistency->check($bundle);
-        } catch (\Throwable $e) { $errors[] = $e->getMessage(); }
-        $checks = ['templates' => $this->templates->customStatus()];
-        if ($this->templates->usesCustomTemplates() && $errors) {
-            $checks['templates']['ok'] = false;
-            $checks['templates']['detail'] = 'inaktiv';
-        }
+        $checks = [];
         $tools = [
             'libreoffice' => $this->config->getSystemValueString('shi_re_libreoffice', '/usr/bin/libreoffice'),
             'java' => $this->config->getSystemValueString('shi_re_java', '/usr/bin/java'),
@@ -111,6 +103,12 @@ class PdfDependencyService {
         }
         $pdfEnabled = $checks['libreoffice']['ok']
             && $this->config->getAppValue('shi_re', 'pdf_enabled', 'yes') === 'yes';
+        $this->templates->setPdfMode($pdfEnabled);
+        try {
+            $bundle = $this->templates->current();
+            if ($pdfEnabled) $this->consistency->check($bundle);
+        } catch (\Throwable $e) { $errors[] = $e->getMessage(); }
+        $checks['templates'] = $this->templates->customStatus();
         if (!$pdfEnabled) $errors[] = 'PDF-Erzeugung ist deaktiviert.';
         return ['pdf_enabled' => $pdfEnabled, 'enabled' => !$errors, 'errors' => $errors, 'versions' => $versions, 'checks' => $checks,
             'customTemplatesStatus' => $checks['templates']['detail'],
