@@ -15,8 +15,11 @@ class PdfMetadataService {
         if ($initials[1] === [] || !is_string($domain) || $domain === '') {
             throw new \RuntimeException('PDF-Autor konnte nicht ermittelt werden.');
         }
-        // Use the domain behind the Nextcloud host, e.g. cloud.322ud.de -> 322ud.de.
-        $domain = preg_replace('/^cloud\./i', '', rtrim($domain, '.'));
+        // Keep the second-level label and top-level domain, regardless of subdomain names.
+        $domain = rtrim($domain, '.');
+        if (filter_var(trim($domain, '[]'), FILTER_VALIDATE_IP) === false) {
+            $domain = implode('.', array_slice(explode('.', $domain), -2));
+        }
         return mb_strtolower(implode('', $initials[1]) . '@' . $domain, 'UTF-8');
     }
 

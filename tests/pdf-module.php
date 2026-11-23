@@ -215,8 +215,12 @@ namespace {
     $metadata = new \OCA\ShiRE\Service\PdfMetadataService();
     check($metadata->author('Max Mustermann', '322UD.DE:8443') === 'mm@322ud.de', 'Lowercase initials and domain without port');
     check($metadata->author('Änne-Marie Öster', 'CLOUD.Example.org') === 'ämö@example.org', 'Unicode and hyphen initials');
-    check($metadata->author('Frank Bauer', 'cloud.322ud.de') === 'fb@322ud.de', 'Cloud prefix removed from author domain');
-    check($metadata->author('Frank Bauer', 'CLOUD.Example.CO.UK:8443') === 'fb@example.co.uk', 'Multi-part domain suffix preserved');
+    check($metadata->author('Frank Bauer', 'cloud.322ud.de') === 'fb@322ud.de', 'Second-level domain used for author');
+    check($metadata->author('Frank Bauer', 'CLOUD.Example.CO.UK:8443') === 'fb@co.uk', 'Exactly second-level and top-level labels, without public-suffix lookup');
+    check($metadata->author('Frank Bauer', 'NEXTCLOUD.Intern.Example.DE.:8443') === 'fb@example.de', 'All subdomains and trailing root dot removed');
+    check($metadata->author('Frank Bauer', '192.0.2.10:8443') === 'fb@192.0.2.10', 'IP address is not truncated');
+    check($metadata->author('Frank Bauer', '[2001:db8::1]:8443') === 'fb@[2001:db8::1]', 'IPv6 address is preserved');
+    check($metadata->author('Frank Bauer', 'localhost:8443') === 'fb@localhost', 'Single-label host is preserved');
     $properties = OdtInvoiceRenderer::xml($metadata->properties('Rechnung & Prüfung',
         ['mustang' => '2.26.0', 'libreoffice' => '24.2.1', 'verapdf' => '1.28.2'],
         ['INValidatorVersion' => '0.5.1', 'kositValidatorVersion' => '1.6.0', 'xrechnungSzenarioVersion' => '2026-01-31'], false));

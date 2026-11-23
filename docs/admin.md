@@ -84,37 +84,43 @@ Unter **Komponenten** befinden sich außerdem die Vorlagenverwaltung, automatisc
 
 INValidator separat installieren und aktivieren; ShiRE übernimmt keine Erstinstallation. Installationshinweise und Releases stehen im [INValidator-Projekt](https://github.com/322ud/inv_validator). Bei manueller Bereitstellung eines Release-Pakets im App-Verzeichnis die App unter dem Webserver-Benutzer mit `php occ app:enable inv_validator` registrieren und aktivieren. Danach die ShiRE-Administration neu laden.
 
-**Einstellungen → Rechnungserzeugung → XML-Validierung** schaltet die XML-Prüfung ein oder aus (Standard: aktiv). Ohne Prüfung wird weiterhin XML erzeugt. Der Schalter allein installiert oder aktiviert die Nextcloud-App nicht.
-
-**Einstellungen → Nutzeroberfläche → INValidator** steuert den Navigationseintrag (Standard: ausgeblendet). Die Prüfung aus ShiRE bleibt beim Ausblenden verfügbar. Die installierte INValidator-Version muss das Ausblenden unterstützen.
-
-**Komponenten → INValidator** zeigt die installierte Version. Daneben steht bei installierter App der Schalter **automatisch aktualisieren** beziehungsweise **nicht automatisch aktualisieren**. Standard ist **aus**. Der Schalter ist auch bei ausgeschalteter XML-Validierung sichtbar; das automatische Update beim ShiRE-Start setzt zusätzlich eine aktive XML-Prüfung und einen angemeldeten Administrator voraus.
+Wenn INValidator installiert ist, zeigt **Komponenten → INValidator** die Version und den Schalter **automatisch aktualisieren** beziehungsweise **nicht automatisch aktualisieren**. Standard ist **aus**. Der Schalter ist auch bei ausgeschalteter XML-Validierung sichtbar; das automatische Update beim ShiRE-Start setzt zusätzlich eine aktive XML-Prüfung und einen angemeldeten Administrator voraus.
 
 Automatische Updates benötigen Zugriff auf die GitHub-Releases und ein beschreibbares App-Verzeichnis. Bei einem privaten Repository kann in `config.php` der serverseitige Eintrag `shi_re_github_token` erforderlich sein. Der Update-Schalter betrifft die Validator-App; die verwendeten Prüfszenarien und ihre Voraussetzungen sind in deren Dokumentation beschrieben.
 
+Wenn INValidator installiert ist, stehen unter **Einstellungen** zwei weitere Optionen zur Verfügung:
+
+**→ Rechnungserzeugung → XML-Validierung** schaltet die XML-Prüfung ein oder aus (Standard: aktiv). Ohne Prüfung wird weiterhin XML erzeugt. Der Schalter allein installiert oder aktiviert die Nextcloud-App nicht.
+
+**→ Nutzeroberfläche → INValidator** steuert den Navigationseintrag (Standard: ausgeblendet). Die Prüfung aus ShiRE bleibt beim Ausblenden verfügbar. Die installierte INValidator-Version muss das Ausblenden unterstützen.
+
 ### PDF-Erzeugung mit LibreOffice und MustangCLI
 
-LibreOffice Writer konvertiert die ausgefüllte ODT-Vorlage in eine PDF-Rechnung. Java, MustangCLI und veraPDF sind dafür keine Voraussetzung. Ohne verfügbares Java und MustangCLI wird die LibreOffice-PDF ohne eingebettete Rechnungs-XML und ohne Mustang-Prüfung ausgegeben. Sind Java und MustangCLI verfügbar und ist **XML-Einbindung** aktiv, bettet MustangCLI die Rechnungs-XML ein und prüft das Ergebnis; ShiRE ergänzt die Metadaten und vergleicht die eingebettete XML mit der angenommenen Rechnung. Die XML-Rechnungsdaten werden weiterhin intern zum Ausfüllen der ODT-Vorlage verwendet.
+Wenn LibreOffice Writer installiert ist, ist standardmäßig unter **Einstellungen → Rechnungserzeugung** die Option **→ PDF-Erzeugung** aktiv, lässt sich aber mittels des Schalters in dieser Zeile deaktivieren. Der gespeicherte Status bleibt nach einem Neustart erhalten. Erforderlich bleiben konsistente Vorlagen, PHP ZIP und DOM, `proc_open` und ein beschreibbares temporäres Arbeitsverzeichnis.
 
-Unter **Einstellungen → Rechnungserzeugung → PDF-Erzeugung** lässt sich die PDF-Erzeugung aktivieren oder deaktivieren. Die Zeile erscheint nur, wenn LibreOffice verfügbar ist; ohne gespeicherte Auswahl ist das Flag dann standardmäßig aktiv. Ohne LibreOffice ist es inaktiv und die Zeile ausgeblendet. Eine gespeicherte Deaktivierung bleibt auch nach einem Neustart erhalten. Erforderlich bleiben konsistente Vorlagen, PHP ZIP und DOM, `proc_open` und ein beschreibbares temporäres Arbeitsverzeichnis. Die Verfügbarkeit der optionalen Werkzeuge steht unter **Komponenten**. Bei deaktivierter oder nicht betriebsbereiter PDF-Erzeugung bleibt die XML-Erzeugung einschließlich einer gegebenenfalls aktivierten XML-Prüfung verfügbar.
+LibreOffice Writer füllt die ODT-Vorlage mit den Rechnungsdaten der XML-Rechnung und erzeugt eine PDF-Rechnung. Bei deaktivierter oder nicht betriebsbereiter PDF-Erzeugung bleibt die XML-Erzeugung einschließlich einer gegebenenfalls aktivierten XML-Prüfung verfügbar.
 
-Unter **Einstellungen → Rechnungserzeugung → XML-Einbindung** lässt sich die XML-Einbettung abschalten. Die Zeile erscheint nur bei aktiver PDF-Erzeugung und verfügbarem Java und MustangCLI. Standard ist aktiv. Ohne diese Voraussetzungen ist das effektive Flag inaktiv; die gespeicherte Auswahl bleibt für eine spätere Reaktivierung erhalten. Bei ausgeschalteter Einbindung entfallen auch Mustang-Prüfung und zusätzliche Metadaten-Ergänzung.
+Installation und Verwendung: [LibreOffice im Kommandozeilenbetrieb](https://help.libreoffice.org/latest/de/text/shared/guide/start_parameters.html)
 
-Installation und Verwendung: [LibreOffice im Kommandozeilenbetrieb](https://help.libreoffice.org/latest/de/text/shared/guide/start_parameters.html), [Mustangproject mit CLI und Releases](https://github.com/ZUGFeRD/mustangproject).
+### XML-Einbindung mit MustangCLI
+
+Wenn MustangCLI und Java installiert sind, ist standardmäßig unter **→ Rechnungserzeugung** die Option **→ XML-Einbindung** aktiv, lässt sich aber mittels des Schalters in dieser Zeile deaktivieren. Der gespeicherte Status bleibt nach einem Neustart erhalten.
+
+MustangCLI bettet die Rechnungs-XML in die PDF-Rechnung ein und prüft das Ergebnis; ShiRE ergänzt die Metadaten und vergleicht noch einmal die eingebettete XML mit der gespeicherten XML-Rechnung. Schlägt die XML-Einbettung fehl, wird der Vorgang mit einem Fehler beendet.
+
+Installation und Verwendung: [Mustangproject mit CLI und Releases](https://github.com/ZUGFeRD/mustangproject).
 
 #### PDF-Metadaten
 
-Die folgende Metadaten-Ergänzung erfolgt nur im Verarbeitungspfad mit Java und MustangCLI. Bei reinem LibreOffice-Export bleiben die von LibreOffice erzeugten Metadaten erhalten.
-
-Der PDF-Autor (Author und XMP `dc:creator`) wird als `initialen@domain` vollständig in Kleinbuchstaben gesetzt. Die Initialen stammen aus dem Anzeigenamen des angemeldeten Nextcloud-Nutzers (ersatzweise der Benutzerkennung), die Domain aus dem von Nextcloud ermittelten Anfragehost ohne Port und ohne führendes `cloud.` (z. B. `cloud.my_domain.de` → `my_domain.de`).
+MustangCLI setzt den PDF-Autor (Author und XMP `dc:creator`) als `initialen@domain` vollständig in Kleinbuchstaben. Die Initialen stammen aus dem Anzeigenamen des angemeldeten Nextcloud-Nutzers (ersatzweise der Benutzerkennung), die Domain aus den letzten beiden Bestandteilen des von Nextcloud ermittelten Anfragehosts: Second-Level-Domain plus Top-Level-Domain, ohne Port und vorgelagerte Subdomains (z. B. `nextcloud.intern.my_domain.de` → `my_domain.de`). Es erfolgt keine Ermittlung der registrierbaren Domain anhand einer Public-Suffix-Liste: `cloud.example.co.uk` ergibt daher `co.uk`. IP-Adressen und einteilige Hostnamen bleiben unverändert.
 
 Das PDF enthält die Versionen von ShiRE, MustangCLI und LibreOffice sowie bei aktiver Prüfung die verfügbaren Versionen von INValidator, KoSIT-Validator, XRechnung-Prüfszenario und veraPDF. Nicht ermittelbare Versionen erscheinen als `unbekannt`. Die Szenarioversion bezeichnet das konkrete Prüfrelease; die Versionsangaben sind kein eigenständiger Validierungsnachweis.
 
 ### PDF-Validierung mit veraPDF
 
-[veraPDF installieren](https://docs.verapdf.org/install/) und `shi_re_verapdf` auf das ausführbare CLI-Programm setzen. Unter **Einstellungen → Rechnungserzeugung → PDF-Prüfung** lässt sich die zusätzliche Prüfung des fertigen Dokuments auf **PDF/A-3b** ein- und ausschalten. Die Zeile erscheint nur bei aktiver PDF-Erzeugung und verfügbarem veraPDF; Standard ist aktiv. Andernfalls ist das effektive Flag inaktiv. Die gespeicherte Auswahl bleibt erhalten. **Komponenten → veraPDF** zeigt die Verfügbarkeit. Ohne verfügbares veraPDF entfällt diese Zusatzprüfung; auch ein ungültiger Pfad blockiert die reine PDF-Erzeugung nicht. Bei aktivierter PDF-Prüfung prüft veraPDF unabhängig von MustangCLI auch eine PDF ohne XML-Einbettung. Schlägt eine tatsächlich gestartete Prüfung oder XML-Einbettung fehl, wird der Vorgang weiterhin mit einem Fehler beendet.
+**Komponenten → veraPDF** zeigt die Verfügbarkeit. Wenn [veraPDF installiert](https://docs.verapdf.org/install/) ist und `shi_re_verapdf` (in config.php) auf das ausführbare CLI-Programm zeigt, ist standardmäßig unter **Einstellungen → Rechnungserzeugung** die Option **→ PDF-Prüfung** aktiv, lässt sich aber mittels des Schalters in dieser Zeile deaktivieren. Der gespeicherte Status bleibt nach einem Neustart erhalten. Schlägt die Prüfung fehl, wird der Vorgang mit einem Fehler beendet.
 
-Details: [veraPDF-Prüfprofile und CLI](https://docs.verapdf.org/cli/validation/). Die PDF/A-Prüfung ersetzt keine fachliche XML-Validierung.
+Details: [veraPDF-Prüfprofile und CLI](https://docs.verapdf.org/cli/validation/).
 
 ### Eigene Vorlagen
 
@@ -141,7 +147,7 @@ Die Vorlagenverwaltung richtet sich nach **PDF-Erzeugung**:
 | PDF-Erzeugung | Dateiauswahl und Anzeige | Vorlagenprüfung |
 | --- | --- | --- |
 | inaktiv, auch bei fehlendem LibreOffice | Nur eigene XML-Dateien für XRechnung und Storno. ODT- und TSV-Auswahl sowie deren gespeicherte Dateinamen sind ausgeblendet. | Die Rechnungs-XML wird gegen die Felder und Berechnungen der Eingabemaske geprüft; eine eigene Storno-XML gegen die Anforderungen der Storno-Erzeugung. ODT und Mapping werden nicht auf Konsistenz geprüft. |
-| aktiv | XML, ODT und TSV für XRechnung und Storno. | Wie bisher: vollständige Zuordnung zwischen XML, Mapping und ODT. Ein eigener Storno-Satz wird ebenfalls geprüft. |
+| aktiv | XML, ODT und TSV für XRechnung und Storno. | Vollständige Zuordnung zwischen XML, Mapping und ODT. Ein eigener Storno-Satz wird ebenfalls geprüft. |
 
 Beim Einschalten von PDF wird ein vorhandener eigener Satz erneut vollständig geprüft. Passt er nicht zu ODT oder Mapping, bleiben seine Dateien gespeichert; ShiRE verwendet die Standardvorlagen und zeigt einen Hinweis mit dem Prüffehler. Beim Ausschalten von PDF wird die XML erneut separat geprüft und kann dadurch wieder verwendbar werden. Eine ausdrücklich ausgeschaltete Auswahl **eigene Vorlagen** bleibt dabei ausgeschaltet.
 
