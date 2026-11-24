@@ -144,6 +144,9 @@ namespace {
         }
     };
     $apps = new class implements \OCP\App\IAppManager { public function getAppPath($id): string { return dirname(__DIR__); } };
+    // Template-only checks need PDF mode, but never invoke LibreOffice.
+    // Use a known executable so these checks also run on CI without PDF tools.
+    $config->system['shi_re_libreoffice'] = PHP_BINARY;
     $templates = new InvoiceTemplateService($storage, $config, $apps, $consistency);
     check(!$templates->usesCustomTemplates(), 'Own templates default off');
     check($templates->customStatus()['detail'] === 'inaktiv' && !$templates->customStatus()['ok'], 'No custom set must not pass as defaults');
