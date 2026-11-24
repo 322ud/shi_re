@@ -3,8 +3,26 @@
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
     <id>shi_re</id>
     <name>ShiRE</name>
-    <summary>Erstellt ZUGFeRD-Rechnungen</summary>
-    <description>fragt Parameter in GUI ab, setzt diese in XML- und ODT-Templates, exportiert ODT in PDF und bindet XML darin ein</description>
+    <summary>XML- und PDF-Rechnungen in Nextcloud erstellen, prüfen und archivieren</summary>
+    <description><![CDATA[ShiRE erstellt elektronische Rechnungen im XRechnung-Format direkt in Nextcloud. Rechnungsdaten werden über eine Eingabemaske erfasst und anhand konfigurierbarer Vorlagen verarbeitet.
+
+Funktionen:
+
+- XML-Rechnungen und Storno-Rechnungen erstellen
+- XML-Rechnungen mit INValidator gegen das XRechnung-Szenario validieren
+- PDF-Rechnungen mit LibreOffice erzeugen
+- Rechnungs-XML mit MustangCLI in die PDF-Datei einbetten
+- PDF/A-3-Konformität mit veraPDF prüfen
+- Rechnungen im Archiv anzeigen und herunterladen
+- Eigene XML-, ODT- und Mapping-Vorlagen verwenden
+
+XML-Validierung, PDF-Erzeugung, XML-Einbindung und PDF-Prüfung sind abhängig von den installierten Komponenten einzeln aktivierbar. Die Benutzeroberfläche zeigt die aktuell ausgeführten Verarbeitungsschritte an.
+
+Voraussetzung ist Nextcloud 34 oder 35 sowie PHP mit DOM und mbstring. Für die PDF-Erzeugung werden zusätzlich LibreOffice und die PHP-Erweiterung ZIP benötigt. XML-Validierung, XML-Einbindung und PDF/A-Prüfung benötigen die jeweils genannten zusätzlichen Komponenten.
+
+Hinweise zu Serverpfaden, Vorlagen und Einrichtung stehen in der Administrationsanleitung:
+https://github.com/322ud/shi_re/blob/HEAD/docs/admin.md
+]]></description>
     <version>0.5.0</version>
     <licence>AGPL-3.0-or-later</licence>
     <author>Frank Busse</author>
