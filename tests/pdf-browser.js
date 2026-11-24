@@ -104,7 +104,7 @@ class Element {
     const loadState = () => {
         const window = {};
         vm.runInNewContext(fs.readFileSync(require.resolve('../js/state.js'), 'utf8'), {
-            window, crypto: {randomUUID: () => 'window'},
+            window, crypto: require('node:crypto').webcrypto,
             sessionStorage: {getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value)},
         });
         return window.ShiRE.state;

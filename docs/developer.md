@@ -104,6 +104,31 @@ werden.
 
 Die Nextcloud-Menükomponenten werden lokal gebündelt; es gibt keine CDN-Abhängigkeit. Mit Node.js 22 und npm: `npm ci && npm run build`. Die erzeugten Dateien `js/validation-actions.js` und `css/validation-actions.css` werden mit ausgeliefert. `node_modules` gehört nicht ins Deployment. Quellcode: `frontend/actions.js`.
 
+## Release 0.5.0: Nextcloud 34–35
+
+Die Kompatibilitätsprüfung auf Nextcloud 35 wurde am 24. November 2026 vom
+Maintainer bestätigt. Die Freigabe in `appinfo/info.xml` umfasst Nextcloud 34–35.
+Eine genaue Testmatrix mit Server-/PHP-Versionen und einzelnen Prüffällen wurde
+für diese Bestätigung nicht übermittelt; sie ist von den lokalen automatisierten
+Tests und der oben dokumentierten historischen Paketprüfung zu unterscheiden.
+
+Lokale Release-Prüfung am 24. November 2026: PHP-Syntaxprüfung, alle ausführbaren
+`tests/*.php`, alle `tests/*.js` einschließlich Chromium sowie
+`bash tests/release-package.sh` bestanden. PHP-Tests verwendeten ein eigenes
+temporäres Verzeichnis; der Navigationstest verwendete `../inv_validator`.
+Die Paketprüfung umfasste Frontend-Build, Reproduzierbarkeit, Prüfsummen und
+Signatur-/Fehlerfälle mit Testzertifikat und simuliertem `occ`.
+Sie ist kein Nachweis einer produktiven App-Store-Signierung.
+Der Build mit Node.js 22 meldet eine Engine-Warnung für
+`@nextcloud/initial-state@2.2.0` (deklarierte Node-Version 20), läuft aber erfolgreich.
+
+Bestehende Installationen über den regulären Nextcloud-App-Updateweg auf 0.5.0
+aktualisieren und einen gegebenenfalls angeforderten Upgrade-Lauf abschließen.
+Die Versionsänderung ermöglicht Nextcloud, das App-Update einschließlich der
+Routenregistrierung zu verarbeiten. Ein bloßes Kopieren einzelner Dateien bei
+unveränderter App-Version ersetzt diesen Updateweg nicht. Anschließend die
+App-Seite neu laden. Gespeicherte Einstellungen bleiben erhalten.
+
 ## Release-Paket und Signierung
 
 `tools/build-release.sh` baut ausschließlich lokale Artefakte. Es lädt nichts zu GitHub oder zum App Store hoch. Benötigt werden Bash, Git, GNU tar/coreutils, gzip, PHP mit SimpleXML und OpenSSL, OpenSSL CLI sowie Node.js 22/npm. `npm ci` installiert die festgeschriebenen Frontend-Abhängigkeiten in einem temporären Verzeichnis und benötigt Zugriff auf die npm-Registry oder einen vollständigen npm-Cache. Der Quellcheckout bleibt dabei unverändert.
@@ -122,9 +147,9 @@ bash tools/build-release.sh --signed
 
 Das Skript prüft Schlüssel/Zertifikat, App-ID und Gültigkeitszeitraum. Nextcloud erzeugt `appinfo/signature.json` und prüft die App anschließend mit `integrity:check-app`. Erst danach wird das Archiv gebaut, separat mit SHA-512 signiert und diese Archivsignatur überprüft. Fehler brechen den Build ab; es gibt keinen automatischen Rückfall auf ein unsigniertes Paket.
 
-Ausgabe bei Version 0.3.0: `dist/shi_re-0.3.0-signed/` mit:
+Ausgabe bei Version 0.5.0: `dist/shi_re-0.5.0-signed/` mit:
 
-- `shi_re-0.3.0.tar.gz`: genau ein Hauptordner `shi_re/`, Laufzeitdateien einschließlich Vorlagen, frisch gebautem Frontend und Java-Helfer samt Quellcode.
+- `shi_re-0.5.0.tar.gz`: genau ein Hauptordner `shi_re/`, Laufzeitdateien einschließlich Vorlagen, frisch gebautem Frontend und Java-Helfer samt Quellcode.
 - `.tar.gz.sig`: binäre SHA-512-Archivsignatur.
 - `.tar.gz.sig.b64`: Base64-Archivsignatur für die spätere Store-Einreichung.
 - `.tar.gz.crt`: öffentliches Zertifikat.
@@ -134,7 +159,7 @@ Version und App-ID kommen aus `appinfo/info.xml`. Laufzeitdateien werden anhand 
 
 Ein ausdrücklich **unsigniertes Testpaket** lässt sich mit `APP_REQUIRE_SIGNING=0 bash tools/build-release.sh --unsigned` erstellen. Es liegt getrennt unter `dist/shi_re-VERSION-unsigned/` und ist nicht für die Store-Einreichung bestimmt.
 
-Prüfsummen prüfen: im Ausgabeverzeichnis `sha256sum --check --strict shi_re-0.3.0.tar.gz.sha256` ausführen. Automatisierte Pakettests: `bash tests/release-package.sh`. Diese verwenden einen temporären Testschlüssel und einen simulierten `occ`-Signierablauf; sie ersetzen keine Prüfung der echten Nextcloud-Zertifikatskette. Die tatsächliche Vertrauensprüfung erfolgt beim signierten Build durch das angegebene Nextcloud-`occ`.
+Prüfsummen prüfen: im Ausgabeverzeichnis `sha256sum --check --strict shi_re-0.5.0.tar.gz.sha256` ausführen. Automatisierte Pakettests: `bash tests/release-package.sh`. Diese verwenden einen temporären Testschlüssel und einen simulierten `occ`-Signierablauf; sie ersetzen keine Prüfung der echten Nextcloud-Zertifikatskette. Die tatsächliche Vertrauensprüfung erfolgt beim signierten Build durch das angegebene Nextcloud-`occ`.
 
 ## Lizenzdateien im Release
 

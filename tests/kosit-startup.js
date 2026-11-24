@@ -16,6 +16,7 @@ const assert = require('node:assert/strict');
         let starts = 0;
         const ns = {
             state: {},
+            setMessageAreaVisible(visible) { this.state.messageAreaVisible = visible; },
             root: () => ({}), initLayout() {}, log() {}, stopHeartbeat() {},
             startInvoice: async () => { starts++; },
             post: async (path) => { calls.push(path); return {status: path === '/pdf/status'
@@ -30,6 +31,7 @@ const assert = require('node:assert/strict');
         assert.equal(calls[0], '/validator/status');
         assert.ok(calls.includes('/pdf/status'), 'PDF dependencies checked at startup');
         assert.equal(ns.state.pdfStatus.enabled, false);
+        assert.equal(ns.state.messageAreaVisible, status.message_area !== false);
         assert.equal(ns.state.validationActive, status.validation_active ?? Boolean(status.installed && status.enabled && status.validation_enabled !== false));
     }
     console.log('Startup release-check and admin-only installation tests passed.');

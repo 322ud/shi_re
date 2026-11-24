@@ -1,12 +1,12 @@
 # ShiRE administrieren
 
-Alle genannten Einstellungen stehen unter **Administration → ShiRE**. Schalter speichern Änderungen sofort. Diese Anleitung beschreibt den aktuellen Quellstand mit App-Version **0.4.1**. Vorhandene gespeicherte Einstellungen bleiben erhalten; die genannten Standardwerte gelten ohne gespeicherte Auswahl.
+Alle genannten Einstellungen stehen unter **Administration → ShiRE**. Schalter speichern Änderungen sofort. Diese Anleitung beschreibt den aktuellen Quellstand mit App-Version **0.5.0**. Vorhandene gespeicherte Einstellungen bleiben erhalten; die genannten Standardwerte gelten ohne gespeicherte Auswahl.
 
 Die Seite gliedert sich in **Einstellungen** mit den Gruppen **Rechnungserzeugung** und **Nutzeroberfläche**, anschließend **Komponenten** und **README**. Die Informationssymbole öffnen den passenden Abschnitt dieser Anleitung in einem eigenen Fenster.
 
 ## Systemvoraussetzungen
 
-ShiRE benötigt Nextcloud **34** sowie PHP mit **DOM und mbstring**. Für PDF-Erzeugung und die Prüfung von ODT-Vorlagen wird zusätzlich **ZIP** benötigt. Bei inaktiver PDF-Erzeugung werden eigene XML-Vorlagen ohne ODT-/TSV-Prüfung geprüft. Für die übrige Serverumgebung gelten die [Systemvoraussetzungen von Nextcloud](https://docs.nextcloud.com/server/stable/admin_manual/installation/system_requirements.html).
+ShiRE benötigt Nextcloud **34–35** sowie PHP mit **DOM und mbstring**. Für PDF-Erzeugung und die Prüfung von ODT-Vorlagen wird zusätzlich **ZIP** benötigt. Bei inaktiver PDF-Erzeugung werden eigene XML-Vorlagen ohne ODT-/TSV-Prüfung geprüft. Für die übrige Serverumgebung gelten die [Systemvoraussetzungen von Nextcloud](https://docs.nextcloud.com/server/stable/admin_manual/installation/system_requirements.html).
 
 Unter **Komponenten** stehen die installierten Versionen beziehungsweise „nicht installiert“. **Systemprüfung wiederholen** aktualisiert die Komponentenanzeigen und die davon abhängigen Einstellungszeilen. Programmpfade werden in `config.php` hinterlegt, siehe unten.
 

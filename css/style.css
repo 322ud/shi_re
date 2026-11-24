@@ -416,6 +416,11 @@ button:hover {
     box-shadow: 0 4px 12px #0002;
 }
 
+#myx-saved-menu {
+    left: 0;
+    right: auto;
+}
+
 .myx-saved-menu button {
     display: block;
     width: 100%;
