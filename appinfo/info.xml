@@ -6,34 +6,37 @@
     <summary>Create Invoice in Nextcloud</summary>
     <description>ShiRE creates German standard invoices and is available in German only</description>
     <summary lang="de">Rechnungstellung in Nextcloud</summary>
-    <description lang="de"><![CDATA[ShiRE[^name] liest Rechnungsdaten aus einer XML-Vorlage, ergänzt 
-    und überschreibt sie anhand von GUI-Eingaben, erzeugt anhand der Vorlage eine 
-    XML-Rechnung. Optional...
-    - validiert ShiRE die XML-Rechnung anhand eines XRechnung-Szenarios,
-    - erzeugt ShiRE anhand einer ODT-Vorlage eine PDF-Rechnung,
-    - bindet ShiRE die XML-Rechnung in die PDF-Rechnung ein und 
-    - prüft ShiRE auf den Standard PDF/A.
-    
-    Die optionalen Schritte setzen jeweils die Verfügbarkeit externer Anwendungen auf 
-    dem Server ([INValidator](https://apps.nextcloud.com/apps/inv_validator), 
-    [LibreOffice](https://de.libreoffice.org/), 
-    [MustangCLI](https://www.mustangproject.org/kommandozeile) und 
-    [veraPDF](https://verapdf.org/)) voraus. Die PDF-Rechnung mit eingebundener XML 
-    entspricht dem ZUGFeRD-Standard.
+    <description lang="de"><![CDATA[ShiRE liest Rechnungsdaten aus einer XML-Vorlage, ergänzt
+und überschreibt sie anhand von GUI-Eingaben und erzeugt anhand der Vorlage eine
+XML-Rechnung.
 
-    ShiRE archiviert erzeugte XML- und PDF-Rechnungen und erzeugt optional zu
-    einer archivierten Rechnung eine Storno-Rechnung.
+Optional:
 
-    Der aktuelle Stand ist eine Machbarkeitsstudie für Rechnungen eines einzelnen 
-    Rechnungsstellers mit einer einzelnen Rechnungsposition und festem Nummernformat 
-    sowie für die vollständige Stornierung einer solchen Rechnung.
+- validiert ShiRE die XML-Rechnung anhand eines XRechnung-Szenarios,
+- erzeugt ShiRE anhand einer ODT-Vorlage eine PDF-Rechnung,
+- bindet ShiRE die XML-Rechnung in die PDF-Rechnung ein und
+- prüft ShiRE auf den Standard PDF/A.
 
-    [^name]: [Shire Horses](https://de.wikipedia.org/wiki/Shire_Horse) sind Kaltblüter – 
-    der Inbegriff des Zugpferds. Der Name ShiRE spielt damit auf das Rechnungsformat 
-    „ZUGFeRD“ an.
+Die optionalen Schritte setzen jeweils die Verfügbarkeit externer Anwendungen auf
+dem Server ([INValidator](https://apps.nextcloud.com/apps/inv_validator),
+[LibreOffice](https://de.libreoffice.org/),
+[MustangCLI](https://www.mustangproject.org/kommandozeile) und
+[veraPDF](https://verapdf.org/)) voraus. Die PDF-Rechnung mit eingebundener XML
+entspricht dem ZUGFeRD-Standard.
+
+ShiRE archiviert erzeugte XML- und PDF-Rechnungen und erzeugt optional zu
+einer archivierten Rechnung eine Storno-Rechnung.
+
+Der aktuelle Stand ist eine Machbarkeitsstudie für Rechnungen eines einzelnen
+Rechnungsstellers mit einer einzelnen Rechnungsposition und festem Nummernformat
+sowie für die vollständige Stornierung einer solchen Rechnung.
+
+Zum Namen: [Shire Horses](https://de.wikipedia.org/wiki/Shire_Horse) sind Kaltblüter –
+der Inbegriff des Zugpferds. Der Name ShiRE spielt damit auf das Rechnungsformat
+„ZUGFeRD“ an.
 ]]></description>
-    <screenshot>https://github.com/322ud/shi_re/blob/main/img/eingabemaske.png</screenshot>
-    <screenshot>https://github.com/322ud/shi_re/blob/main/img/rechnung.png</screenshot>
+    <screenshot>https://raw.githubusercontent.com/322ud/shi_re/main/img/eingabemaske.png</screenshot>
+    <screenshot>https://raw.githubusercontent.com/322ud/shi_re/main/img/rechnung.png</screenshot>
     <website>https://github.com/322ud/shi_re#readme</website>
     <version>0.5.1</version>
     <licence>AGPL-3.0-or-later</licence>
