@@ -3,27 +3,39 @@
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
     <id>shi_re</id>
     <name>ShiRE</name>
-    <summary>XML- und PDF-Rechnungen in Nextcloud erstellen, prüfen und archivieren</summary>
-    <description><![CDATA[ShiRE erstellt elektronische Rechnungen im XRechnung-Format direkt in Nextcloud. Rechnungsdaten werden über eine Eingabemaske erfasst und anhand konfigurierbarer Vorlagen verarbeitet.
+    <summary>Create Invoice in Nextcloud</summary>
+    <description>ShiRE creates German standard invoices and is available in German only</description>
+    <summary lang="de">Rechnungstellung in Nextcloud</summary>
+    <description lang="de"><![CDATA[ShiRE[^name] liest Rechnungsdaten aus einer XML-Vorlage, ergänzt 
+    und überschreibt sie anhand von GUI-Eingaben, erzeugt anhand der Vorlage eine 
+    XML-Rechnung. Optional...
+    - validiert ShiRE die XML-Rechnung anhand eines XRechnung-Szenarios,
+    - erzeugt ShiRE anhand einer ODT-Vorlage eine PDF-Rechnung,
+    - bindet ShiRE die XML-Rechnung in die PDF-Rechnung ein und 
+    - prüft ShiRE auf den Standard PDF/A.
+    
+    Die optionalen Schritte setzen jeweils die Verfügbarkeit externer Anwendungen auf 
+    dem Server ([INValidator](https://apps.nextcloud.com/apps/inv_validator), 
+    [LibreOffice](https://de.libreoffice.org/), 
+    [MustangCLI](https://www.mustangproject.org/kommandozeile) und 
+    [veraPDF](https://verapdf.org/)) voraus. Die PDF-Rechnung mit eingebundener XML 
+    entspricht dem ZUGFeRD-Standard.
 
-Funktionen:
+    ShiRE archiviert erzeugte XML- und PDF-Rechnungen und erzeugt optional zu
+    einer archivierten Rechnung eine Storno-Rechnung.
 
-- XML-Rechnungen und Storno-Rechnungen erstellen
-- XML-Rechnungen mit INValidator gegen das XRechnung-Szenario validieren
-- PDF-Rechnungen mit LibreOffice erzeugen
-- Rechnungs-XML mit MustangCLI in die PDF-Datei einbetten
-- PDF/A-3-Konformität mit veraPDF prüfen
-- Rechnungen im Archiv anzeigen und herunterladen
-- Eigene XML-, ODT- und Mapping-Vorlagen verwenden
+    Der aktuelle Stand ist eine Machbarkeitsstudie für Rechnungen eines einzelnen 
+    Rechnungsstellers mit einer einzelnen Rechnungsposition und festem Nummernformat 
+    sowie für die vollständige Stornierung einer solchen Rechnung.
 
-XML-Validierung, PDF-Erzeugung, XML-Einbindung und PDF-Prüfung sind abhängig von den installierten Komponenten einzeln aktivierbar. Die Benutzeroberfläche zeigt die aktuell ausgeführten Verarbeitungsschritte an.
-
-Voraussetzung ist Nextcloud 34 oder 35 sowie PHP mit DOM und mbstring. Für die PDF-Erzeugung werden zusätzlich LibreOffice und die PHP-Erweiterung ZIP benötigt. XML-Validierung, XML-Einbindung und PDF/A-Prüfung benötigen die jeweils genannten zusätzlichen Komponenten.
-
-Hinweise zu Serverpfaden, Vorlagen und Einrichtung stehen in der Administrationsanleitung:
-https://github.com/322ud/shi_re/blob/HEAD/docs/admin.md
+    [^name]: [Shire Horses](https://de.wikipedia.org/wiki/Shire_Horse) sind Kaltblüter – 
+    der Inbegriff des Zugpferds. Der Name ShiRE spielt damit auf das Rechnungsformat 
+    „ZUGFeRD“ an.
 ]]></description>
-    <version>0.5.0</version>
+    <screenshot>https://github.com/322ud/shi_re/blob/main/img/eingabemaske.png</screenshot>
+    <screenshot>https://github.com/322ud/shi_re/blob/main/img/rechnung.png</screenshot>
+    <website>https://github.com/322ud/shi_re#readme</website>
+    <version>0.5.1</version>
     <licence>AGPL-3.0-or-later</licence>
     <author>Frank Busse</author>
     <namespace>ShiRE</namespace>
@@ -41,6 +53,11 @@ https://github.com/322ud/shi_re/blob/HEAD/docs/admin.md
         <nextcloud min-version="34" max-version="35" />
     </dependencies>
 
+    <settings>
+        <admin>OCA\ShiRE\Settings\Admin</admin>
+        <admin-section>OCA\ShiRE\Settings\AdminSection</admin-section>
+    </settings>
+
     <navigations>
       <navigation>
         <name>ShiRE</name>
@@ -49,9 +66,4 @@ https://github.com/322ud/shi_re/blob/HEAD/docs/admin.md
         <order>10</order>
       </navigation>
     </navigations>
-
-    <settings>
-        <admin>OCA\ShiRE\Settings\Admin</admin>
-        <admin-section>OCA\ShiRE\Settings\AdminSection</admin-section>
-    </settings>
 </info>

@@ -1,5 +1,9 @@
 # Änderungsprotokoll
 
+## 0.5.1
+
+- App-Store-Beschreibung überarbeitet und Dokumentationslinks aktualisiert.
+
 ## 0.5.0 – 2026-11-24
 
 - Unterstützung für Nextcloud 34 und 35; Nextcloud-35-Kompatibilitätsprüfung vom Maintainer bestätigt.
