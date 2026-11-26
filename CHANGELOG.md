@@ -1,6 +1,6 @@
 # Änderungsprotokoll
 
-## Unveröffentlicht
+## 0.5.3
 
 - Fehlenden `ValidatorUpdateService` in die versionierten Release-Dateien aufgenommen: Ohne diesen Dienst kann der Administrationscontroller nicht geladen werden; betroffen sind unter anderem Meldungsbereich und XML-Validierung (HTTP 500).
 - Der Release-Build prüft nun ausdrücklich, dass dieser Dienst enthalten ist. Zur Reparatur ein vollständiges korrigiertes App-Paket installieren; bestehende Routen und Einstellungen bleiben unverändert.

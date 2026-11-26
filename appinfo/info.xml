@@ -38,7 +38,7 @@ der Inbegriff des Zugpferds. Der Name ShiRE spielt damit auf das Rechnungsformat
     <screenshot>https://raw.githubusercontent.com/322ud/shi_re/main/img/eingabemaske.png</screenshot>
     <screenshot>https://raw.githubusercontent.com/322ud/shi_re/main/img/rechnung.png</screenshot>
     <website>https://github.com/322ud/shi_re#readme</website>
-    <version>0.5.2</version>
+    <version>0.5.3</version>
     <licence>AGPL-3.0-or-later</licence>
     <author>Frank Busse</author>
     <namespace>ShiRE</namespace>
