@@ -249,32 +249,8 @@ final class DraftService {
         }
     }
 
-    /**
-     * flock() schützt den kurzen kritischen Bereich auf Dateisystemebene.
-     * Die Lock-Datei selbst darf existieren bleiben; die Sperre hängt am offenen
-     * File-Handle und wird beim Schließen automatisch freigegeben.
-     */
+    /** Shared Nextcloud lock serializes drafts, invoice operations and validator updates. */
     private function withLock(callable $callback): mixed {
-        return $this->proof->locked(fn () => $this->withDraftLock($callback));
-    }
-
-    private function withDraftLock(callable $callback): mixed {
-        $lockPath = sys_get_temp_dir() . '/shi_re_' . AppFiles::DraftLockFile;
-        $handle = fopen($lockPath, 'c');
-
-        if ($handle === false) {
-            throw new \RuntimeException('Kann Draft-Lock-Datei nicht öffnen.');
-        }
-
-        try {
-            if (!flock($handle, LOCK_EX)) {
-                throw new \RuntimeException('Kann Draft-Sperre nicht setzen.');
-            }
-
-            return $callback();
-        } finally {
-            flock($handle, LOCK_UN);
-            fclose($handle);
-        }
+        return $this->proof->locked($callback);
     }
 }

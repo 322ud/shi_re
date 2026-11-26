@@ -7,6 +7,10 @@ namespace OCP\App { interface IAppManager {} }
 namespace OCP\Http\Client { interface IClientService {} }
 namespace OCP\Files { interface IAppData {} }
 namespace OCP\Lock { interface ILockingProvider { const LOCK_EXCLUSIVE = 2; } }
+namespace OCA\ShiRE\Service {
+    // Draft operations must work even when local temporary files cannot be opened.
+    function fopen($path, $mode) { throw new \RuntimeException('Local file access forbidden in this test'); }
+}
 namespace {
     foreach (['Config/AppFiles', 'Service/KositValidatorService', 'Service/KositDependencyService', 'Service/ValidationProofService', 'Service/DraftService', 'Service/ValidatorUpdateService'] as $file) require __DIR__ . '/../lib/' . $file . '.php';
     function check(bool $ok): void { if (!$ok) throw new \RuntimeException('Assertion failed'); }
@@ -63,6 +67,18 @@ namespace {
     unset($storage->files['draft.json']);
     $otherProof = new \OCA\ShiRE\Service\ValidationProofService($storage, $users, $locking, $validator);
     $otherDrafts = new \OCA\ShiRE\Service\DraftService($storage, $otherProof);
+    $proof->locked(function () use ($drafts, $otherDrafts, $locking) {
+        $drafts->create('owner', '123');
+        check($locking->held);
+        rejects(fn () => $otherDrafts->create('competitor', '124'));
+        rejects(fn () => $otherDrafts->get());
+    });
+    check(!$locking->held);
+    check($otherDrafts->get()['windowId'] === 'owner');
+    rejects(fn () => $otherDrafts->create('competitor', '124'));
+    check(!$locking->held);
+    $drafts->complete('owner');
+    check($otherDrafts->get() === null);
     $dependency->install = function () use ($otherDrafts, $locking) {
         check($locking->held);
         rejects(fn () => $otherDrafts->create('other', '123'));
