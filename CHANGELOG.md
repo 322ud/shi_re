@@ -1,8 +1,11 @@
 # Änderungsprotokoll
 
-## 0.5.3
+## 0.5.4
 
 - Entwurfszugriffe verwenden ausschließlich die bereits vorhandene gemeinsame Nextcloud-Sperre für Rechnungen und Validator-Updates. Die zusätzliche Temp-Datei `shi_re_draft.lock`, deren Öffnen bei ungeeigneten Dateirechten scheiterte, entfällt.
+
+## 0.5.3
+
 - Fehlenden `ValidatorUpdateService` in die versionierten Release-Dateien aufgenommen: Ohne diesen Dienst kann der Administrationscontroller nicht geladen werden; betroffen sind unter anderem Meldungsbereich und XML-Validierung (HTTP 500).
 - Der Release-Build prüft nun ausdrücklich, dass dieser Dienst enthalten ist. Zur Reparatur ein vollständiges korrigiertes App-Paket installieren; bestehende Routen und Einstellungen bleiben unverändert.
 
