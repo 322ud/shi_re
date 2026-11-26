@@ -24,6 +24,7 @@ mkdir "$work/extracted"
 tar -xzf "$archive" -C "$work/extracted"
 php "$NEXTCLOUD_OCC" integrity:check-app shi_re --path="$work/extracted/shi_re"
 test -s "$work/extracted/shi_re/js/validation-actions.js"
+test -s "$work/extracted/shi_re/lib/Service/ValidatorUpdateService.php"
 test -s "$work/extracted/shi_re/css/validation-actions.css"
 test -s "$work/extracted/shi_re/tools/pdf-metadata/ShiRePdfMetadata.class"
 if tar -tzf "$archive" | grep -E '(^|/)(node_modules|tests|\.git|\.github|frontend|deploy.sh|build-release.sh)(/|$)|\.(key|pem|p12|pfx)$'; then

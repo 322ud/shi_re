@@ -1,5 +1,10 @@
 # Änderungsprotokoll
 
+## Unveröffentlicht
+
+- Fehlenden `ValidatorUpdateService` in die versionierten Release-Dateien aufgenommen: Ohne diesen Dienst kann der Administrationscontroller nicht geladen werden; betroffen sind unter anderem Meldungsbereich und XML-Validierung (HTTP 500).
+- Der Release-Build prüft nun ausdrücklich, dass dieser Dienst enthalten ist. Zur Reparatur ein vollständiges korrigiertes App-Paket installieren; bestehende Routen und Einstellungen bleiben unverändert.
+
 ## 0.5.2
 
 - Administrativ erlaubte INValidator-Updates können beim Öffnen der Rechnungsansicht durch jeden angemeldeten Benutzer ausgeführt werden; Releaseprüfung nur bei eingeschalteter XML-Validierung.
