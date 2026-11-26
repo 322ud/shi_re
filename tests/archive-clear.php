@@ -19,6 +19,7 @@ namespace {
     };
     $storage = new class implements \OCP\Files\IAppData {
         public array $names = ['26 121.xml', '26 121.pdf', 'draft.xml', 'draft.json', 'tmp.xml', 'legacy.pdf', 'validation-proof.json'];
+        public function fileExists($name): bool { return in_array($name, $this->names, true); }
         public function getFolder($name) { return $this; }
         public function getDirectoryListing() {
             return array_map(fn ($name) => new class($this, $name) {

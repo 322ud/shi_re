@@ -23,6 +23,7 @@ class ValidatorAdminController extends Controller {
         private IGroupManager $groups,
         private IConfig $config,
         private \OCA\ShiRE\Service\KositValidatorService $validator,
+        private \OCA\ShiRE\Service\ValidatorUpdateService $updates,
         private ?\OCA\ShiRE\Service\ProgressService $progress = null,
     ) {
         parent::__construct($appName, $request);
@@ -37,11 +38,19 @@ class ValidatorAdminController extends Controller {
             return new JSONResponse(['success' => true, 'progress' => $this->progress?->read(
                 (string)$this->request->getParam('progressId'), (string)$this->request->getParam('windowId'))]);
         }
+        if ($this->request->getParam('action') === 'auto_update') {
+            try {
+                return new JSONResponse(['success' => true, 'update' => $this->updates->run()]);
+            } catch (\Throwable $e) {
+                return new JSONResponse(['success' => false, 'error' => $e->getMessage()], 400);
+            }
+        }
         $status = $this->dependency->settings();
         $status['message_area'] = $this->config->getAppValue('shi_re', 'message_area', 'yes') === 'yes';
         $status['validation_active'] = $this->validator->isActive();
         $user = $this->session->getUser();
         $status['admin'] = $user !== null && $this->groups->isAdmin($user->getUID());
+        if (!$status['validation_enabled']) return new JSONResponse(['success' => true, 'status' => $status]);
         try {
             $status['latest'] = $this->dependency->latest()['release_version'];
             $status['update_available'] = $status['installed'] !== null
@@ -56,8 +65,8 @@ class ValidatorAdminController extends Controller {
     #[Route(Route::TYPE_FRONTPAGE, verb: 'POST', url: '/admin/validator/install')]
     public function install(): JSONResponse {
         try {
-            $this->dependency->ensureInstalled();
-            return new JSONResponse(['success' => true, 'status' => $this->dependency->settings()]);
+            $update = $this->updates->run(false);
+            return new JSONResponse(['success' => true, 'update' => $update, 'status' => $this->dependency->settings()]);
         } catch (\Throwable $e) {
             return new JSONResponse(['success' => false, 'error' => $e->getMessage()], 400);
         }

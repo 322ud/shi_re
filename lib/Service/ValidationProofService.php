@@ -9,6 +9,7 @@ use OCP\Lock\ILockingProvider;
 /** Server-owned proof; callers serialize the whole invoice operation with locked(). */
 class ValidationProofService {
     public const FILE = 'validation-proof.json';
+    public const UPDATE_FILE = 'validator-update.json';
     private int $depth = 0;
 
     public function __construct(private IAppData $appData, private IUserSession $users,
@@ -16,12 +17,31 @@ class ValidationProofService {
 
     public function locked(callable $action): mixed {
         if ($this->depth > 0) return $action();
+        $this->assertNoUpdate();
         $this->locking->acquireLock('shi_re/review', ILockingProvider::LOCK_EXCLUSIVE);
         $this->depth++;
-        try { return $action(); }
+        try {
+            $this->assertNoUpdate();
+            return $action();
+        }
         finally {
             $this->depth--;
             $this->locking->releaseLock('shi_re/review', ILockingProvider::LOCK_EXCLUSIVE);
+        }
+    }
+
+    public function assertNoUpdate(): void {
+        if ($this->appData->getFolder('/')->fileExists(self::UPDATE_FILE)) {
+            throw new \RuntimeException('INValidator wird aktualisiert oder benötigt nach einem abgebrochenen Update administrative Prüfung. Die Rechnungsansicht ist gesperrt.', 503);
+        }
+    }
+
+    public function markUpdate(bool $active): void {
+        $folder = $this->appData->getFolder('/');
+        if ($active) {
+            $folder->newFile(self::UPDATE_FILE, json_encode(['startedAt' => time()], JSON_THROW_ON_ERROR));
+        } elseif ($folder->fileExists(self::UPDATE_FILE)) {
+            $folder->getFile(self::UPDATE_FILE)->delete();
         }
     }
 

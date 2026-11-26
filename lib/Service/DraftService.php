@@ -25,6 +25,7 @@ final class DraftService {
         $this->assertWindowId($windowId);
 
         return $this->withLock(function () use ($windowId, $ramID) {
+            $this->proof->assertNoUpdate();
             $existing = $this->readUnlocked();
 
             if ($existing !== null && !$this->isExpired($existing)) {
@@ -130,6 +131,17 @@ final class DraftService {
             $folder->getFile(AppFiles::DraftFile)->delete();
             $this->proof->clear();
         });
+    }
+
+    /** Called under the shared invoice lock; storage errors must block updates. */
+    public function hasActiveForUpdate(): bool {
+        $folder = $this->appData->getFolder('/');
+        if (!$folder->fileExists(AppFiles::DraftFile)) return false;
+        $draft = json_decode($folder->getFile(AppFiles::DraftFile)->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($draft) || !isset($draft['windowId'], $draft['lastSeenAt'])) {
+            throw new \RuntimeException('Entwurfsstatus kann nicht sicher geprüft werden. Update zurückgestellt.');
+        }
+        return !$this->isExpired($draft);
     }
 
     public function get(): ?array {

@@ -17,6 +17,12 @@
         NS.clear(input);
         NS.clear(NS.outputArea());
 
+        if (error.message && /INValidator.*gesperrt/.test(error.message)) {
+            input.appendChild(NS.make('p', {class: 'myx-error'}, error.message));
+            NS.log(error.message);
+            return;
+        }
+
         input.appendChild(
             NS.make(
                 'p',
@@ -63,7 +69,6 @@
 
         NS.initLayout();
         const notices = [];
-        NS.log('KoSIT-App: aktuelles GitHub-Release wird geprüft …');
         try {
             const {status} = await NS.post('/validator/status');
             NS.setMessageAreaVisible(status.message_area !== false);
@@ -74,10 +79,13 @@
             } else if (!status.enabled) {
                 notices.push('KoSIT-App ist deaktiviert. Bitte durch einen Administrator aktivieren lassen.');
             } else if (status.update_available) {
-                if (status.auto_update && status.admin && !status.check_error) {
+                if (status.auto_update && !status.check_error) {
                     NS.log('INValidator wird aktualisiert …');
-                    await NS.post('/admin/validator/install');
-                    notices.push('INValidator wurde aktualisiert.');
+                    NS.log('KoSIT-App: Release ' + status.latest + ' verfügbar.');
+                    const result = await NS.post('/validator/status', {action: 'auto_update'});
+                    if (result.update === 'deferred') notices.push('Rechnungserstellung aktiv, Update wird zurückgestellt.');
+                    else if (result.update === 'updated') notices.push('INValidator wurde aktualisiert.');
+                    else notices.push('Automatisches Update ist deaktiviert. Bitte administrativ aktualisieren.');
                 } else notices.push('KoSIT-App: Release ' + status.latest + ' verfügbar. Bitte administrativ aktualisieren.');
             }
         } catch (error) {

@@ -1,5 +1,12 @@
 # Änderungsprotokoll
 
+## 0.5.2
+
+- Administrativ erlaubte INValidator-Updates können beim Öffnen der Rechnungsansicht durch jeden angemeldeten Benutzer ausgeführt werden; Releaseprüfung nur bei eingeschalteter XML-Validierung.
+- Updates sperren neue Rechnungsvorgänge und prüfen anschließend aktive Entwürfe erneut. Bei aktiver Rechnung wird das Update zurückgestellt.
+- Nach unterbrochenen Updates verhindert eine bleibende Sperrmarkierung neue Rechnungen bis zur administrativen Prüfung; Wiederherstellung siehe Administrationsanleitung.
+- Bestehende Routen werden weiterverwendet. Reguläres App-Update durchführen und die Rechnungsansicht neu laden, damit das aktualisierte JavaScript geladen wird.
+
 ## 0.5.1
 
 - App-Store-Beschreibung überarbeitet und Dokumentationslinks aktualisiert.

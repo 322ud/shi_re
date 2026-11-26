@@ -141,7 +141,7 @@ class KositDependencyService {
             if (!rename($staging . '/inv_validator', $destination)) {
                 if (!rename($backup, $destination)) {
                     $keepBackup = true;
-                    throw new \RuntimeException('Validator-App konnte nicht wiederhergestellt werden. Sicherung: ' . $backup);
+                    throw new \RuntimeException('Validator-App konnte nicht wiederhergestellt werden. Sicherung: ' . $backup, 503);
                 }
                 throw new \RuntimeException('Validator-App konnte nicht bereitgestellt werden.');
             }
@@ -156,9 +156,12 @@ class KositDependencyService {
                     throw new \RuntimeException('Nextcloud hat das App-Update nicht abgeschlossen.');
                 }
             } catch (\Throwable $e) {
-                throw new \RuntimeException('Nextcloud-Update der Validator-App fehlgeschlagen. Neuer Code und Sicherung bleiben erhalten; Migrationen administrativ prüfen. Sicherung: ' . $backup, 0, $e);
+                throw new \RuntimeException('Nextcloud-Update der Validator-App fehlgeschlagen. Neuer Code und Sicherung bleiben erhalten; Migrationen administrativ prüfen. Sicherung: ' . $backup, 503, $e);
             }
             $keepBackup = false;
+        } catch (\Throwable $e) {
+            if ($keepBackup) throw new \RuntimeException($e->getMessage(), 503, $e);
+            throw $e;
         } finally {
             if (!$keepBackup && $staging !== null && is_dir($staging)) {
                 self::removeTemporaryTree($staging);
